@@ -49,6 +49,12 @@ Workers: append a row when you use a new source. Never delete a row.
 | CDC WONDER / NCHS | overdose deaths by state and county | public domain | wonder.cdc.gov | `health` |
 | FBI Crime Data Explorer | area-level crime counts and rates | public domain; needs api.usa.gov key (`DEMO_KEY` works at low rate) | api.usa.gov/crime/fbi/cde | `crime` |
 | City police/open-data portals | incident-level and 311 data for large cities | varies, usually open | Socrata | `crime` |
+| NCHS Drug Poisoning Mortality by State | drug-overdose deaths and age-adjusted rate by state, 1999–2016 (final) | Public Domain U.S. Government | data.cdc.gov/resource/xbxb-epbu | `health` |
+| NCHS VSRR Provisional Drug Overdose Death Counts | provisional 12-month-ending overdose deaths by state, 2015–now | Public Domain U.S. Government | data.cdc.gov/resource/xkb8-kh2a | `health` |
+| NCHS VSRR Provisional County-Level Drug Overdose Death Counts | provisional 12-month-ending overdose deaths by county, 2020–now | Public Domain U.S. Government | data.cdc.gov/resource/gb4e-yj24 | `health` |
+| CDC BRFSS Prevalence Data | state adult prevalence (depression, binge drinking) | Public Domain U.S. Government | data.cdc.gov/resource/dttw-5yxu | `health` |
+| SF DPH / OCME via DataSF | preliminary unintentional overdose deaths by month, San Francisco | DataSF open data portal; no licence field in dataset metadata | data.sfgov.org/resource/jxrr-bmra | `health` |
+| CT Office of the Chief Medical Examiner via data.ct.gov | row-level accidental drug-related deaths with town of residence | Public Domain (dataset metadata) | data.ct.gov/resource/rybz-nyjw | `health` |
 
 ## Law
 
@@ -93,3 +99,21 @@ Dead ends (do not retry):
 * `hudexchange.info` serves **404 to the default ingest User-Agent** — send a browser UA.
 * `api.census.gov` returns a *Missing Key* page for keyless ACS queries, so tract-level population
   is not obtainable without a key (no tract allocation was attempted in `hud_pit`).
+
+## coc_geometry — exact endpoints used (verified live 2026-11-19, HTTP 200)
+
+Appended by the `coc_geometry` worker. All five are US Government works / public domain; none needs a
+key. Every response is cached under `data/raw/coc_geometry/` and registered in `source`.
+
+| Source | Gives | Licence / terms | Endpoint | Ingestor |
+|---|---|---|---|---|
+| HUD CoC boundary polygons, FY2024 (`CoC_Geo_type`) | `geo_coc.geometry`, `lat`/`lon`, `data/export/coc.geojson` | US Gov work, public domain (layer `licenseInfo` is null; HUD `copyrightText` applies) | https://services.arcgis.com/VTyQ9soqVukalItT/arcgis/rest/services/CoC_Geo_Type/FeatureServer/0/query (16 pages of 25, `f=geojson&geometryPrecision=5&maxAllowableOffset=0.0005&orderByFields=OBJECTID_1`; count via `&returnCountOnly=true` -> 387) | `coc_geometry` |
+| Census 2023 cartographic boundary, state (500k) | `geo_state`, `data/export/state.geojson` | public domain | https://www2.census.gov/geo/tiger/GENZ2023/shp/cb_2023_us_state_500k.zip (3,249,332 B, 56 features) | `coc_geometry` |
+| Census 2023 cartographic boundary, place (500k) | `geo_city` (kind='place') attributes | public domain | https://www2.census.gov/geo/tiger/GENZ2023/shp/cb_2023_us_place_500k.zip (22,856,787 B, no centroid fields) | `coc_geometry` |
+| Census 2023 Gazetteer, national places | `geo_city.lat/lon` (INTPTLAT/INTPTLONG) | public domain | https://www2.census.gov/geo/docs/maps-data/data/gazetteer/2023_Gazetteer/2023_Gaz_place_national.zip (1,220,953 B) | `coc_geometry` |
+| Census PEP vintage 2024, sub-county totals | `geo_state.pop`, `geo_city.pop` (SUMLEV 040 / 162 / 170) | public domain | https://www2.census.gov/programs-surveys/popest/datasets/2020-2024/cities/totals/sub-est2024.csv (7,087,080 B) | `coc_geometry` |
+
+Notes: the `CoC_Geo_Type` layer publishes boundaries for **387** CoCs only; CoC numbers that HUD lists
+elsewhere but has no FY2024 polygon for (`where=COCNUM='NY-516'` etc.) return `features: []`, so their
+`geo_coc.geometry` is NULL by construction, not by failure. Simplification is pure-python
+Douglas-Peucker at 0.002 deg (~220 m); no shapely/GEOS/pyshp dependency anywhere.

@@ -93,7 +93,7 @@ NAV = [
     ("/index.html", "Overview"), ("/map.html", "Map"), ("/search.html", "Search"),
     ("/states.html", "States"), ("/cities.html", "Cities"), ("/orgs.html", "Organizations"),
     ("/people.html", "People"), ("/facilities.html", "Institutions"), ("/budgets.html", "Money"),
-    ("/laws.html", "Laws"), ("/media.html", "Media"), ("/docs.html", "Docs"),
+    ("/costs.html", "Costs"), ("/laws.html", "Laws"), ("/media.html", "Media"), ("/docs.html", "Docs"),
 ]
 
 # ---------------------------------------------------------------- shell

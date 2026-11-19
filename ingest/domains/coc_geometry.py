@@ -665,6 +665,7 @@ def _census_states(conn, tol):
             "fips": fips, "abbr": abbr, "name": name,
             "pop": pop["state"].get(fips),
             "lat": lat, "lon": lon, "land_sqmi": land_sqmi,
+            "source_id": src_state,
         }, keys=["fips"])
         rows.append((fips, abbr, name))
         if sg:

@@ -178,7 +178,7 @@ def _commit(conn):
 
 def _q(host, ds, soql, timeout=180):
     """Socrata SoQL GET, cached by common.fetch under data/raw/budgets/."""
-    url = f"https://{host}/resource/{ds}.json?" + urllib.parse.urlencode(soql, safe="$,()'%")
+    url = f"https://{host}/resource/{ds}.json?" + urllib.parse.urlencode(soql)
     return url, fetch_json(url, domain=DOMAIN, retries=2, timeout=timeout)
 
 

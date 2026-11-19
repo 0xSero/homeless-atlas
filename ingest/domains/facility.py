@@ -516,7 +516,8 @@ _INST_RE = {
 _BAD_TITLE_RE = re.compile(
     r"^(List of|History of|Timeline|Incarceration|Capital punishment|Prison abolition|"
     r"Prison officer|Prison gang|Category:)|(?i:library|museum|disease|cemetery|memorial|"
-    r"sheriff's office|police department|historical society|national register)", re.I)
+    r"sheriff's office|police department|historical society|national register|courthouse|"
+    r"jail museum)", re.I)
 
 
 def _plausible(title, kind):
@@ -819,13 +820,48 @@ FILL_FIELDS = ["opened", "closed", "beds", "beds_year", "staff", "staff_year", "
 
 
 _NAME_PREFIX_RE = re.compile(
-    r"^(department of state hospitals?|department of state hospital|dsh|texas department of "
-    r"criminal justice|tdcj|department of corrections|doc)\s*[-–:]?\s*", re.I)
+    r"^(department\s+(of\s+)?state\s+hospitals?|dsh|texas\s+department\s+of\s+criminal\s+"
+    r"justice|tdcj|department\s+of\s+corrections|doc)\s*[-–:]?\s*", re.I)
+
+
+_ABBREV_DISPLAY = {
+    "HLTH": "Health", "CTY": "County", "CTR": "Center", "DEPT": "Department",
+    "INST": "Institute", "CORR": "Correctional", "PSYCH": "Psychiatric", "HOSP": "Hospital",
+    "UNIV": "University", "NATL": "National", "SVCS": "Services", "REHAB": "Rehabilitation",
+    "DIV": "Division", "FAC": "Facility", "MEM": "Memorial", "REG": "Regional",
+    "VOC": "Vocational", "HOSPITAL": "Hospital", "DEVEL": "Developmental",
+    "MED": "Medical", "CNTY": "County", "ACAD": "Academy", "CTR.": "Center",
+}
+_STATE_WORD = {
+    "MS": "Mississippi", "MO": "Missouri", "TN": "Tennessee", "AL": "Alabama",
+    "GA": "Georgia", "FL": "Florida", "LA": "Louisiana", "KY": "Kentucky",
+    "VA": "Virginia", "WV": "West Virginia", "NC": "North Carolina", "SC": "South Carolina",
+    "ND": "North Dakota", "SD": "South Dakota", "NE": "Nebraska", "KS": "Kansas",
+    "OK": "Oklahoma", "AR": "Arkansas", "IA": "Iowa", "IN": "Indiana", "OH": "Ohio",
+}
+_STATE_WORD_NEXT = {"STATE", "CORRECTIONAL", "PSYCHIATRIC", "MENTAL", "DEVELOPMENTAL",
+                    "PRISON", "INSTITUTION", "HOSPITAL", "REGIONAL"}
+
+
+def display_name(name: str) -> str:
+    """Expand the abbreviations used by some inventory sources (HIFLD/all-caps data)."""
+    toks = (name or "").split()
+    out = []
+    for i, tok in enumerate(toks):
+        key = tok.strip(".,").upper()
+        nxt = toks[i + 1].strip(".,").upper() if i + 1 < len(toks) else ""
+        if key in _ABBREV_DISPLAY and tok.upper() == key:
+            out.append(_ABBREV_DISPLAY[key])
+        elif key in _STATE_WORD and nxt in _STATE_WORD_NEXT and len(tok.strip(".,")) <= 2:
+            out.append(_STATE_WORD[key])
+        else:
+            out.append(tok)
+    return " ".join(out)
 
 
 def _match_name(name: str) -> str:
     """Name used only for cross-source matching (not stored)."""
-    n = name_norm(name)
+    n = name_norm(display_name(name))
     n = _NAME_PREFIX_RE.sub("", n)
     n = re.sub(r"\b(CAMPUS|FACILITY|COMPLEX)\b", " ", n)
     return re.sub(r"\s+", " ", n).strip()
@@ -985,6 +1021,24 @@ class Merger:
     def __init__(self):
         self.recs: dict[tuple, dict] = {}
         self.grid: dict[tuple, list] = {}
+        self.by_state: dict[str, list] = {}
+
+    def _token_match(self, k, rec):
+        """Names whose token sets are in a subset relation describe the same institution
+        ('Atascadero State Hospital' / 'Department State Hospital Atascadero')."""
+        toks = set(k[0].split())
+        if not toks or not any(len(t) >= 5 for t in toks):
+            return None
+        for kk in self.by_state.get(k[1], []):
+            other = self.recs.get(kk)
+            if other is None or other is rec:
+                continue
+            if (other.get("kind") or "") != (rec.get("kind") or ""):
+                continue
+            ot = set(kk[0].split())
+            if ot and (toks <= ot or ot <= toks):
+                return kk
+        return None
 
     def _grid_keys(self, rec):
         lat, lon = rec.get("lat"), rec.get("lon")
@@ -1014,6 +1068,9 @@ class Merger:
                 cands = [kk for kk in self.recs if kk[0] == k[0] and not kk[1]]
             if len(cands) == 1:
                 return cands[0]
+        tk = self._token_match(k, rec)
+        if tk is not None:
+            return tk
         # geographic proximity + name similarity
         if rec.get("lat") is not None and rec.get("lon") is not None:
             for g in self._grid_keys(rec):
@@ -1041,6 +1098,7 @@ class Merger:
             rec.setdefault("notes", [])
             self.recs[k] = rec
             self._register_grid(rec, k)
+            self.by_state.setdefault(k[1], []).append(k)
             return k
         cur = self.recs[k]
         _merge_into(cur, rec)
@@ -1137,7 +1195,7 @@ def _find_existing(conn, name_n, state, city):
 
 
 def _write_facility(conn, rec):
-    name = clean(rec.get("name"))
+    name = display_name(clean(rec.get("name")) or "")
     if not name:
         return None
     nn = name_norm(name)
@@ -1278,6 +1336,24 @@ def run(conn, cfg):
                         other[f] = rec[f]
                 continue
         seen_names[nk] = k
+
+    # 5a-1. drop pages that are not institutions (courthouses, museums, agencies) ---------
+    junk_re = re.compile(r"courthouse|jail museum|museum$|historical society|sheriff'?s office$|"
+                         r"police department$|cemetery|monument$", re.I)
+    for k in [k for k, r in merger.recs.items() if junk_re.search(r.get("name") or "")]:
+        merger.recs.pop(k, None)
+    merger.grid, merger.by_state = {}, {}
+    for k, r in merger.recs.items():
+        merger._register_grid(r, k)
+        merger.by_state.setdefault(k[1], []).append(k)
+
+    # 5a0. juvenile institutions are recorded as 'other', not adult prisons/jails --------
+    for rec in merger.recs.values():
+        if rec.get("kind") in ("prison", "jail") and re.search(
+                r"juvenile|youth|\bJJC\b|detention cent(er|re) for", rec.get("name") or "", re.I):
+            rec["kind"] = "other"
+            rec.setdefault("notes", []).append(
+                "juvenile institution: recorded as kind 'other' (not an adult prison/jail)")
 
     # 5a. drop aggregate (non-facility) rows harvested from table totals ------------------
     agg_re = re.compile(r"^(system[- ]?wide|statewide|total|all (state )?(facilities|"
