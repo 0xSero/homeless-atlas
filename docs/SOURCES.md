@@ -117,3 +117,18 @@ Notes: the `CoC_Geo_Type` layer publishes boundaries for **387** CoCs only; CoC 
 elsewhere but has no FY2024 polygon for (`where=COCNUM='NY-516'` etc.) return `features: []`, so their
 `geo_coc.geometry` is NULL by construction, not by failure. Simplification is pure-python
 Douglas-Peucker at 0.002 deg (~220 m); no shapely/GEOS/pyshp dependency anywhere.
+
+### facility domain — sources added by the facility ingestor
+
+| Source | Used for | License | Endpoint | Domain |
+|---|---|---|---|---|
+| HIFLD Hospitals (FeatureServer) | current psychiatric-hospital inventory: name, address, city/state, bed count, owner, operating status, coordinates, per-record data vintage | US Government open data (public domain) | `services2.arcgis.com/FiaPA4ga0iQKduv3/arcgis/rest/services/Hospitals/FeatureServer/0` | `facility` |
+| HIFLD Prisons (FeatureServer) | current prison/jail inventory: capacity, custody count, security level, facility type, operating status, coordinates, per-record data vintage | US Government open data (public domain) | `services.arcgis.com/XG15cJAlne2vxtgt/arcgis/rest/services/prison/FeatureServer/0` | `facility` |
+| California Legislative Analyst's Office — *2020-21 Budget: Analysis of the Department of State Hospitals Budget* | DSH operational expenditures FY2020-21 ($2.3 B) used to derive cost per state-hospital bed-year | public record, CA state government | <https://lao.ca.gov/Publications/Report/4154> | `facility` |
+| California Legislative Analyst's Office — *State Correctional Spending Increased Despite Significant Population Reductions* | CDCR expenditures FY2019-20 ($13.3 B) and June 2019 inmate population (125,500) used to derive cost per inmate-year | public record, CA state government | <https://lao.ca.gov/Publications/Report/4145> | `facility` |
+| Treatment Advocacy Center — *Going, Going, Gone* and *Prevention Over Punishment* (state hospital bed data, 2016–2024) | reference only: cross-checking state psychiatric bed counts and the direction of bed trends; the per-state PDF pages are image-based and were not machine-extracted | TAC publication terms (cited, not redistributed) | <https://www.tac.org/wp-content/uploads/2023/11/Going-Going-Gone.pdf> | `facility` |
+
+Sources attempted and rejected for the facility domain (recorded so nobody re-tries blindly):
+`asylumprojects.org` (HTTP 403 to non-browser clients), SAMHSA N-MHSS/N-SUMHSS public-use files
+(HTTP 403), `data.cms.gov` HCRIS (HTTP 403, Akamai), `catalog.data.gov` CKAN (404),
+`nri-inc.org` (robots.txt asserts `ai-input`/`ai-train` content-signal reservations).

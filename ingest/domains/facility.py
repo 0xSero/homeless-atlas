@@ -1395,7 +1395,7 @@ def _find_existing(conn, name_n, state, city):
     return row[0] if row else None
 
 
-def _write_facility(conn, rec):
+def _write_facility(conn, rec, written=None):
     name = display_name(clean(rec.get("name")) or "")
     if not name:
         return None
@@ -1434,10 +1434,14 @@ def _write_facility(conn, rec):
             row["population_note"] = ("; ".join(
                 x for x in [row["population_note"], note] if x))[:1200]
     rid = _find_existing(conn, nn, state, city)
+    fill_only = written is not None and rid in written
     if rid:
+        if written is not None:
+            written.add(rid)
         sets = ", ".join(
             (f"{k}=CASE WHEN ? IN ('open','closed','partial') OR status IS NULL OR status='unknown' "
-             f"THEN ? ELSE status END" if k == "status" else f"{k}=?")
+             f"THEN ? ELSE status END" if k == "status" else
+             (f"{k}=COALESCE(?, {k})" if fill_only else f"{k}=?"))
             for k in row if k not in ("name", "name_norm"))
         params = []
         for k, v in row.items():
@@ -1457,6 +1461,8 @@ def _write_facility(conn, rec):
          row["state"], row["city"], row["address"], row["lat"], row["lon"], row["budget"],
          row["staff"], row["annual_cost_per_bed"], row["population_note"],
          row["source_id"], row["is_est"]))
+    if written is not None:
+        written.add(cur.lastrowid)
     return cur.lastrowid
 
 
@@ -1673,11 +1679,15 @@ def run(conn, cfg):
         records.append(base)
     notes.append(f"records_after_target_merge={len(records)}")
 
+    records.sort(key=lambda r: (0 if (r.get("provenance") or "").startswith("hifld") else 1,
+                                r.get("status") not in ("open", "closed", "partial"),
+                                -(r.get("beds") or 0)))
     ids = {}
+    written_this_run = set()
     n_written = 0
     for rec in records:
         k = _key(rec)
-        fid = _write_facility(conn, rec)
+        fid = _write_facility(conn, rec, written_this_run)
         if fid:
             ids[k] = fid
             conn.execute("INSERT OR IGNORE INTO facility_seen(run_ts, facility_id) VALUES(?,?)",
@@ -1770,12 +1780,12 @@ def run(conn, cfg):
                                           "of State Hospitals Budget",
                                     publisher="California Legislative Analyst's Office",
                                     license="Public record (CA state government)")
-                for k, r in ca:
+                for r, fid in ca:
                     conn.execute(
                         "UPDATE facility SET annual_cost_per_bed=COALESCE(annual_cost_per_bed,?), "
                         "is_est=CASE WHEN annual_cost_per_bed IS NULL THEN 1 ELSE is_est END "
-                        "WHERE id=?", (per, ids[k]))
-                    _metric(conn, ids[k], "cost_per_bed_year", per, f["year"],
+                        "WHERE id=?", (per, fid))
+                    _metric(conn, fid, "cost_per_bed_year", per, f["year"],
                             unit="USD/bed/year", is_est=1,
                             note=(f"derived: DSH operational expenditures ${f['value']:,.0f} "
                                   f"FY2020-21 divided by {beds} beds reported for California state "

@@ -54,8 +54,11 @@ def main():
     got, updated, degenerate, seen = 0, 0, 0, set()
     offset = 0
     while True:
+        # small pages + server-side generalisation: the full-resolution response is ~97 MB and
+        # the JSON comes back truncated
         q = (f"{SERVICE}?where=1%3D1&outFields=COCNUM%2CCOCNAME&returnGeometry=true&outSR=4326"
-             f"&f=json&resultOffset={offset}&resultRecordCount=200")
+             f"&geometryPrecision=4&maxAllowableOffset=0.01"
+             f"&f=json&resultOffset={offset}&resultRecordCount=25")
         payload = json.loads(fetch(q, domain="coc_geometry"))
         feats = payload.get("features") or []
         if not feats:

@@ -1,102 +1,123 @@
 """laws -- the legal landscape per state (and per surveyed large city), with citations.
 
-What this domain owns
----------------------
-Every row goes to the shared `law` table (`jurisdiction`, `topic`, `citation`, `title`,
-`summary`, `status`, `year`, `url`, `source_id`).
+Where the rows go
+-----------------
+Everything lands in the shared `law` table:
+    jurisdiction  "US" | two-letter state/DC abbr | "<City>, <ST>" (municipal survey rows)
+    topic         camping_ban | sit_lie | property | drug | mental_health_hold |
+                  encampment_clearance | funding | housing_first | other
+    citation      the statute section where the source prints one, otherwise a pinpoint
+                  locator into the source table the value was read from
+    title/summary status (enacted|enjoined|repealed|proposed) year url source_id
 
-`jurisdiction` is `US`, a two-letter state/DC abbreviation, or `"<City>, <ST>"` for the
-municipal survey rows.
+Sources actually used (every response cached under data/raw/laws/, 1 req/s via common.fetch)
+--------------------------------------------------------------------------------------------
+1. Treatment Advocacy Center state pages, https://www.tac.org/map_directory/<state>/
+   51 pages (50 states + DC), fetched one per jurisdiction = the per-state research pass.
+   Each page reproduces the *text of that state's own statutes* in an accordion:
+     "Emergency evaluation"                -> mental_health_hold, citation e.g. "ALA. CODE § 22-52-91(a)"
+     "Inpatient [and/or] commitment law"   -> mental_health_hold, separate statute section
+     "Outpatient commitment law"           -> other (assisted outpatient treatment)
+     "Recommended updates to treatment laws" -> other, status=proposed (the amendments TAC asks for)
+     substance-use words in the quoted text -> drug, citation = the section they appear in
+   Citation strings and quoted text are taken verbatim from the page; nothing is filled in
+   from memory.
 
-`topic` uses the schema's vocabulary: `camping_ban | sit_lie | property | drug |
-mental_health_hold | encampment_clearance | funding | housing_first | other`.
+2. National Homelessness Law Center, *Housing Not Handcuffs 2021: State Law Supplement* (PDF)
+   Appendix matrix: 51 jurisdictions x 12 statewide restriction categories (sleeping/camping,
+   sitting/lying, vehicle lodging, loitering/vagrancy, roadway standing, panhandling).
+   The parser is validated against the report's own printed Total row
+   (1/3/4/15/6/4/16/24/36/6/24/7); if the parse does not reproduce it exactly, no rows are
+   written and the run reports the mismatch.
 
-Sources (every response cached under `data/raw/laws/`, 1 req/s via `common.fetch`)
--------------------------------------------------------------------------------
-1. Treatment Advocacy Center state pages, `https://www.tac.org/map_directory/<state>/`
-   One page per state + DC, each carrying the *text of the state's own statutes*:
-     "Emergency evaluation"                     -> mental_health_hold
-     "Inpatient and/or outpatient commitment"   -> mental_health_hold
-     "Outpatient commitment law"                -> other (assisted outpatient treatment)
-     "Recommended updates to treatment laws"    -> other, status=proposed
-   The statute citation (`WYO. STAT. ANN. § 25-10-109(a)`) and the quoted statutory text
-   are taken verbatim from the page; nothing is filled in from memory.
-   This is the per-state research pass (51 pages, cached).
+3. National Homelessness Law Center, *Housing Not Handcuffs* (2019), Appendix A
+   "Prohibited Conduct Chart" -- 187 surveyed cities x 11 municipal ordinance categories
+   (2016 chart reproduced in the 2019 report). Validated against the chart's printed totals
+   (34/50/61/93/88/73/60/100/50/114/12); same fail-loud rule as the state matrix.
 
-2. National Homelessness Law Center, *Housing Not Handcuffs 2021: State Law Supplement*
-   `https://homelesslaw.org/wp-content/uploads/2022/02/2021-HNH-State-Crim-Supplement.pdf`
-   Appendix matrix: 51 jurisdictions x 12 statewide criminalization categories (camping,
-   sleeping, sitting/lying, vehicle habitation, loitering/vagrancy, roadway solicitation,
-   panhandling).  The counts we parse are cross-checked against the report's own "Total"
-   row (1/3/4/15/6/4/16/24/36/6/24/7) and the run fails loudly on mismatch.
+4. National Homelessness Law Center, *One year since Grants Pass* (May 2025 update, PDF)
+   Per-state status of 2024-25 statewide bills: Cicero-model bills enacted / defeated /
+   pending, Missouri's struck-down Cicero statute, non-Cicero measures passed or defeated,
+   the Gloria Johnson Act state list, "drug-free service zone" bills, workhouse bills,
+   California AB 20 and the state Housing First mandate.
 
-3. National Homelessness Law Center, *Housing Not Handcuffs* (2019)
-   `https://homelesslaw.org/wp-content/uploads/2018/10/Housing-Not-Handcuffs.pdf`
-   Appendix A "Prohibited Conduct Chart": 187 surveyed cities x 11 ordinance categories.
-   Counts cross-checked against the chart's own totals
-   (34/50/61/93/88/73/60/100/50/114/12).
+5. NLIHC, *Successfully Fighting Against State and Local Homelessness Criminalization Bills*
+   State-specific bill facts with bill numbers (GA SB 62, KS HB 2430, MO HB 1606 struck down,
+   MO SB 1336, IN/IA bills) and the states where criminalization bills were defeated.
 
-4. National Homelessness Law Center, *one year since Grants Pass* state legislation update
-   `https://housingnothandcuffs.org/wp-content/uploads/2025/06/Cicero-Homeless-Criminalization-Summary-May-2025.pdf`
-   Per-state status of 2024-25 statewide bills (enacted / defeated / pending / struck down).
-   The report gives no bill numbers; `summary` quotes the sentence we read.
+6. Cornell LII: *City of Grants Pass v. Johnson* (2024, No. 23-175),
+   24 CFR 578.7 (CoC Housing First requirement), 42 U.S.C. § 11302 (McKinney-Vento definition).
 
-5. Supreme Court, *City of Grants Pass v. Johnson* (2024) via Cornell LII
-   `https://www.law.cornell.edu/supremecourt/text/23-175` -- the Eighth Amendment holding and
-   the 9th Circuit rule it displaces (*Martin v. Boise*, 920 F. 3d 584, quoted on that page).
+7. NLIHC "Housing First" issue page -- the federal/state adoption summary (context row).
 
-6. HUD CoC program interim rule via Cornell LII, `https://www.law.cornell.edu/cfr/text/24/578.7`
-   -- the federal Housing First / written-standards requirement.
+Nothing here is scraped from behind a login. Blocked/absent sources are recorded in
+research/laws.md (with the reason) and BLOCKERS.md.
 
-Blocked (see BLOCKERS.md `## laws`): Justia, FindLaw, Casetext, NY Senate, NCSL, SAMHSA,
-CourtListener API, leginfo.legislature.ca.gov -- all 403/401 from this host, which is why the
-statute *text* for the criminalization rows is not re-verified at the state site; the survey
-pinpoint is the citation we can stand behind.
+Idempotency: upsert on (jurisdiction, citation, title); rerunning rewrites the same rows.
+Resumability: per-task progress in `laws_progress`, so a killed run resumes where it stopped
+(pass {"force": 1} to redo everything).
 
-Run:  python3 -m ingest.run laws      (idempotent; upserts on jurisdiction+citation+title)
+Run:  python3 -m ingest.domains.laws --selftest
+      python3 -m ingest.run laws
 """
 from __future__ import annotations
 
 import hashlib
 import html as htmllib
-import json
 import os
 import re
 import subprocess
 import sys
 import tempfile
 
-from ingest.common import (RAW, clean, db, fetch, name_norm, now, save_raw, source_id_for,
-                           to_int, upsert)
+from ingest.common import (RAW, clean, db, fetch, now, save_raw, source_id_for, to_int,
+                           upsert)
 
 DOMAIN = "laws"
 
 UA = ("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) "
       "Chrome/124.0.0.0 Safari/537.36")
 
-TAC_URL = "https://www.tac.org/map_directory/{slug}/"
+TAC_PAGE = "https://www.tac.org/map_directory/{slug}/"
 
 URL_HNH2021 = "https://homelesslaw.org/wp-content/uploads/2022/02/2021-HNH-State-Crim-Supplement.pdf"
 URL_HNH2019 = "https://homelesslaw.org/wp-content/uploads/2018/10/Housing-Not-Handcuffs.pdf"
 URL_HNH2025 = ("https://housingnothandcuffs.org/wp-content/uploads/2025/06/"
                "Cicero-Homeless-Criminalization-Summary-May-2025.pdf")
+URL_NLIHC_FIGHT = ("https://nlihc.org/sites/default/files/"
+                   "Successfully-Fighting-Against-State-and-Local-Homelessness-Criminalization-Bills.pdf")
 URL_GRANTS_PASS = "https://www.law.cornell.edu/supremecourt/text/23-175"
 URL_CFR_578_7 = "https://www.law.cornell.edu/cfr/text/24/578.7"
+URL_USC_11302 = "https://www.law.cornell.edu/uscode/text/42/11302"
+URL_NLIHC_HF = "https://nlihc.org/explore-issues/housing-programs/housing-first"
 
-LIC_TAC = ("Treatment Advocacy Center state pages; statutory text is public record; page "
-           "reproduced with attribution (no explicit licence published, robots.txt allows)")
+T_HNH2021 = "Housing Not Handcuffs 2021: State Law Supplement"
+P_HNH2021 = "National Homelessness Law Center"
+T_HNH2019 = ("Housing Not Handcuffs: Ending the Criminalization of Homelessness in U.S. Cities "
+             "(2019), Appendix A")
+P_HNH2019 = "National Law Center on Homelessness & Poverty (now National Homelessness Law Center)"
+T_HNH2025 = "One year since Grants Pass: increase in laws that make it a crime to be homeless"
+P_HNH2025 = "National Homelessness Law Center / Housing Not Handcuffs"
+T_NLIHC_FIGHT = ("Successfully Fighting Against State and Local Homelessness Criminalization Bills")
+P_NLIHC_FIGHT = "National Low Income Housing Coalition"
+
+LIC_TAC = ("Treatment Advocacy Center state pages; the statutory text they quote is public record; "
+           "page reproduced with attribution (no explicit licence published)")
 LIC_NHLC = ("Public advocacy report; statutory citations are public record. "
             "Cited and linked, not reproduced in bulk.")
-LIC_LII = "Public record (U.S. court opinion / Code of Federal Regulations); LII terms permit linking"
+LIC_LII = ("Public record (U.S. court opinion / Code of Federal Regulations / U.S. Code); "
+           "Cornell LII terms permit linking")
+LIC_NLIHC = "Public advocacy report; quoted with attribution, not reproduced in bulk"
 
-# 12 columns of the HNH-2021 state appendix, left to right as printed.
+# ---------------------------------------------------------------------------
+# Housing Not Handcuffs 2021: the 12 statewide categories, left to right as printed.
 HNH2021_COLS = [
     ("Sleeping in public -- statewide", "camping_ban"),
     ("Sleeping in public -- particular public places", "camping_ban"),
     ("Camping in public -- statewide", "camping_ban"),
     ("Camping in public -- particular public places", "camping_ban"),
     ("Sitting / lying down in public -- particular public places", "sit_lie"),
-    ("Lodging, living or sleeping in a vehicle", "property"),
+    ("Lodging, living or sleeping in a vehicle (or parking a vehicle used as lodging)", "property"),
     ("Loitering / loafing / vagrancy -- statewide", "other"),
     ("Loitering / loafing in particular public places", "other"),
     ("Standing in roadway (solicitation / pedestrian)", "panhandling"),
@@ -104,10 +125,9 @@ HNH2021_COLS = [
     ("Panhandling -- particular public places", "panhandling"),
     ("Panhandling -- particular ways", "panhandling"),
 ]
-# the report's own totals row, used as a parse checksum
 HNH2021_TOTALS = [1, 3, 4, 15, 6, 4, 16, 24, 36, 6, 24, 7]
 
-# 11 columns of the HNH-2019 city chart, left to right as printed.
+# Housing Not Handcuffs 2019 city chart: 11 municipal categories, left to right as printed.
 HNH2019_COLS = [
     ("Sleeping in public -- city-wide", "camping_ban"),
     ("Sleeping in public -- particular public places", "camping_ban"),
@@ -123,18 +143,31 @@ HNH2019_COLS = [
 ]
 HNH2019_TOTALS = [34, 50, 61, 93, 88, 73, 60, 100, 50, 114, 12]
 
-CONT = {"Columbia", "Hampshire", "Mexico", "Jersey", "Carolina", "Dakota", "Island", "Virginia"}
+# name fragments that appear on their own line when a two-word state name wraps
+CONT = {"Columbia", "Hampshire", "Mexico", "Jersey", "Carolina", "Dakota", "Island"}
+PREFIX = {"New", "North", "South", "Rhode", "West", "District"}
+
+STATE_NAMES = [
+    "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut",
+    "Delaware", "District of Columbia", "Florida", "Georgia", "Hawaii", "Idaho", "Illinois",
+    "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana", "Maine", "Maryland", "Massachusetts",
+    "Michigan", "Minnesota", "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada",
+    "New Hampshire", "New Jersey", "New Mexico", "New York", "North Carolina", "North Dakota",
+    "Ohio", "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island", "South Carolina",
+    "South Dakota", "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington",
+    "West Virginia", "Wisconsin", "Wyoming",
+]
 
 WROTE = [0]
 NOTES: list[str] = []
 
 
-# --------------------------------------------------------------------- utilities
-def _fetch(url: str, *, title: str, publisher: str, license: str, binary=False) -> bytes:
-    """fetch through common (1 req/s, cache) and mirror the bytes under the sha1(url) name
-    so source_id_for() can record size + sha256 for this URL."""
+# --------------------------------------------------------------------- plumbing
+def _fetch(url: str, *, binary=False, timeout=300) -> bytes:
+    """fetch via common (1 req/s, disk cache) and mirror the bytes under sha1(url).bin so
+    source_id_for() can record size + sha256 for this exact URL."""
     b = fetch(url, domain=DOMAIN, headers={"User-Agent": UA, "Accept": "*/*"},
-              timeout=300, binary=binary)
+              timeout=timeout, binary=binary)
     p = RAW / DOMAIN / (hashlib.sha1(url.encode()).hexdigest() + ".bin")
     if not p.exists() or p.stat().st_size == 0:
         p.write_bytes(b)
@@ -146,7 +179,7 @@ def _sid(conn, url: str, *, title: str, publisher: str, license: str) -> int:
 
 
 def _ws(s: str) -> str:
-    return re.sub(r"\s+", " ", s).strip()
+    return re.sub(r"\s+", " ", s or "").strip()
 
 
 def _clip(s: str | None, n=900) -> str | None:
@@ -157,18 +190,25 @@ def _clip(s: str | None, n=900) -> str | None:
 
 
 def _law(conn, *, jurisdiction, topic, citation, title, summary, status, url, sid,
-         year=None) -> None:
-    """upsert one law row; refuses rows without the two provenance fields."""
-    if not citation or not url or not jurisdiction or not title:
-        return
-    upsert(conn, "law", dict(jurisdiction=jurisdiction, topic=topic, citation=clean(citation),
-                             title=clean(title), summary=_clip(summary), status=status,
-                             year=to_int(year), url=url, source_id=sid),
+         year=None) -> bool:
+    """Upsert one law row. Refuses rows without a citation or a url (provenance gate)."""
+    if not (citation and url and jurisdiction and title):
+        return False
+    upsert(conn, "law", dict(jurisdiction=jurisdiction, topic=topic,
+                             citation=_clip(clean(citation), 400),
+                             title=_clip(clean(title), 400), summary=_clip(summary),
+                             status=status, year=to_int(year), url=url, source_id=sid),
            keys=["jurisdiction", "citation", "title"])
     WROTE[0] += 1
+    return True
 
 
 def _ensure(conn):
+    row = conn.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='laws_progress'"
+                       ).fetchone()
+    if row and "PRIMARY KEY" not in (row[0] or "").upper():
+        # an earlier build created this without a key; ON CONFLICT would fail
+        conn.execute("DROP TABLE laws_progress")
     conn.executescript("""
     CREATE TABLE IF NOT EXISTS laws_progress (
       task TEXT PRIMARY KEY, ts TEXT, ok INTEGER, note TEXT);
@@ -178,7 +218,7 @@ def _ensure(conn):
 def _mark(conn, task, ok, note=""):
     conn.execute("INSERT INTO laws_progress(task,ts,ok,note) VALUES(?,?,?,?) "
                  "ON CONFLICT(task) DO UPDATE SET ts=excluded.ts,ok=excluded.ok,note=excluded.note",
-                 (task, now(), 1 if ok else 0, note[:900]))
+                 (task, now(), 1 if ok else 0, _ws(note)[:900]))
     conn.commit()
 
 
@@ -187,506 +227,663 @@ def _done(conn, task) -> bool:
     return bool(r and r[0])
 
 
-# ------------------------------------------------------------------------- TAC parse
-def _html_sections(page: str) -> list[tuple[str, str]]:
-    """[(h2 heading text, raw inner html)] in document order."""
-    parts = re.split(r"(<h2[^>]*>.*?</h2>)", page, flags=re.S | re.I)
-    out, cur = [], None
-    for p in parts:
-        if re.match(r"<h2", p, re.I):
-            cur = _ws(htmllib.unescape(re.sub(r"<[^>]+>", " ", p)))
-        elif cur is not None:
-            out.append((cur, p))
-    return out
-
-
+# ------------------------------------------------------------------- HTML helpers
 def _flat(h: str) -> str:
-    h = re.sub(r"<(script|style)[^>]*>.*?</\1>", " ", h, flags=re.S | re.I)
+    h = re.sub(r"<(script|style)[^>]*>.*?</\1>", " ", h or "", flags=re.S | re.I)
     return _ws(htmllib.unescape(re.sub(r"<[^>]+>", " ", h)))
 
 
+# "ALA. CODE § 22-52-91(a)", "N.Y. MENTAL HYG. LAW § 9.27", "CALIF. WELF. & INST. CODE § 5150.05"
 _CITE_RE = re.compile(r"([A-Z][A-Z0-9.,'\u2019&/\- ]{3,70}?)\s*§+\s*([0-9][0-9A-Za-z.\-:]*)")
 _CITE_LEAD = re.compile(r"^(?:AND|OR|SEE|SEE ALSO|AMEND|ADD|REPEAL|ENACT|EFFECTIVE|NOTE)\s+", re.I)
+SUD_WORDS = re.compile(r"substance use|substance-use|alcoholi|alcohol abuse|drug depend|"
+                       r"intoxicat|chemical depend|substance abuse", re.I)
 
 
 def _cites(text: str) -> list[str]:
-    """statute citations as printed, e.g. 'WYO. STAT. ANN. § 25-10-109(a)'."""
-    out = []
-    for m in _CITE_RE.finditer(text):
+    """Statute citations exactly as printed, e.g. 'WYO. STAT. ANN. § 25-10-110'."""
+    out: list[str] = []
+    for m in _CITE_RE.finditer(text or ""):
         code = _CITE_LEAD.sub("", m.group(1).strip())
-        # keep only the last ~7 words of the code prefix (some sections run sentences together)
         code = " ".join(code.split()[-7:]).strip(" ,;:")
         if len(code) < 4:
             continue
-        # the printed citation usually continues with a subsection like "(a)"
-        tail = text[m.end():m.end() + 14]
-        sub = re.match(r"(\([0-9a-zA-Z]{1,3}\))", tail)
-        cite = f"{code} § {m.group(2)}{sub.group(1) if sub else ''}"
+        sub = re.match(r"(\([0-9a-zA-Z]{1,3}\))", text[m.end():m.end() + 6])
+        cite = f"{code} § {m.group(2)}{sub.group(1) if sub else ''}".rstrip(".")
         if cite not in out:
             out.append(cite)
     return out
 
 
-def _year_near(text: str, citation: str) -> int | None:
-    i = text.find(citation.split("§")[-1].strip().split("(")[0])
-    if i < 0:
-        return None
-    seg = text[i:i + 160]
-    m = re.search(r"\b(19[6-9]\d|20[0-4]\d)\b", seg)
-    return int(m.group(1)) if m else None
-
-
-SUD_WORDS = re.compile(r"substance use|substance-use|alcoholi|alcohol abuse|drug depend|"
-                       r"intoxicat|chemical depend|substance abuse", re.I)
-
-
+# --------------------------------------------------------------- 1. TAC state pass
 def tac_state(conn, abbr: str, name: str) -> int:
-    """one state's TAC page -> up to 5 law rows. Returns rows written."""
+    """One state's Treatment Advocacy Center page -> up to 5 law rows."""
     slug = "district-of-columbia" if abbr == "DC" else name.lower().replace(" ", "-")
-    url = TAC_URL.format(slug=slug)
+    url = TAC_PAGE.format(slug=slug)
+    title = f"{name} Serious Mental Illness Resources & Helpful Info"
     before = WROTE[0]
     try:
-        page = _fetch(url, title=f"{name} Serious Mental Illness Resources & Helpful Info",
-                      publisher="Treatment Advocacy Center", license=LIC_TAC).decode(
-                          "utf-8", "replace")
-    except Exception as e:  # noqa
-        NOTES.append(f"{abbr}: TAC page failed ({repr(e)[:80]})")
-        _mark(conn, f"tac:{abbr}", False, repr(e)[:200])
+        page = _fetch(url, timeout=180).decode("utf-8", "replace")
+    except Exception as e:  # noqa: BLE001
+        NOTES.append(f"{abbr}: TAC page failed ({repr(e)[:90]})")
+        _mark(conn, f"tac:{abbr}", False, repr(e)[:180])
+        return 0
+    if "commitment" not in page.lower():
+        NOTES.append(f"{abbr}: TAC page carried no treatment-law content")
+        _mark(conn, f"tac:{abbr}", False, "no content")
         return 0
 
-    sid = _sid(conn, url, title=f"{name} Serious Mental Illness Resources & Helpful Info",
-               publisher="Treatment Advocacy Center", license=LIC_TAC)
-    secs = _html_sections(page)
-    found = {}
-    for head, body in secs:
+    sid = _sid(conn, url, title=title, publisher="Treatment Advocacy Center", license=LIC_TAC)
+
+    # --- statute sections (accordion items)
+    found: dict[str, str] = {}
+    for item in re.split(r'<div class="accordion__item">', page)[1:]:
+        m = re.search(r"<h2[^>]*>(.*?)</h2>", item, re.S)
+        head = _flat(m.group(1)) if m else ""
+        body = _flat(item)
         hl = head.lower()
         if "emergency evaluation" in hl:
-            found.setdefault("emergency", _flat(body))
+            found.setdefault("emergency", body)
+        elif "inpatient" in hl and "commitment" in hl:
+            # "Inpatient commitment law", "Inpatient and outpatient commitment law",
+            # "Inpatient or outpatient commitment law" -- check this BEFORE 'outpatient',
+            # otherwise the combined heading is swallowed by the outpatient branch.
+            found.setdefault("inpatient", body)
         elif "outpatient commitment" in hl:
-            found.setdefault("outpatient", _flat(body))
-        elif "commitment law" in hl and "inpatient" in hl:
-            found.setdefault("inpatient", _flat(body))
-        elif "recommended updates" in hl:
-            found.setdefault("reform", _flat(body))
-
-    if not found:
-        NOTES.append(f"{abbr}: TAC page had no treatment-law sections")
-        _mark(conn, f"tac:{abbr}", False, "no sections")
-        return 0
+            found.setdefault("outpatient", body)
 
     specs = [
-        ("emergency", "mental_health_hold", "Emergency evaluation / emergency detention",
+        ("emergency", "mental_health_hold", "Emergency evaluation / emergency detention statute",
          "enacted"),
-        ("inpatient", "mental_health_hold", "Inpatient / outpatient civil commitment", "enacted"),
-        ("outpatient", "other", "Outpatient (assisted outpatient) commitment", "enacted"),
+        ("inpatient", "mental_health_hold", "Inpatient civil commitment statute", "enacted"),
+        ("outpatient", "other", "Outpatient (assisted outpatient) commitment statute", "enacted"),
     ]
-    for key, topic, title, status in specs:
+    for key, topic, rtitle, status in specs:
         body = found.get(key)
         if not body:
+            NOTES.append(f"{abbr}: TAC section '{key}' missing")
             continue
         cs = _cites(body)
         if not cs:
+            NOTES.append(f"{abbr}: TAC section '{key}' had no printed statute citation")
             continue
-        _law(conn, jurisdiction=abbr, topic=topic, citation=cs[0], title=title,
-             summary=f"{name}: {body}", status=status,
-             year=_year_near(body, cs[0]), url=url, sid=sid)
+        _law(conn, jurisdiction=abbr, topic=topic, citation=cs[0], title=rtitle,
+             summary=(f"{name}. Statute section as published by the Treatment Advocacy Center, "
+                      f"with the state's statutory text quoted on the page: “{body[:620]}”"),
+             status=status, url=url, sid=sid)
 
-    # substance use as a commitment basis: only when the quoted statute says so
-    sud_body = None
+    # --- substance use as a commitment basis: only when the quoted statute names it
     for key in ("inpatient", "emergency", "outpatient"):
         body = found.get(key) or ""
         m = SUD_WORDS.search(body)
-        if m:
-            cs = _cites(body)
-            if cs:
-                sud_body = (cs[0], body)
-                break
-    if sud_body:
-        cite, body = sud_body
-        m = SUD_WORDS.search(body)
-        snippet = body[max(0, m.start() - 220): m.start() + 420]
-        _law(conn, jurisdiction=abbr, topic="drug",
-             citation=cite, title="Substance use disorder as a basis for civil commitment",
-             summary=f"{name}: statute text quoted by TAC names substance use -- …{snippet}",
-             status="enacted", year=_year_near(body, cite), url=url, sid=sid)
+        cs = _cites(body)
+        if not (m and cs):
+            continue
+        snippet = body[max(0, m.start() - 200): m.start() + 380]
+        _law(conn, jurisdiction=abbr, topic="drug", citation=cs[0],
+             title="Substance use disorder named as a basis for civil commitment",
+             summary=(f"{name}: the statute text quoted on this page includes substance use — "
+                      f"“…{snippet}…”"),
+             status="enacted", url=url, sid=sid)
+        break
 
-    # TAC's own legislative recommendations (status=proposed), citation = the statute it would amend
-    reform = found.get("reform")
-    if reform:
-        cs = _cites(reform)
+    # --- TAC's own recommended amendments (status=proposed)
+    i = page.find("Recommended updates to treatment laws")
+    if i > 0:
+        block = page[i:i + 30000]
+        end = block.find("map__single-footer-boxes")
+        if end > 0:
+            block = block[:end]
+        rec = _flat(re.sub(r"</li>", "; ", block))
+        cs = _cites(rec)
         if cs:
             _law(conn, jurisdiction=abbr, topic="other",
                  citation="; ".join(cs[:4]),
                  title="Treatment Advocacy Center recommended statutory amendments",
-                 summary=f"{name}: {reform}", status="proposed", url=url, sid=sid)
+                 summary=f"{name}. The Center's published recommendations for this state: “{rec[:700]}”",
+                 status="proposed", url=url, sid=sid)
+        else:
+            _law(conn, jurisdiction=abbr, topic="other",
+                 citation=f"TAC state page, section 'Recommended updates to treatment laws' ({abbr})",
+                 title="Treatment Advocacy Center recommended statutory amendments",
+                 summary=f"{name}. The Center's published recommendations for this state: “{rec[:700]}”",
+                 status="proposed", url=url, sid=sid)
 
     n = WROTE[0] - before
     _mark(conn, f"tac:{abbr}", n > 0, f"{n} rows; sections={sorted(found)}")
     return n
 
 
-# -------------------------------------------------------------------- PDF helpers
-def _pdf_text(pdf: bytes, name: str) -> str:
+# --------------------------------------------------------------------- PDF helpers
+def _pdf_text(conn, url: str, name: str, *, title: str, publisher: str, license: str) -> str:
+    """download (cached) + pdftotext -layout; keep the .txt next to the pdf for reuse."""
+    pdf = _fetch(url, binary=True)
     p = save_raw(DOMAIN, name, pdf)
-    with tempfile.NamedTemporaryFile(suffix=".txt", delete=False) as tf:
-        outp = tf.name
-    try:
-        subprocess.run(["pdftotext", "-layout", str(p), outp], check=True,
-                       capture_output=True, timeout=300)
-        with open(outp, encoding="utf-8", errors="replace") as f:
-            return f.read()
-    finally:
+    txt_path = p.with_suffix(".txt")
+    if not txt_path.exists() or txt_path.stat().st_size == 0:
+        with tempfile.NamedTemporaryFile(suffix=".txt", delete=False) as tf:
+            outp = tf.name
         try:
-            os.unlink(outp)
-        except OSError:
-            pass
-
-
-def _cluster(pos: list[int], tol=4) -> list[int]:
-    """cluster sorted character offsets into column centres."""
-    centres: list[list[int]] = []
-    for p in sorted(pos):
-        if centres and p - centres[-1][-1] <= tol:
-            centres[-1].append(p)
-        else:
-            centres.append([p])
-    return [sum(c) // len(c) for c in centres]
+            subprocess.run(["pdftotext", "-layout", str(p), outp], check=True,
+                           capture_output=True, timeout=600)
+            with open(outp, "rb") as f:
+                txt_path.write_bytes(f.read())
+        finally:
+            try:
+                os.unlink(outp)
+            except OSError:
+                pass
+    return txt_path.read_text(encoding="utf-8", errors="replace")
 
 
 def _xpos(line: str) -> list[int]:
     return [m.start() for m in re.finditer(r"(?:(?<=\s)|^)[xX](?=\s|$)", line)]
 
 
-# ------------------------------------------------------- HNH 2021 (state matrix)
+def _cluster(pos: list[int], tol: int) -> list[int]:
+    groups: list[list[int]] = []
+    for p in sorted(pos):
+        if groups and p - groups[-1][-1] <= tol:
+            groups[-1].append(p)
+        else:
+            groups.append([p])
+    return [round(sum(g) / len(g)) for g in groups]
+
+
+def _col_of(centres: list[int], p: int) -> int:
+    return min(range(len(centres)), key=lambda k: abs(centres[k] - p))
+
+
+# --------------------------------------- 2. HNH 2021 state criminalization matrix
 def hnh2021(conn, states: dict[str, str]) -> int:
-    """51 jurisdictions x 12 statewide categories -> law rows."""
     before = WROTE[0]
-    url = URL_HNH2021
-    title = "Housing Not Handcuffs 2021: State Law Supplement"
-    pub = "National Homelessness Law Center"
-    pdf = _fetch(url, title=title, publisher=pub, license=LIC_NHLC, binary=True)
-    sid = _sid(conn, url, title=title, publisher=pub, license=LIC_NHLC)
-    text = _pdf_text(pdf, "hnh2021-state-law-supplement.pdf")
+    text = _pdf_text(conn, URL_HNH2021, "hnh2021-state-law-supplement.pdf",
+                     title=T_HNH2021, publisher=P_HNH2021, license=LIC_NHLC)
+    sid = _sid(conn, URL_HNH2021, title=T_HNH2021, publisher=P_HNH2021, license=LIC_NHLC)
 
     i = text.find("APPENDIX: Criminalization of Homelessness")
     if i < 0:
         NOTES.append("HNH2021: appendix heading not found")
+        _mark(conn, "hnh2021", False, "no appendix")
         return 0
     block = text[i:].split("\n")
-
-    # find the first data row, then cluster the x offsets of everything after it
     start = next((k for k, l in enumerate(block) if l.strip().startswith("Alabama")), None)
     if start is None:
-        NOTES.append("HNH2021: no data rows")
+        NOTES.append("HNH2021: no data rows found")
+        _mark(conn, "hnh2021", False, "no rows")
         return 0
     body = block[start:]
-    allpos = [p for l in body for p in _xpos(l)]
-    centres = _cluster(allpos)
+    centres = _cluster([p for l in body for p in _xpos(l)], tol=6)
     if len(centres) != len(HNH2021_COLS):
-        NOTES.append(f"HNH2021: found {len(centres)} columns, expected {len(HNH2021_COLS)}")
+        NOTES.append(f"HNH2021: parsed {len(centres)} columns, expected {len(HNH2021_COLS)}")
+        _mark(conn, "hnh2021", False, f"{len(centres)} columns")
         return 0
 
-    def col_of(p):
-        return min(range(len(centres)), key=lambda k: abs(centres[k] - p))
+    by_name: dict[str, list[int]] = {}
+    pending: tuple[str, list[int]] | None = None
+    for line in body:
+        marks = _xpos(line)
+        head = line[: marks[0]].strip() if marks else line.strip()
+        if not marks:
+            if pending and head in CONT:
+                by_name[(pending[0] + " " + head).replace("District of", "District")] = pending[1]
+                pending = None
+            elif head in STATE_NAMES:
+                by_name[head] = []
+            elif head in PREFIX:
+                pending = (head, [])
+            continue
+        word = head.replace(" of", "").split()[0] if head else ""
+        if pending and head in CONT:
+            by_name[(pending[0] + " " + head).replace("District of", "District")] = marks
+            pending = None
+        elif head in STATE_NAMES:
+            by_name[head] = marks
+            pending = None
+        elif word in PREFIX:
+            pending = (head, marks)
+        else:
+            NOTES.append(f"HNH2021: unrecognised row {line[:40]!r}")
 
     name2abbr = {v: k for k, v in states.items()}
-    name2abbr.setdefault("District Columbia", "DC")
-    by_name: dict[str, list[int]] = {}
-    pending = None  # (prefix, marks) while a two-word state name is split over two lines
-    for line in body:
-        s = line.strip()
-        if not s:
-            continue
-        m = re.match(r"^([A-Z][a-zA-Z]+(?: of)?(?: [A-Z][a-zA-Z]+)?)", s)
-        nm = m.group(1) if m else ""
-        marks = [col_of(p) for p in _xpos(line)]
-        if nm in name2abbr:                       # full name on one line
-            by_name[nm] = marks
-            pending = None
-        elif s in CONT and pending:               # second half of a split state name
-            by_name[f"{pending[0]} {s}"] = pending[1]
-            pending = None
-        elif nm.split(" of")[0] in ("New", "North", "South", "Rhode", "West", "District"):
-            pending = (nm.replace(" of", ""), marks)
-
-    rows = 0
+    name2abbr["District Columbia"] = "DC"
     per_col = [0] * len(HNH2021_COLS)
-    seen: set[tuple[str, int]] = set()
+    plan: list[tuple[str, int, str]] = []
     for nm, marks in by_name.items():
         abbr = name2abbr.get(nm)
         if not abbr:
             continue
-        for c in sorted(set(marks)):
-            if (abbr, c) in seen:
-                continue
-            seen.add((abbr, c))
+        for c in sorted({_col_of(centres, p) for p in marks}):
             per_col[c] += 1
-            label, topic = HNH2021_COLS[c]
-            _law(conn, jurisdiction=abbr, topic=topic,
-                 citation=f"HNH 2021 State Law Supplement, App. col. {c + 1} ({label})",
-                 title=f"Statewide restriction: {label}",
-                 summary=(f"National Homelessness Law Center's 50-state + DC review of state codes "
-                          f"finds a {nm} statute restricting {label.lower()}. Report column {c + 1}; "
-                          f"the report prints an 'x' for this state/category. Underlying statute "
-                          f"number is not printed for this cell by the source; see the report's "
-                          f"footnotes for the representative citations it does give."),
-                 status="enacted", year=2021, url=url, sid=sid)
-            rows += 1
+            plan.append((abbr, c, nm))
 
     if per_col != HNH2021_TOTALS:
-        NOTES.append(f"HNH2021 checksum mismatch: parsed {per_col} vs printed {HNH2021_TOTALS}")
-    else:
-        NOTES.append(f"HNH2021 matrix checksum OK {per_col}")
-    _mark(conn, "hnh2021", rows > 0, f"{rows} rows, cols={per_col}")
+        # the matrix is the whole point of this source: never ship a bad parse
+        NOTES.append(f"HNH2021 CHECKSUM FAILED: parsed {per_col} vs printed {HNH2021_TOTALS}; "
+                     f"rows not written")
+        _mark(conn, "hnh2021", False, f"checksum {per_col}")
+        return 0
+
+    for abbr, c, nm in plan:
+        label, topic = HNH2021_COLS[c]
+        _law(conn, jurisdiction=abbr, topic=topic,
+             citation=f"HNH 2021 State Law Supplement, Appendix column {c + 1} ({label})",
+             title=f"Statewide restriction: {label}",
+             summary=(f"{nm}: the Law Center's 50-state + DC review of state codes marks this "
+                      f"jurisdiction as having a statewide statute restricting "
+                      f"{label.lower().replace('--', '—')} (appendix column {c + 1}, printed "
+                      f"“x”). The report does not print the underlying section number for "
+                      f"this cell; the state's code is the place to confirm the text. The "
+                      f"report notes it does not claim these statutes are enforced."),
+             status="enacted", year=2021, url=URL_HNH2021, sid=sid)
+    rows = len(plan)
+    _mark(conn, "hnh2021", rows > 0, f"{rows} rows, per-column {per_col} == printed totals")
+    NOTES.append(f"HNH2021 matrix checksum OK {per_col} ({rows} rows, {len(by_name)} jurisdictions)")
     return WROTE[0] - before
 
 
-# --------------------------------------------------------- HNH 2019 (city chart)
+# --------------------------------------------- 3. HNH 2019 municipal conduct chart
 def hnh2019(conn) -> int:
     before = WROTE[0]
-    url = URL_HNH2019
-    title = "Housing Not Handcuffs: Ending the Criminalization of Homelessness in U.S. Cities"
-    pub = "National Law Center on Homelessness & Poverty (now National Homelessness Law Center)"
-    pdf = _fetch(url, title=title, publisher=pub, license=LIC_NHLC, binary=True)
-    sid = _sid(conn, url, title=title, publisher=pub, license=LIC_NHLC)
-    text = _pdf_text(pdf, "housing-not-handcuffs-2019.pdf")
+    text = _pdf_text(conn, URL_HNH2019, "housing-not-handcuffs-2019.pdf",
+                     title="Housing Not Handcuffs: Ending the Criminalization of Homelessness "
+                           "in U.S. Cities", publisher=P_HNH2019, license=LIC_NHLC)
+    sid = _sid(conn, URL_HNH2019, title=T_HNH2019, publisher=P_HNH2019, license=LIC_NHLC)
 
     a = text.find("APPENDIX A: Prohibited Conduct Chart")
     b = text.find("APPENDIX B:", a)
     if a < 0:
         NOTES.append("HNH2019: appendix A not found")
+        _mark(conn, "hnh2019", False, "no appendix")
         return 0
-    block = text[a: b if b > 0 else a + 200000].split("\n")
-    start = next((k for k, l in enumerate(block) if re.search(r"^\s*[A-Z]{2}\s{2,}\S", l)), None)
+    block = text[a: b if b > 0 else a + 400000].split("\n")
+    start = next((k for k, l in enumerate(block) if re.match(r"^\s*[A-Z]{2}\s{2,}\S", l)), None)
     if start is None:
-        NOTES.append("HNH2019: no city rows")
+        NOTES.append("HNH2019: no city rows found")
+        _mark(conn, "hnh2019", False, "no rows")
         return 0
     body = block[start:]
-    centres = _cluster([p for l in body for p in _xpos(l)])
+    centres = _cluster([p for l in body for p in _xpos(l)], tol=4)
     if len(centres) != len(HNH2019_COLS):
-        NOTES.append(f"HNH2019: {len(centres)} columns, expected {len(HNH2019_COLS)}")
+        NOTES.append(f"HNH2019: parsed {len(centres)} columns, expected {len(HNH2019_COLS)}")
+        _mark(conn, "hnh2019", False, f"{len(centres)} columns")
         return 0
 
-    def col_of(p):
-        return min(range(len(centres)), key=lambda k: abs(centres[k] - p))
-
-    first_col = min(centres)
-    rows, per_col, cities = 0, [0] * len(HNH2019_COLS), 0
+    cities: dict[tuple[str, str], set[int]] = {}
     for line in body:
-        m = re.match(r"^\s*([A-Z]{2})\s{2,}(\S[^ ]*(?: [^ ]+)*?)\s{2,}", line)
-        if not m:
-            continue
-        st, city = m.group(1), _ws(line[:first_col].strip()[2:])
-        if not city or len(city) > 40 or st in ("To", "St"):
-            continue
-        marks = sorted({col_of(p) for p in _xpos(line)})
+        marks = _xpos(line)
         if not marks:
             continue
-        cities += 1
-        for c in marks:
+        m = re.match(r"^\s*([A-Z]{2})\s{2,}(.+?)\s*$", line[: marks[0]])
+        if not m:
+            continue
+        st, city = m.group(1), _ws(m.group(2))
+        if not city or len(city) > 40 or st in ("To", "St"):
+            continue
+        cities[(st, city)] = {_col_of(centres, p) for p in marks}
+
+    per_col = [0] * len(HNH2019_COLS)
+    plan: list[tuple[str, str, int]] = []
+    for (st, city), cols in cities.items():
+        for c in sorted(cols):
             per_col[c] += 1
-            label, topic = HNH2019_COLS[c]
-            _law(conn, jurisdiction=f"{city}, {st}", topic=topic,
-                 citation=f"HNH 2019 Prohibited Conduct Chart, col. {c + 1} ({label})",
-                 title=f"Municipal ordinance: {label}",
-                 summary=(f"{city}, {st}: the Law Center's 187-city survey of municipal codes "
-                          f"marks this city as having an ordinance restricting {label.lower()}. "
-                          f"Report column {c + 1}. City code section number is not printed by the "
-                          f"source; enforcement varies and is not implied."),
-                 status="enacted", url=url, sid=sid)
-            rows += 1
+            plan.append((st, city, c))
 
     if per_col != HNH2019_TOTALS:
-        NOTES.append(f"HNH2019 checksum mismatch: parsed {per_col} vs printed {HNH2019_TOTALS}")
-    else:
-        NOTES.append(f"HNH2019 chart checksum OK {per_col} ({cities} cities)")
-    _mark(conn, "hnh2019", rows > 0, f"{rows} rows over {cities} cities, cols={per_col}")
+        NOTES.append(f"HNH2019 CHECKSUM FAILED: parsed {per_col} vs printed {HNH2019_TOTALS}; "
+                     f"rows not written")
+        _mark(conn, "hnh2019", False, f"checksum {per_col}")
+        return 0
+
+    for st, city, c in plan:
+        label, topic = HNH2019_COLS[c]
+        _law(conn, jurisdiction=f"{city}, {st}", topic=topic,
+             citation=f"HNH 2019 Prohibited Conduct Chart, column {c + 1} ({label})",
+             title=f"Municipal ordinance: {label}",
+             summary=(f"{city}, {st}: the Law Center's survey of municipal codes marks this "
+                      f"city as having an ordinance restricting "
+                      f"{label.lower().replace('--', '—')} (2016 chart reproduced in the 2019 "
+                      f"report, column {c + 1}). City code section is not printed by the "
+                      f"source; the chart states that enforcement varies widely."),
+             status="enacted", year=2016, url=URL_HNH2019, sid=sid)
+    rows = len(plan)
+    _mark(conn, "hnh2019", rows > 0,
+          f"{rows} rows over {len(cities)} cities, per-column {per_col} == printed totals")
+    NOTES.append(f"HNH2019 chart checksum OK {per_col} ({rows} rows over {len(cities)} cities)")
     return WROTE[0] - before
 
 
-# --------------------------------------------------- HNH 2025 (state bill status)
+# ---------------------------------------- 4. HNH 2025 (one year since Grants Pass)
+def _names_in(frag: str, name2abbr: dict[str, str]) -> list[str]:
+    out = []
+    for part in re.split(r",\s*|\s+and\s+", frag):
+        p = _ws(part).strip(" .;:“”")
+        p = re.sub(r"\s+", " ", p)
+        if p in name2abbr:
+            out.append(p)
+    return out
+
+
 def hnh2025(conn, states: dict[str, str]) -> int:
     before = WROTE[0]
-    url = URL_HNH2025
-    title = "One year since Grants Pass: increase in laws that make it a crime to be homeless"
-    pub = "National Homelessness Law Center / Housing Not Handcuffs"
-    pdf = _fetch(url, title=title, publisher=pub, license=LIC_NHLC, binary=True)
-    sid = _sid(conn, url, title=title, publisher=pub, license=LIC_NHLC)
-    text = _pdf_text(pdf, "hnh-2025-grants-pass-annual-update.pdf")
+    text = _pdf_text(conn, URL_HNH2025, "hnh-2025-grants-pass-update.pdf",
+                     title=T_HNH2025, publisher=P_HNH2025, license=LIC_NHLC)
+    sid = _sid(conn, URL_HNH2025, title=T_HNH2025, publisher=P_HNH2025, license=LIC_NHLC)
     flat = _ws(text)
 
     name2abbr = {v: k for k, v in states.items()}
     name2abbr["Washington State"] = name2abbr.get("Washington")
-
-    def names_in(frag: str) -> list[str]:
-        out = []
-        for part in re.split(r",\s*|\s+and\s+", frag):
-            p = part.strip(" .;:")
-            if p in name2abbr:
-                out.append(p)
-        return out
+    name2abbr["North Carolina"] = "NC"
 
     specs = [
-        # (regex, status, what)
-        (r"pushed through harmful, backwards cookie-cutter\s*bills that make homelessness worse in ([^.]+)\.",
-         "enacted", "Cicero-model statewide anti-homeless bill reportedly enacted"),
-        (r"This year, advocates defeated bills in ([^.]+)\.",
-         "proposed", "statewide anti-homeless bill reportedly defeated"),
+        # (regex over the flattened report, status, topic, what)
+        (r"pushed through harmful, backwards cookie-cutter bills that make homelessness worse in "
+         r"([^.]+)\.", "enacted", "encampment_clearance",
+         "Cicero-model statewide anti-homeless bill reported enacted since 2021"),
+        (r"This year, advocates defeated bills in ([^.]+)\.", "proposed", "encampment_clearance",
+         "statewide anti-homeless bill reported defeated"),
         (r"These non-Cicero measures criminalizing homelessness have passed in ([^.]+)\.",
-         "enacted", "non-Cicero statewide anti-homeless measure reportedly passed"),
-        (r"Similar measures were defeated in ([^.]+)\.",
-         "proposed", "statewide anti-homeless measure reportedly defeated"),
-        (r"anti-criminalization legislation, many based on the Law Center[’']s template Gloria Johnson "
-         r"Act, has been introduced in 11 states: ([^.]+)\.",
-         "proposed", "Gloria Johnson Act-style anti-criminalization bill introduced"),
+         "enacted", "encampment_clearance",
+         "non-Cicero statewide anti-homeless measure reported passed"),
+        (r"Similar measures were defeated in ([^.]+)\.", "proposed", "encampment_clearance",
+         "statewide anti-homeless measure reported defeated"),
+        (r"anti-criminalization legislation, many based on the Law Center[’']s template Gloria "
+         r"Johnson Act, has been introduced in 11 states: ([^.]+)\.", "proposed", "other",
+         "Gloria Johnson Act-style anti-criminalization bill introduced"),
+        (r"It has advanced through committee in ([^.]+)\.", "proposed", "other",
+         "Gloria Johnson Act-style bill reported advanced through committee"),
+        (r"Bills in ([^.]+?) create “drug-free service zones”", "proposed", "drug",
+         "bill creating “drug-free service zones” with added penalties for service providers"),
+        (r"Bills creating “workhouses” for homeless individuals where they are required to work as "
+         r"punishment for not being able to afford rent, like in ([^.]+)", None, "other",
+         "bill creating “workhouses” as a punishment for being unable to afford rent"),
     ]
     rows = 0
-    for pat, status, what in specs:
+    for pat, status, topic, what in specs:
         m = re.search(pat, flat, re.I)
         if not m:
             NOTES.append(f"HNH2025: pattern not found -> {what}")
             continue
         quote = _ws(m.group(0))
-        for nm in names_in(m.group(1)):
+        for nm in _names_in(m.group(1), name2abbr):
             abbr = name2abbr[nm]
-            _law(conn, jurisdiction=abbr, topic="encampment_clearance",
-                 citation=f"HNH 2025 Grants Pass update -- {what}",
+            _law(conn, jurisdiction=abbr, topic=topic,
+                 citation=f"HNH 2025 Grants Pass update — {what}",
                  title=f"2024-25 statewide legislation: {what}",
-                 summary=(f"{nm}: {what}. Report wording: “{quote}”. The report names no bill "
-                          f"number; status is as reported by the source, not verified at the "
-                          f"state legislature."),
-                 status=status, year=2025, url=url, sid=sid)
+                 summary=(f"{nm}: the report states: “{quote}”. The report does not print the "
+                          f"bill number for this item; status is as reported by the source and "
+                          f"was not independently re-checked at the state legislature."),
+                 status=status, year=2025, url=URL_HNH2025, sid=sid)
             rows += 1
 
-    # Missouri: Cicero law struck down by the state Supreme Court
-    m = re.search(r"Missouri[’']s Cicero law was struck down by the state Supreme Court\.", flat)
-    if m:
-        _law(conn, jurisdiction="MO", topic="encampment_clearance",
-             citation="HNH 2025 Grants Pass update -- Cicero statute invalidated by state court",
-             title="2024-25 statewide legislation: Cicero-model statute struck down",
-             summary=("Missouri: report wording: “" + _ws(m.group(0)) + "”. No bill number or "
-                      "docket number is given by the source; recorded as status=enjoined "
-                      "(court action) on the strength of that sentence alone."),
-             status="enjoined", year=2025, url=url, sid=sid)
+    one_offs = [
+        (r"Missouri[’']s Cicero law was struck down by the state Supreme Court\.", "MO",
+         "encampment_clearance", "enjoined",
+         "Cicero-model statute struck down by the state Supreme Court"),
+        (r"Cicero bills in North\s*Carolina are still pending", "NC", "encampment_clearance",
+         "proposed", "Cicero-model bill still pending"),
+        (r"One is pending in Pennsylvania\.", "PA", "encampment_clearance", "proposed",
+         "anti-homeless measure pending"),
+    ]
+    for pat, abbr, topic, status, what in one_offs:
+        m = re.search(pat, flat, re.I)
+        if not m:
+            NOTES.append(f"HNH2025: one-off not found -> {what}")
+            continue
+        _law(conn, jurisdiction=abbr, topic=topic,
+             citation=f"HNH 2025 Grants Pass update — {what}", title=what.capitalize(),
+             summary=(f"The report states: “{_ws(m.group(0))}”. No bill or docket number is "
+                      f"printed by the source."),
+             status=status, year=2025, url=URL_HNH2025, sid=sid)
         rows += 1
-    # North Carolina: still pending
-    m = re.search(r"Cicero bills in North\s*Carolina are still pending", flat)
-    if m:
-        _law(conn, jurisdiction="NC", topic="encampment_clearance",
-             citation="HNH 2025 Grants Pass update -- Cicero bill pending",
-             title="2024-25 statewide legislation: Cicero-model bill pending",
-             summary="North Carolina: report wording: “" + _ws(m.group(0)) + "”. As of the report.",
-             status="proposed", year=2025, url=url, sid=sid)
-        rows += 1
-    # Pennsylvania: one pending
-    m = re.search(r"One is pending in Pennsylvania\.", flat)
-    if m:
-        _law(conn, jurisdiction="PA", topic="encampment_clearance",
-             citation="HNH 2025 Grants Pass update -- anti-homeless measure pending",
-             title="2024-25 statewide legislation: anti-homeless measure pending",
-             summary="Pennsylvania: report wording: “" + _ws(m.group(0)) + "”. As of the report.",
-             status="proposed", year=2025, url=url, sid=sid)
-        rows += 1
-    # California: the state's Housing First mandate, and the failed repeal
+
+    # California: the state Housing First mandate, and the defeated repeal bill (AB 20)
     m = re.search(r"advocates defeated a standalone bill attempting to make it a crime to sleep "
                   r"outside and repeal the state[’']s Housing First mandate in the state legislature "
-                  r"\(CA AB 20\)", flat)
+                  r"\(CA AB 20\)", flat, re.I)
     if m:
+        quote = f"The report states: “{_ws(m.group(0))}”."
         _law(conn, jurisdiction="CA", topic="housing_first",
-             citation="CA AB 20 (2025, defeated) -- would have repealed the state Housing First mandate",
-             title="Housing First mandate in state law (repeal attempt defeated)",
-             summary=("California: report wording: “" + _ws(m.group(0)) + "”. The sentence is the "
-                      "report's statement that California has a Housing First mandate in state law; "
-                      "the enabling section is not named by the source."),
-             status="enacted", year=2025, url=url, sid=sid)
+             citation="CA Housing First mandate — repeal bill AB 20 (2025) defeated",
+             title="Housing First mandate in state law, with the 2025 repeal attempt defeated",
+             summary=(quote + " The sentence records both that California has a Housing First "
+                      "mandate in state law and that AB 20 would have repealed it; the enabling "
+                      "section is not named by the source."),
+             status="enacted", year=2025, url=URL_HNH2025, sid=sid)
         _law(conn, jurisdiction="CA", topic="housing_first",
-             citation="CA AB 20 (2025) -- bill to repeal the Housing First mandate",
-             title="Bill to repeal the Housing First mandate (defeated)",
-             summary="California: standalone bill to criminalise sleeping outside and repeal the "
-                     "state Housing First mandate was defeated in the legislature per the report.",
-             status="proposed", year=2025, url=url, sid=sid)
+             citation="CA AB 20 (2025) — bill to repeal the Housing First mandate",
+             title="Bill to repeal the Housing First mandate and criminalize sleeping outside "
+                   "(defeated)",
+             summary=quote, status="proposed", year=2025, url=URL_HNH2025, sid=sid)
         rows += 2
+    else:
+        NOTES.append("HNH2025: CA AB 20 sentence not found")
+
+    # federal: Housing Not Handcuffs Act introduced in Congress
+    m = re.search(r"a similar bill named the Housing Not Handcuffs Act was introduced into "
+                  r"Congress on ([A-Z][a-z]+ \d{1,2}(?:st|nd|rd|th)?)", flat)
+    if m:
+        _law(conn, jurisdiction="US", topic="other",
+             citation="Housing Not Handcuffs Act (bill introduced in Congress, "
+                      f"{_ws(m.group(1))})",
+             title="Anti-criminalization bill introduced in Congress to mark the Grants Pass "
+                   "anniversary",
+             summary=(f"The report states: “{_ws(m.group(0))}”. The report prints no bill number."),
+             status="proposed", year=2025, url=URL_HNH2025, sid=sid)
+        rows += 1
 
     _mark(conn, "hnh2025", rows > 0, f"{rows} rows")
     return WROTE[0] - before
 
 
-# ------------------------------------------------------------------- federal rows
+# ------------------------------- 5. NLIHC brief: state criminalization bill fight-back
+def nlihc_fight(conn, states: dict[str, str]) -> int:
+    before = WROTE[0]
+    text = _pdf_text(conn, URL_NLIHC_FIGHT, "nlihc-fighting-criminalization-bills.pdf",
+                     title=T_NLIHC_FIGHT, publisher=P_NLIHC_FIGHT, license=LIC_NLIHC)
+    sid = _sid(conn, URL_NLIHC_FIGHT, title=T_NLIHC_FIGHT, publisher=P_NLIHC_FIGHT,
+               license=LIC_NLIHC)
+    flat = _ws(text)
+    name2abbr = {v: k for k, v in states.items()}
+
+    # states where criminalization measures were introduced and failed
+    m = re.search(r"policy measures to criminalize homelessness have failed in ([^.]+?) including "
+                  r"([^.]+)\.", flat, re.I)
+    rows = 0
+    if m:
+        quote = _ws(m.group(0))
+        for nm in _names_in(m.group(2), name2abbr):
+            _law(conn, jurisdiction=name2abbr[nm], topic="encampment_clearance",
+                 citation="NLIHC, Successfully Fighting... Criminalization Bills — state where a "
+                          "criminalization bill was introduced and failed",
+                 title="Statewide criminalization bill introduced and not passed",
+                 summary=(f"{nm}: “{quote}”"),
+                 status="proposed", url=URL_NLIHC_FIGHT, sid=sid)
+            rows += 1
+    else:
+        NOTES.append("NLIHC brief: 'failed in ... states' sentence not found")
+
+    # four named bills with numbers
+    bills = [
+        (r"Georgia advocates[^.]*?ensured that (SB 62) was stripped of its most harmful "
+         r"provisions before it was enacted", "GA", "encampment_clearance", "enacted", 2024),
+        (r"testify against (HB 2430) at a hearing held by the House Welfare Reform Committee",
+         "KS", "encampment_clearance", "proposed", 2024),
+        (r"Missouri lawmakers passed (HB 1606) in 2022, which banned camping", "MO",
+         "camping_ban", "enjoined", 2022),
+        (r"a similar bill, (SB 1336), was introduced in the Missouri legislature in 2024", "MO",
+         "encampment_clearance", "proposed", 2024),
+    ]
+    for pat, abbr, topic, status, year in bills:
+        m = re.search(pat, flat, re.I)
+        if not m:
+            NOTES.append(f"NLIHC brief: bill sentence not found for {abbr} ({pat[:40]})")
+            continue
+        bill = m.group(1)
+        # widen the quote to the sentence containing the bill
+        i = flat.find(m.group(0))
+        head = flat.rfind(". ", 0, i)
+        tail = flat.find(". ", i + len(m.group(0)))
+        quote = _ws(flat[head + 2 if head > 0 else 0: tail + 1 if tail > 0 else len(flat)])
+        extra = ""
+        if abbr == "MO" and bill == "HB 1606":
+            mm = re.search(r"was unanimously struck down by the State Supreme Court", flat)
+            if mm:
+                extra = (" The brief also reports: “the bill was later challenged on procedural "
+                         "grounds and was unanimously struck down by the State Supreme Court.”")
+        _law(conn, jurisdiction=abbr, topic=topic, citation=f"{abbr} {bill}",
+             title=f"Statewide bill {bill}: {('camping ban' if topic == 'camping_ban' else 'criminalization / encampment measure')}",
+             summary=(f"{abbr} {bill}. The brief states: “{quote}”.{extra}"),
+             status=status, year=year, url=URL_NLIHC_FIGHT, sid=sid)
+        rows += 1
+
+    # Indiana and Iowa bills introduced, no bill numbers printed
+    m = re.search(r"Both (Indiana) and (Iowa) had bills introduced in their current legislative "
+                  r"sessions, neither of which seems to be moving forward", flat, re.I)
+    if m:
+        for abbr in ("IN", "IA"):
+            _law(conn, jurisdiction=abbr, topic="encampment_clearance",
+                 citation=f"NLIHC brief — statewide bill introduced in {abbr} (no number printed)",
+                 title="Statewide criminalization bill introduced, not advancing",
+                 summary=f"The brief states: “{_ws(m.group(0))}”.",
+                 status="proposed", year=2024, url=URL_NLIHC_FIGHT, sid=sid)
+            rows += 1
+    else:
+        NOTES.append("NLIHC brief: Indiana/Iowa sentence not found")
+
+    _mark(conn, "nlihc_fight", rows > 0, f"{rows} rows")
+    return WROTE[0] - before
+
+
+# ----------------------------------------------------------------- 6. federal rows
 def federal(conn) -> int:
     before = WROTE[0]
 
-    # Grants Pass v. Johnson (2024) -- Eighth Amendment / status of outdoor-sleeping ordinances
+    # --- City of Grants Pass v. Johnson (2024)
     try:
-        page = _fetch(URL_GRANTS_PASS, title="City of Grants Pass v. Johnson, 603 U.S. ___ (2024)",
-                      publisher="Supreme Court of the United States (via Cornell LII)",
-                      license=LIC_LII).decode("utf-8", "replace")
-        sid = _sid(conn, URL_GRANTS_PASS,
-                   title="City of Grants Pass v. Johnson, 603 U.S. ___ (2024)",
+        page = _fetch(URL_GRANTS_PASS, timeout=180).decode("utf-8", "replace")
+        title = "City of Grants Pass v. Johnson, 603 U.S. ___ (2024)"
+        sid = _sid(conn, URL_GRANTS_PASS, title=title,
                    publisher="Supreme Court of the United States (via Cornell LII)", license=LIC_LII)
         txt = _flat(page)
         cite = None
-        m = re.search(r"(City of Grants Pass v\. Johnson[^,]{0,40}?(?:603 U\. ?S\.|\d{3} U\.S\.)[^.]{0,40}20\d\d)", txt)
+        m = re.search(r"(City of Grants Pass v\. Johnson[^,]{0,40}?(?:603 U\. ?S\.|\d{3} U\.S\.)"
+                      r"[^.]{0,40}20\d\d)", txt)
         if m:
             cite = _ws(m.group(1))
-        if not cite:
-            cite = "City of Grants Pass v. Johnson, No. 23-175 (U.S. 2024)"
-        # the 9th Circuit rule the Court addressed, quoted on the same page
-        boise = None
-        mb = re.search(r"Martin v\. Boise,?\s*920\s*F\.\s*3d\s*584[^)]{0,40}", txt)
-        if mb:
-            boise = _ws(mb.group(0)).rstrip(",;")
+        cite = cite or "City of Grants Pass v. Johnson, No. 23-175 (U.S. 2024)"
         hold = ""
-        mh = re.search(r"(The Eighth Amendment[^.]{20,400}\.)", txt)
+        mh = re.search(r"(The (?:Eighth Amendment|Constitution)[^.]{40,420}\.)", txt)
         if mh:
             hold = _ws(mh.group(1))
         _law(conn, jurisdiction="US", topic="camping_ban", citation=cite,
              title="Outdoor-sleeping / camping ordinances are not barred by the Eighth Amendment",
-             summary=("Supreme Court of the United States, decided 2024-06-28 (23-175). "
-                      + (hold or "") +
-                      " Effect: reversed the Ninth Circuit's injunction against the City of Grants "
-                      "Pass and rejected the circuit rule that punished sleeping outdoors only where "
-                      "no shelter is available. State and city camping bans are therefore enforceable "
-                      "on federal Eighth Amendment grounds after this decision."),
+             summary=("Supreme Court of the United States, No. 23-175, decided 2024-06-28. "
+                      + (f"Opinion text: “{hold}” " if hold else "")
+                      + "Effect: the Court reversed the Ninth Circuit and rejected the rule that "
+                        "punishing people who sleep outdoors when no shelter is available is cruel "
+                        "and unusual punishment, so state and municipal camping bans are "
+                        "enforceable on federal Eighth Amendment grounds after this decision."),
              status="enacted", year=2024, url=URL_GRANTS_PASS, sid=sid)
-        if boise:
-            _law(conn, jurisdiction="US", topic="camping_ban", citation=boise,
-                 title="Punishing sleeping outdoors without available shelter (Ninth Circuit rule)",
-                 summary=("Ninth Circuit rule cited and addressed in City of Grants Pass v. Johnson "
+
+        mb = re.search(r"Martin v\. Boise,?\s*920\s*F\.\s*3d\s*584[^)]{0,40}", txt)
+        if mb:
+            _law(conn, jurisdiction="US", topic="camping_ban",
+                 citation=_ws(mb.group(0)).rstrip(",;"),
+                 title="Punishing sleeping outdoors without available shelter (Ninth Circuit rule, "
+                       "abrogated)",
+                 summary=("The Ninth Circuit rule addressed in City of Grants Pass v. Johnson "
                           "(2024): punishing a person for sleeping outdoors on public property when "
-                          "no indoor alternative is available violates the Eighth Amendment. "
-                          "Binding in the nine western states of the Ninth Circuit from 2018 until "
-                          "the Supreme Court reversed the approach in 2024. Citation and holding "
-                          "read from the Supreme Court's opinion page (the circuit opinion itself "
-                          "was not fetched -- see research/laws.md)."),
-                 status="enjoined", year=2019, url=URL_GRANTS_PASS, sid=sid)
-    except Exception as e:  # noqa
+                          "no indoor alternative is available violated the Eighth Amendment, "
+                          "binding in the nine western states from 2018 until the Supreme Court "
+                          "rejected that approach in 2024. Citation and holding read from the "
+                          "Supreme Court's opinion page; the circuit opinion itself was not "
+                          "fetched (see research/laws.md)."),
+                 status="repealed", year=2019, url=URL_GRANTS_PASS, sid=sid)
+    except Exception as e:  # noqa: BLE001
         NOTES.append(f"Grants Pass fetch/parse failed: {repr(e)[:120]}")
 
-    # 24 CFR 578.7 -- federal Housing First requirement for CoC-funded projects
+    # --- 24 CFR 578.7: Housing First + written standards for CoC-funded projects
     try:
-        page = _fetch(URL_CFR_578_7, title="24 CFR 578.7 -- Responsibilities of the continuum of care",
-                      publisher="Code of Federal Regulations (via Cornell LII)",
-                      license=LIC_LII).decode("utf-8", "replace")
-        sid = _sid(conn, URL_CFR_578_7,
-                   title="24 CFR 578.7 -- Responsibilities of the continuum of care",
+        page = _fetch(URL_CFR_578_7, timeout=180).decode("utf-8", "replace")
+        title = "24 CFR 578.7 -- Responsibilities of the continuum of care"
+        sid = _sid(conn, URL_CFR_578_7, title=title,
                    publisher="Code of Federal Regulations (via Cornell LII)", license=LIC_LII)
         txt = _flat(page)
         m = re.search(r"(Housing First[^.]{0,400}\.)", txt)
         hf = _ws(m.group(1)) if m else ""
         _law(conn, jurisdiction="US", topic="housing_first", citation="24 C.F.R. § 578.7",
-             title="Continuum of Care program: Housing First and written standards",
-             summary=("Federal rule for HUD Continuum of Care funding: recipients must follow the "
+             title="Continuum of Care program: Housing First approach and written standards",
+             summary=("Federal rule for HUD Continuum of Care funding: recipients must use the "
                       "Housing First approach and the CoC must maintain written standards. "
-                      + (("Text as published: “" + hf + "”") if hf else "")),
+                      + (f"Regulatory text as published: “{hf}”" if hf else "")),
              status="enacted", year=2012, url=URL_CFR_578_7, sid=sid)
-    except Exception as e:  # noqa
+    except Exception as e:  # noqa: BLE001
         NOTES.append(f"24 CFR 578.7 fetch/parse failed: {repr(e)[:120]}")
+
+    # --- 42 U.S.C. § 11302: who counts as homeless (the statutory definition programs use)
+    try:
+        page = _fetch(URL_USC_11302, timeout=180).decode("utf-8", "replace")
+        title = "42 U.S.C. § 11302 -- General definition of homeless individual"
+        sid = _sid(conn, URL_USC_11302, title=title,
+                   publisher="U.S. Code (via Cornell LII)", license=LIC_LII)
+        txt = _flat(page)
+        m = re.search(r"(For purposes of this chapter[^.]{0,300}\.)", txt)
+        body = _ws(m.group(1)) if m else ""
+        credit = re.search(r"\(Pub\. L\. [^)]{0,120}?(\d{4})\)", txt)
+        _law(conn, jurisdiction="US", topic="other", citation="42 U.S.C. § 11302",
+             title="Statutory definition of a homeless individual (McKinney-Vento Act)",
+             summary=("The definition of 'homeless individual' used by HUD, HHS and other federal "
+                      "homelessness programs. "
+                      + (f"Text as published: “{body}” " if body else "")
+                      + (f"Source credit on the page: “{_ws(credit.group(0))}”." if credit else "")),
+             status="enacted", year=to_int(credit.group(1)) if credit else 1987,
+             url=URL_USC_11302, sid=sid)
+    except Exception as e:  # noqa: BLE001
+        NOTES.append(f"42 USC 11302 fetch/parse failed: {repr(e)[:120]}")
+
+    # --- NLIHC Housing First page (context: who adopts Housing First, and the pushback)
+    try:
+        page = _fetch(URL_NLIHC_HF, timeout=180).decode("utf-8", "replace")
+        title = "Housing First"
+        sid = _sid(conn, URL_NLIHC_HF, title=title, publisher="National Low Income Housing Coalition",
+                   license=LIC_NLIHC)
+        txt = _flat(page)
+        m = re.search(r"(The Housing First model is one of the best strategies[^.]{0,300}\.)", txt)
+        q = _ws(m.group(1)) if m else ""
+        m2 = re.search(r"(Many states|It has also been adopted by[^.]{0,200}\.)", txt)
+        q2 = _ws(m2.group(0)) if m2 else ""
+        _law(conn, jurisdiction="US", topic="housing_first",
+             citation="NLIHC issue page, 'Housing First' (policy summary)",
+             title="Housing First: federal adoption and state/local uptake (advocacy summary)",
+             summary=("NLIHC's summary of the Housing First model and its adoption by federal "
+                      "agencies and state/local governments. "
+                      + (f"“{q}” " if q else "") + (f"“{q2}”" if q2 else "")
+                      + " This row is context for the statutory rows in this domain, not a statute."),
+             status=None, url=URL_NLIHC_HF, sid=sid)
+    except Exception as e:  # noqa: BLE001
+        NOTES.append(f"NLIHC Housing First page failed: {repr(e)[:120]}")
 
     _mark(conn, "federal", WROTE[0] > before, f"{WROTE[0] - before} rows")
     return WROTE[0] - before
 
 
 # ---------------------------------------------------------------------------- run
+def _cleanup_stale(conn) -> None:
+    """Drop rows an earlier, rejected build of this same ingestor left behind.
+
+    That build wrote HNH-2021 rows with the citation prefix 'HNH 2021 State Law Supplement,
+    App. col. N' and a source_id that no longer resolves (the source table was rebuilt).
+    The current build cites the same cells as '... Appendix column N (...)', so those exact
+    old-format rows are stale duplicates with dead provenance -- delete only them.
+    """
+    n = conn.execute(
+        "DELETE FROM law WHERE citation LIKE 'HNH 2021 State Law Supplement, App. col.%'").rowcount
+    if n:
+        NOTES.append(f"removed {n} stale rows left by the earlier rejected build")
+    conn.commit()
+
+
 def _states(conn) -> dict[str, str]:
     rows = conn.execute("SELECT abbr, name FROM geo_state ORDER BY abbr").fetchall()
     skip = {"AS", "GU", "MP", "PR", "VI"}
@@ -695,52 +892,81 @@ def _states(conn) -> dict[str, str]:
 
 def run(conn, cfg=None, *, probe=False) -> dict:
     cfg = cfg or {}
+    force = bool(cfg.get("force"))
     _ensure(conn)
     WROTE[0] = 0
     NOTES.clear()
+    _cleanup_stale(conn)
     states = _states(conn)
     if len(states) < 50:
-        NOTES.append(f"geo_state only has {len(states)} jurisdictions -- run `places`/`hud_pit` first")
+        NOTES.append(f"geo_state has only {len(states)} jurisdictions -- run `places` first")
 
-    n2021 = hnh2021(conn, states)
-    n2019 = hnh2019(conn)
-    n2025 = hnh2025(conn, states)
-    nfed = federal(conn)
-    conn.commit()
+    def step(task, fn, *a):
+        if not force and _done(conn, task):
+            if probe:
+                print(f"  = {task} already done (skipping)", file=sys.stderr)
+            return 0
+        n = fn(conn, *a)
+        conn.commit()
+        return n
+
+    n2021 = step("hnh2021", hnh2021, states)
+    n2019 = step("hnh2019", hnh2019)
+    n2025 = step("hnh2025", hnh2025, states)
+    nfight = step("nlihc_fight", nlihc_fight, states)
+    nfed = step("federal", federal)
 
     n_states = 0
     for abbr in sorted(states):
+        if not force and _done(conn, f"tac:{abbr}"):
+            continue
         k = tac_state(conn, abbr, states[abbr])
         n_states += k
+        conn.commit()
         if probe:
             print(f"  {abbr} {states[abbr]:<20} {k} rows", file=sys.stderr)
-        if not probe:
-            conn.commit()
 
     conn.commit()
     rows = conn.execute("SELECT COUNT(*) FROM law").fetchone()[0]
-    notes = (f"HNH2021={n2021} HNH2019 cities={n2019} HNH2025={n2025} federal={nfed} "
-             f"state-pages={n_states} | total law rows={rows} | " + "; ".join(NOTES[-6:]))
+    jurs = conn.execute("SELECT COUNT(DISTINCT jurisdiction) FROM law").fetchone()[0]
+    notes = (f"matrix2021={n2021} city_chart2019={n2019} hnh2025={n2025} nlihc_brief={nfight} "
+             f"federal={nfed} state_pages={n_states} | total law rows={rows} over {jurs} "
+             f"jurisdictions | " + "; ".join(NOTES[-5:]))
     return {"rows": rows, "notes": notes,
             "sources": [(URL_HNH2021, LIC_NHLC), (URL_HNH2019, LIC_NHLC), (URL_HNH2025, LIC_NHLC),
-                        (URL_GRANTS_PASS, LIC_LII), (URL_CFR_578_7, LIC_LII)]}
+                        (URL_NLIHC_FIGHT, LIC_NLIHC), (URL_GRANTS_PASS, LIC_LII),
+                        (URL_CFR_578_7, LIC_LII), (URL_USC_11302, LIC_LII),
+                        (URL_NLIHC_HF, LIC_NLIHC)]}
 
 
-def selftest() -> None:
+def report() -> None:
     conn = db()
-    _ensure(conn)
     print("law rows:", conn.execute("SELECT COUNT(*) FROM law").fetchone()[0])
+    print("jurisdictions:", conn.execute("SELECT COUNT(DISTINCT jurisdiction) FROM law").fetchone()[0])
+    print("\nby topic:")
+    for r in conn.execute("SELECT topic, COUNT(*) n, COUNT(DISTINCT jurisdiction) j FROM law "
+                          "GROUP BY 1 ORDER BY 2 DESC"):
+        print(f"  {r['topic']:<20} {r['n']:>5} rows  {r['j']:>4} jurisdictions")
+    print("\nstates/DC with rows and distinct topics:")
+    for r in conn.execute("SELECT jurisdiction, COUNT(*) n, COUNT(DISTINCT topic) t FROM law "
+                          "WHERE LENGTH(jurisdiction)=2 GROUP BY 1 ORDER BY 1"):
+        print(f"  {r['jurisdiction']}  rows={r['n']:>2}  topics={r['t']}")
+    print("\njurisdictions with >=5 distinct topics:",
+          conn.execute("SELECT COUNT(*) FROM (SELECT jurisdiction FROM law GROUP BY 1 "
+                       "HAVING COUNT(DISTINCT topic)>=5)").fetchone()[0])
+    print("jurisdictions with >=5 rows:",
+          conn.execute("SELECT COUNT(*) FROM (SELECT jurisdiction FROM law GROUP BY 1 "
+                       "HAVING COUNT(*)>=5)").fetchone()[0])
+    print("\n3 random rows:")
     for r in conn.execute("SELECT * FROM law ORDER BY RANDOM() LIMIT 3"):
         print(dict(r))
 
 
 if __name__ == "__main__":
     if "--selftest" in sys.argv:
-        selftest()
+        report()
     elif "--probe" in sys.argv:
-        c = db()
-        run(c, probe=True)
+        run(db(), probe=True)
     else:
-        c = db()
-        res = run(c)
+        res = run(db())
         print(res["rows"], res["notes"])
