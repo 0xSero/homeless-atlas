@@ -104,8 +104,10 @@ Territories other than PR (GU, VI, AS, MP) exist in `geo_state` from the gazette
    parse the per-CoC PDFs and fill `pit.smi/sud/hiv/dv` with `is_est=0`.
 2. **`pit.households` is NULL — the CoC workbook publishes only *family* households**, not all
    homeless households. Writing family households into `households` would conflate ~71k with ~563k,
-   so the published series lives in `metric` `pit_family_households` (per CoC sum, `is_est=0`) and
-   the national all-household total is `metric` `pit_households` (from the PDFs, 2007–2025).
+   so the published per-CoC series lives in `metric` (`entity_type='coc'`,
+   metric `pit_family_households`, 7,431 rows, `is_est=0`) plus its per-year sum as
+   `entity_type='us'`; the national *all*-household total is `metric` `pit_households`
+   (from the PDFs, 2007–2025).
 3. **`geo_coc.pop` is NULL for 29 of the 387 current CoCs** (plus all 27 historical CoCs, which
    have no geometry either). HUD publishes no CoC population, so population is the sum of **county**
    populations whose Census internal point falls inside the CoC polygon. That is exact for CoCs that
@@ -168,6 +170,19 @@ short of HUD's published national total.
   heat map needs a value per city and HUD does not count cities separately. 3,000 rows.
 * **Concurrency**: the DB is shared with another ingest worker; `run()` retries on
   `sqlite3.OperationalError: database is locked`.
+
+## Row counts (final `python3 -m ingest.run hud_pit`)
+
+| table / entity | rows |
+|---|---|
+| `pit` | 7,431 (413 CoCs × 19 years, 2007–2025) |
+| `geo_coc` | 414 (387 current with geometry, 27 historical) |
+| `geo_city` | 1,000 written here (shared table also holds the `places` domain's rows) |
+| `geo_state` | 52 (50 states + DC + PR) |
+| `metric` entity_type `us` | 270 (15 series × 2007–2025 where published) |
+| `metric` entity_type `coc` | 7,431 (`pit_family_households`) |
+| `metric` entity_type `city` | 3,000 (`pit_total`/`pit_sheltered`/`pit_unsheltered`, newest year, is_est=1) |
+| sources / logs | 5 source rows registered, `logs/ingest-hud_pit.jsonl` |
 
 ## Reproduction
 

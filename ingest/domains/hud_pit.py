@@ -170,9 +170,23 @@ def read_pit_workbook(path: Path):
     return rows, names, notes
 
 
+# A subpopulation cannot exceed the whole. HUD publishes a handful of cells where it
+# does (Puerto Rico 2008-2012 chronic, TN-500 2008); those are dropped to NULL rather
+# than republished as impossible numbers, and reported in the run notes.
+SUB_VS_TOTAL = ("chronic", "veterans", "youth", "children", "families")
+
+
 def write_pit(conn, rows, src):
     n = m = 0
+    impossible = []
     for (coc, year), rec in rows.items():
+        tot = rec.get("total")
+        if tot is not None:
+            for k in SUB_VS_TOTAL:
+                v = rec.get(k)
+                if v is not None and v > tot:
+                    impossible.append(f"{coc} {year} {k}={v}>total={tot}")
+                    rec[k] = None
         row = {"coc_num": coc, "year": year, "is_est": 0, "source_id": src}
         for k in ("total", "sheltered", "unsheltered", "chronic", "veterans",
                   "youth", "children", "families"):
@@ -191,6 +205,10 @@ def write_pit(conn, rows, src):
             }, ["entity_type", "entity_id", "metric", "year"])
             m += 1
         n += 1
+    if impossible:
+        rec_note = (f"{len(impossible)} impossible subpopulation cell(s) NULLed "
+                    f"(sub > total): " + "; ".join(impossible[:5]))
+        write_pit.notes = rec_note
     return n, m
 
 
@@ -497,6 +515,8 @@ def _run(conn, cfg):
     pit_rows, coc_names, pnotes = read_pit_workbook(xlsb)
     notes.extend(pnotes)
     written["pit"], written["metric_coc"] = write_pit(conn, pit_rows, src_pit)
+    if getattr(write_pit, "notes", None):
+        notes.append(write_pit.notes)
 
     # 2. CoC universe + boundaries ----------------------------------------------
     coc_geo = read_coc_geometry(conn, force=force)

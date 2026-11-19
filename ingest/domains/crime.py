@@ -58,7 +58,7 @@ CDE = "https://api.usa.gov/crime/fbi/cde"
 # ("socrata", domain, [hint dataset ids]) or ("arcgis", search-phrase, None)
 # ---------------------------------------------------------------------------------------------
 PORTALS = {
-    "New York|NY":        [("socrata", "data.cityofnewyork.us", []), ("arcgis", "New York NYPD crime complaints", None)],
+    "New York|NY":        [("socrata", "data.cityofnewyork.us", ["q6ts-7cfw", "5uac-w243"]), ("arcgis", "New York NYPD crime complaints", None)],
     "Los Angeles|CA":     [("socrata", "data.lacity.org", []), ("arcgis", "Los Angeles crime data 2020 to present", None)],
     "Chicago|IL":         [("socrata", "data.cityofchicago.org", ["ijzp-q8t2"])],
     "Houston|TX":         [("socrata", "data.houstontx.gov", []), ("arcgis", "Houston police crime incidents", None)],
@@ -148,7 +148,7 @@ CAT_HINTS = ("nibrs_crime_against_category", "crime_against", "ucr_category", "o
 REJECT_TITLE = ("calls for service", "911", "cad ", "dispatch", "response times", "arrest",
                 "traffic", "accident", "crash", "citation", "parking", "budget", "salary",
                 "map", "story", "dashboard")
-ACCEPT_TITLE = ("crime", "offense", "offence", "incident", "offences")
+ACCEPT_TITLE = ("crime", "offense", "offence", "incident", "complaint", "theft")
 
 
 # ---------------------------------------------------------------------------------------------
@@ -209,21 +209,23 @@ def _pick_date_col(row: dict):
     return None
 
 
-def _pick_cat_col(cols, row: dict, date_col):
-    """column holding the offence label: prefer UCR/NIBRS-ish names, else a short string column."""
+def _rank_cat_cols(cols, row: dict, date_col):
+    """candidate offence-label columns, best first (exact UCR/NIBRS-ish names win)."""
     lowered = {c.lower(): c for c in cols}
+    out = []
     for hint in CAT_HINTS:
         for lc, c in lowered.items():
-            if hint == lc and c != date_col and isinstance(row.get(c), str):
-                return c
+            if hint == lc and c != date_col and isinstance(row.get(c), str) and c not in out:
+                out.append(c)
     for hint in CAT_HINTS:
         for lc, c in lowered.items():
-            if hint in lc and c != date_col and isinstance(row.get(c), str):
-                return c
+            if hint in lc and c != date_col and isinstance(row.get(c), str) and c not in out:
+                out.append(c)
     for c in cols:
-        if c != date_col and isinstance(row.get(c), str) and 0 < len(row.get(c) or "") < 60:
-            return c
-    return None
+        if (c != date_col and c not in out and isinstance(row.get(c), str)
+                and 0 < len(row.get(c) or "") < 60):
+            out.append(c)
+    return out
 
 
 def _bucket(label: str):
@@ -301,11 +303,21 @@ def _socrata_candidates(dom: str, city: str, hints):
     return ids[:8]
 
 
+ID_COL = re.compile(r"(^|_)(id|no|num|number|case|key|uuid|guid|dr_?no|incident_id|report_number)(_|$)")
+
+
 def _socrata_city(conn, conn_city, dom: str, hints, pop, pop_year):
-    """Return (status, dataset_name, base_url, rows_written, detail)."""
+    """Probe up to N datasets on one portal, keep the one covering most incidents.
+
+    Return (status, dataset_name, base_url, rows_written, detail).
+    """
     geoid, city, state = conn_city
     cityname = city.split("-")[0].split("/")[0].split(" (")[0].strip()
-    for rid in _socrata_candidates(dom, cityname, hints):
+    cur_year = int(now()[:4])
+    best = None            # (score, rid, title, base, dcol, ccol, by_year{sid:...}, years)
+    tried = 0
+    for rid in _socrata_candidates(dom, cityname, hints)[:5]:
+        tried += 1
         base = f"https://{dom}/resource/{rid}"
         sample = _try_json(f"{base}.json?$limit=1")
         if not isinstance(sample, list) or not sample:
@@ -314,87 +326,88 @@ def _socrata_city(conn, conn_city, dom: str, hints, pop, pop_year):
         dcol = _pick_date_col(sample[0])
         if not dcol:
             continue
-        ccol = _pick_cat_col(cols, sample[0], dcol)
-        if not ccol:
+        ccols = [c for c in _rank_cat_cols(cols, sample[0], dcol) if not ID_COL.search(c.lower())]
+        if not ccols:
             continue
-        mx = _try_json(f"{base}.json?$select=max({dcol})")
-        max_year = None
-        if isinstance(mx, list) and mx:
-            for v in mx[0].values():
-                max_year = _iso_year(v)
-                if max_year:
-                    break
+        ccol = ccols[0]
+        # one query gives year x offence-label counts for the whole dataset
+        q = (f"{base}.json?$select=date_extract_y({dcol}) as y,{ccol} as lab,count(*) as n"
+             f"&$group=y,lab&$limit=50000")
+        j = _try_json(q)
+        if not isinstance(j, list) or not j:
+            continue
+        by_year = {}
+        for rec in j:
+            y = to_int(rec.get("y"))
+            if not y:
+                continue
+            by_year.setdefault(y, []).append((str(rec.get("lab") or ""), to_int(rec.get("n")) or 0))
+        max_year = max(by_year) if by_year else None
         if not max_year:
             continue
-        # dataset title for provenance
-        meta = _try_json(f"https://api.us.socrata.com/api/catalog/v1?domains={dom}&q={rid}&limit=5")
-        title = None
-        if meta:
-            for r in meta.get("results", []):
-                if r.get("resource", {}).get("id") == rid:
-                    title = clean(r["resource"].get("name"))
-                    break
-        title = title or rid
-        # two most recent complete years
-        cur_year = int(now()[:4])
         years = [max_year - 1, max_year - 2] if max_year >= cur_year else [max_year, max_year - 1]
-        sid = source_id_for(conn, base + ".json", DOMAIN,
-                            title=f"{title} ({city}, {state}) open-data incidents",
-                            publisher=f"{city} open-data portal ({dom})",
-                            license="city open-data terms; see portal")
-        written = 0
-        any_year = False
-        for y in years:
-            if y < 2015:
+        years = [y for y in years if y >= 2015 and y in by_year]
+        if not years:
+            continue
+        score = sum(n for _, n in by_year[max(years)])
+        if best is None or score > best[0]:
+            best = (score, rid, base, dcol, ccol, by_year, years, ccols)
+    if best is None or best[0] < 200:
+        return ("no_dataset", dom, None, 0,
+                f"portal reachable, no crime dataset with usable date+offence columns "
+                f"({tried} probed)")
+    score, rid, base, dcol, ccol, by_year, years, ccols = best
+    meta = _try_json(f"https://api.us.socrata.com/api/catalog/v1?domains={dom}&q={rid}&limit=5")
+    title = None
+    if meta:
+        for r in meta.get("results", []):
+            if r.get("resource", {}).get("id") == rid:
+                title = clean(r["resource"].get("name"))
+                break
+    title = title or rid
+    sid = source_id_for(conn, base + ".json", DOMAIN,
+                        title=f"{title} ({city}, {state}) open-data incidents",
+                        publisher=f"{city} open-data portal ({dom})",
+                        license="city open-data terms; see the portal")
+    written = 0
+    for y in years:
+        totals = {"violent": 0, "property": 0, "theft": 0, "all": 0}
+        labels = {"violent": [], "property": [], "theft": []}
+        for lab, n in by_year.get(y, []):
+            totals["all"] += n
+            b = _bucket(lab)
+            if b:
+                totals[b] += n
+                labels[b].append(lab)
+                if _is_theft(lab):
+                    totals["theft"] += n
+                    labels["theft"].append(lab)
+            upsert(conn, "crime_year_counts",
+                   {"geoid": geoid, "year": y, "dataset": f"{dom}/{rid}", "label": lab,
+                    "bucket": b, "n": n, "source_id": sid},
+                   keys=["geoid", "year", "dataset", "label"])
+        note = _note(title, base, labels, pop, pop_year)
+        for metric, count in (("violent_crime_rate", totals["violent"]),
+                              ("property_crime_rate", totals["property"]),
+                              ("theft_rate", totals["theft"])):
+            if not count:
                 continue
-            where = (f"{dcol} >= '{y}-01-01T00:00:00' AND {dcol} < '{y + 1}-01-01T00:00:00'")
-            q = (f"{base}.json?$select={ccol},count(*) as n&$group={ccol}"
-                 f"&$where={urllib.parse.quote(where)}&$limit=5000")
-            j = _try_json(q)
-            if not isinstance(j, list) or not j:
-                continue
-            any_year = True
-            totals = {"violent": 0, "property": 0, "theft": 0, "all": 0}
-            labels = {"violent": [], "property": [], "theft": []}
-            for rec in j:
-                lab = str(rec.get(ccol) or "")
-                n = to_int(rec.get("n")) or 0
-                totals["all"] += n
-                b = _bucket(lab)
-                if b:
-                    totals[b] += n
-                    labels[b].append(lab)
-                    if _is_theft(lab):
-                        totals["theft"] += n
-                        labels["theft"].append(lab)
-                upsert(conn, "crime_year_counts",
-                       {"geoid": geoid, "year": y, "dataset": f"{dom}/{rid}", "label": lab,
-                        "bucket": b, "n": n, "source_id": sid},
-                       keys=["geoid", "year", "dataset", "label"])
-            note = _note(title, base, labels, pop, pop_year)
-            for metric, count in (("violent_crime_rate", totals["violent"]),
-                                  ("property_crime_rate", totals["property"]),
-                                  ("theft_rate", totals["theft"])):
-                if not count:
-                    continue
-                upsert(conn, "metric",
-                       {"entity_type": "city", "entity_id": geoid, "metric": metric,
-                        "value": round(count / pop * 100000, 1), "unit": "per_100k",
-                        "year": y, "is_est": 1, "note": note, "source_id": sid},
-                       keys=["entity_type", "entity_id", "metric", "year"])
-                written += 1
             upsert(conn, "metric",
-                   {"entity_type": "city", "entity_id": geoid, "metric": "crime_incidents_total",
-                    "value": float(totals["all"]), "unit": "incidents", "year": y, "is_est": 0,
-                    "note": f"{NOTE_CAVEAT} All rows the dataset '{title}' returns dated in {y} "
-                            f"(offences plus any non-offence record types it publishes). "
-                            f"Source: {base}", "source_id": sid},
+                   {"entity_type": "city", "entity_id": geoid, "metric": metric,
+                    "value": round(count / pop * 100000, 1), "unit": "per_100k",
+                    "year": y, "is_est": 1, "note": note, "source_id": sid},
                    keys=["entity_type", "entity_id", "metric", "year"])
             written += 1
-        if any_year:
-            return ("ok", f"{dom}/{rid}", base + ".json", written,
-                    f"{title}; date={dcol}; cat={ccol}; max_year={max_year}")
-    return ("no_dataset", dom, None, 0, "no dataset on that portal produced usable counts")
+        upsert(conn, "metric",
+               {"entity_type": "city", "entity_id": geoid, "metric": "crime_incidents_total",
+                "value": float(totals["all"]), "unit": "incidents", "year": y, "is_est": 0,
+                "note": f"{NOTE_CAVEAT} Every row the dataset '{title}' returns dated in {y} "
+                        f"(offences plus any non-offence record types it publishes). "
+                        f"Source: {base}", "source_id": sid},
+               keys=["entity_type", "entity_id", "metric", "year"])
+        written += 1
+    return ("ok", f"{dom}/{rid}", base + ".json", written,
+            f"{title}; date={dcol}; cat={ccol}; years={years}; max_year={max(by_year)}")
 
 
 # ---------------------------------------------------------------------------------------------
@@ -533,7 +546,7 @@ def _arcgis_city(conn, conn_city, phrase, pop, pop_year):
                             f"Source: {svc}", "source_id": sid},
                    keys=["entity_type", "entity_id", "metric", "year"])
             written += 1
-        if any_year:
+        if any_year and written:
             return ("ok", svc, svc, written, f"{title}; date={dfield}; cat={cfield}; max_year={max_year}")
     return ("no_dataset", "arcgis", None, 0, "no ArcGIS layer produced usable counts")
 
@@ -642,8 +655,6 @@ def run(conn, cfg):
     cfg = cfg or {}
     force = bool(cfg.get("force"))
     limit = int(cfg.get("limit") or TARGET_CITIES)
-
-    CROSSREF_LIKE = PORTALS  # alias for readability
 
     cde_rows, cde_note = cde_attempt(conn, cfg)
 
