@@ -743,7 +743,7 @@ def page_facilities(d, manifest_total):
     beds_open = sum(f.get("beds") or 0 for f in facs if (f.get("status") == "open"))
     beds_closed = sum(f.get("beds") or 0 for f in facs if (f.get("status") == "closed"))
     rows = []
-    for f in facs[:3000]:
+    for f in facs:
         rows.append([f'<a href="/facility/{f["id"]}.html">{esc(f["name"])}</a>', "", f["name"],
                      esc((f.get("kind") or "").replace("_", " ")), "", f.get("kind") or "",
                      f'<span class="tag {esc(f.get("status") or "")}">{esc(f.get("status") or "?")}</span>', "", f.get("status") or "",

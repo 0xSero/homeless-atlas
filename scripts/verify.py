@@ -23,7 +23,7 @@ GATES = [
     ("geo_city(coord)","SELECT COUNT(*) FROM geo_city WHERE lat IS NOT NULL",                  19000,  "places with coords"),
     ("geo_state",      "SELECT COUNT(*) FROM geo_state",                                          51,  "states + DC"),
     ("geo_coc",        "SELECT COUNT(*) FROM geo_coc",                                           380,  "CoC records"),
-    ("coc geometry",   "SELECT COUNT(*) FROM geo_coc WHERE geometry IS NOT NULL",                380,  "CoC polygons"),
+    ("geo_coc",        "SELECT COUNT(*) FROM geo_coc WHERE geometry IS NOT NULL",                380,  "CoC polygons"),
     ("facility",       "SELECT COUNT(*) FROM facility",                                         1200,  "institutions"),
     ("facility closed","SELECT COUNT(*) FROM facility WHERE status='closed'",                     200,  "closed institutions"),
     ("law",            "SELECT COUNT(*) FROM law",                                               250,  "law rows"),
@@ -47,7 +47,7 @@ def main() -> int:
     if not DB.exists():
         print("FATAL: data/atlas.db missing")
         return 2
-    conn = sqlite3.connect(f"file:{DB}?mode=ro", uri=True)
+    conn = sqlite3.connect(DB, timeout=120)   # read-write: a read-only handle cannot see the WAL
     tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
     for table, sql, target, label in GATES:
         tname = table.split("(")[0].split()[0]

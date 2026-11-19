@@ -472,6 +472,53 @@ def _write_award(conn, r, group, src_id, pmap, seen: set, org_cache: dict) -> No
     }, keys=["award_key"])
 
 
+def warm_cache(max_pages=None, verbose=True):
+    """Phase A: pull every page of every query into the on-disk fetch cache.
+
+    Touches no database table, so it is not slowed down by the other domain
+    agents writing to atlas.db; `run()` then replays the same requests from
+    cache and only has to do the SQL. Resumable by construction: cached pages
+    cost ~1 ms to re-request.
+    """
+    max_pages = int(max_pages or MAX_PAGES)
+    pages_done = 0
+    missing = 0
+    for i, q in enumerate(build_queries(), 1):
+        try:
+            cnt = fetch_post_json(COUNT_URL, {"filters": q["filters"]}, domain=DOMAIN)
+            res = cnt.get("results") or {}
+            n = int(sum(v or 0 for v in res.values() if isinstance(v, int)))
+        except Exception as e:  # noqa: BLE001
+            print(f"[warm] {q['key']}: count failed {str(e)[:120]}", flush=True)
+            continue
+        if not n:
+            if verbose:
+                print(f"[warm] {q['key']}: 0 awards", flush=True)
+            continue
+        pages = min(math.ceil(n / LIMIT), max_pages)
+        got = 0
+        for page in range(1, pages + 1):
+            payload = {"filters": q["filters"], "fields": FIELDS, "page": page, "limit": LIMIT}
+            try:
+                d = fetch_post_json(SEARCH_URL, payload, domain=DOMAIN)
+            except Exception as e:  # noqa: BLE001
+                if "maximum result limit" not in str(e):
+                    print(f"[warm] {q['key']} p{page}: {str(e)[:120]}", flush=True)
+                break
+            if not (d.get("results") or []):
+                break
+            got += 1
+            pages_done += 1
+            if verbose and pages_done % 25 == 0:
+                print(f"[warm] {pages_done} pages cached (query {i}/{len(build_queries())}: {q['key']} p{page}/{pages})",
+                      flush=True)
+        if got < pages:
+            missing += pages - got
+        print(f"[warm] {q['key']}: {got}/{pages} pages", flush=True)
+    print(f"[warm] done: {pages_done} pages cached, {missing} pages short", flush=True)
+    return pages_done
+
+
 # --------------------------------------------------------------------------- #
 # entry points
 # --------------------------------------------------------------------------- #
@@ -487,5 +534,11 @@ def _selftest():
 if __name__ == "__main__":
     if "--selftest" in sys.argv:
         _selftest()
+    elif "--warm" in sys.argv:
+        mp = None
+        for a in sys.argv[1:]:
+            if a.startswith("--max-pages="):
+                mp = int(a.split("=", 1)[1])
+        warm_cache(mp)
     else:
         common.main(DOMAIN, run, "award")

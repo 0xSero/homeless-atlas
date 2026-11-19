@@ -32,6 +32,7 @@ import io
 import json
 import os
 import re
+import sqlite3
 import sys
 import time
 import urllib.parse
@@ -122,14 +123,38 @@ _ROLE_DIRECTOR_EXACT = re.compile(r"^DIRECTOR\b(?!\s+OF)", re.I)
 # --------------------------------------------------------------------------
 # small helpers
 # --------------------------------------------------------------------------
+def _retry(fn, *a, **kw):
+    """Retry a DB write while another worker holds the write lock.
+
+    Other domain workers keep long transactions open while they talk to their
+    APIs; ``conn`` already has a 120 s busy timeout, this adds a longer, jittered
+    wait instead of aborting the whole run.
+    """
+    delay = 1.0
+    for _ in range(20):
+        try:
+            return fn(*a, **kw)
+        except sqlite3.OperationalError as e:
+            msg = str(e).lower()
+            if "locked" not in msg and "busy" not in msg:
+                raise
+            time.sleep(delay)
+            delay = min(delay * 1.7, 20.0)
+    return fn(*a, **kw)
+
+
+def _commit(conn):
+    _retry(conn.commit)
+
+
 def _sid(conn, url, blob=None, title=None, publisher=None, license=None):
     """source.id for a URL, plus real bytes/sha256 of the fetched body."""
-    sid = source_id_for(conn, url, DOMAIN, title=title, publisher=publisher, license=license)
+    sid = _retry(source_id_for, conn, url, DOMAIN, title=title, publisher=publisher,
+                 license=license)
     if blob:
-        conn.execute(
-            "UPDATE source SET bytes=?, sha256=?, retrieved_at=? WHERE id=?",
-            (len(blob), hashlib.sha256(blob).hexdigest(), now(), sid),
-        )
+        _retry(conn.execute,
+               "UPDATE source SET bytes=?, sha256=?, retrieved_at=? WHERE id=?",
+               (len(blob), hashlib.sha256(blob).hexdigest(), now(), sid))
     return sid
 
 
@@ -236,7 +261,7 @@ def _ensure_tables(conn):
         );
         """
     )
-    conn.commit()
+    _commit(conn)
 
 
 def _p_done(conn, phase, key) -> bool:
@@ -247,6 +272,10 @@ def _p_done(conn, phase, key) -> bool:
 
 
 def _p_mark(conn, phase, key, note="", done=1):
+    _retry(_p_mark_1, conn, phase, key, note, done)
+
+
+def _p_mark_1(conn, phase, key, note="", done=1):
     conn.execute(
         """INSERT INTO nonprofit_progress(phase,key,done,ts,note) VALUES(?,?,?,?,?)
            ON CONFLICT(phase,key) DO UPDATE SET done=excluded.done, ts=excluded.ts,
@@ -256,6 +285,10 @@ def _p_mark(conn, phase, key, note="", done=1):
 
 
 def _cand_upsert(conn, row: dict):
+    _retry(_cand_upsert_1, conn, row)
+
+
+def _cand_upsert_1(conn, row: dict):
     row = {k: v for k, v in row.items() if v is not None}
     if not row.get("ein"):
         return
@@ -393,11 +426,11 @@ def phase_bmf(conn, cfg):
             })
             n += 1
             if n % 500 == 0:
-                conn.commit()
+                _commit(conn)
         _p_mark(conn, "bmf", url.rsplit("/", 1)[-1], f"sid={sid}")
-        conn.commit()
+        _commit(conn)
     _p_mark(conn, "bmf", "all", f"{n} homeless-relevant BMF rows")
-    conn.commit()
+    _commit(conn)
     return n
 
 
@@ -416,7 +449,7 @@ def phase_search(conn, cfg):
             first = json.loads(fetch(first_url, domain=DOMAIN))
         except Exception as e:  # source down / 404
             _p_mark(conn, "search", f"{q}|0", f"ERR {e}"[:300])
-            conn.commit()
+            _commit(conn)
             continue
         npages = int(first.get("num_pages") or 0)
         if max_pages_per_q:
@@ -436,7 +469,7 @@ def phase_search(conn, cfg):
                     d = json.loads(fetch(url, domain=DOMAIN))
                 except Exception as e:
                     _p_mark(conn, "search", key, f"ERR {e}"[:300])
-                    conn.commit()
+                    _commit(conn)
                     break
             pages += 1
             for o in d.get("organizations") or []:
@@ -453,8 +486,8 @@ def phase_search(conn, cfg):
                 })
                 added += 1
             _p_mark(conn, "search", key, f"n={len(d.get('organizations') or [])}")
-        conn.commit()
-    conn.commit()
+        _commit(conn)
+    _commit(conn)
     return added, pages
 
 
@@ -483,7 +516,7 @@ def phase_orgs(conn, cfg):
         row["source_id"] = _sid(conn, url, None, publisher="IRS/ProPublica")
         _, created = _merge_org(conn, row)
         n_new += 1 if created else 0
-    conn.commit()
+    _commit(conn)
     return n_new
 
 
@@ -605,6 +638,48 @@ def _parse_filing_page(blob):
     return out
 
 
+def _write_page(conn, cand, parsed, sid, keep_years):
+    """All DB writes for one filing page (retried as a unit on lock contention)."""
+    ein = cand["ein"]
+    m = parsed["meta"]
+    name = m.get("name") or cand["name"]
+    org_row = {
+        "name": name, "name_norm": name_norm(name), "ein": ein, "org_type": "nonprofit",
+        "address1": m.get("address1") or cand["address1"],
+        "city": m.get("city") or cand["city"], "state": m.get("state") or cand["state"],
+        "zip": m.get("zip") or cand["zip"], "ntee": m.get("ntee") or cand["ntee"],
+        "status": "active" if (cand["bmf_status"] or "") == "01" else None,
+        "source_id": sid,
+    }
+    filings = [f for f in parsed["filings"] if f.get("revenue") is not None]
+    if filings:
+        lat = max(filings, key=lambda f: f["year"])
+        org_row["revenue"] = lat.get("revenue")
+        org_row["expenses"] = lat.get("expenses")
+        org_row["assets"] = lat.get("assets") if lat.get("assets") is not None else lat.get("net_assets")
+        org_row["fiscal_year"] = lat["year"]
+    org_id, _ = _merge_org(conn, org_row)
+    canonical_name = conn.execute("SELECT name FROM org WHERE id=?", (org_id,)).fetchone()["name"]
+
+    years_with_people = sorted({p["year"] for p in parsed["people"]}, reverse=True)[:keep_years]
+    keepset = set(years_with_people)
+    added = 0
+    for p in parsed["people"]:
+        if p["year"] not in keepset:
+            continue
+        added += _add_person(conn, org_id, canonical_name, p["person"], p["title"],
+                             p["comp"], p["year"], role_class(p["title"]), sid)
+    if not parsed["filings"] and not parsed["people"]:
+        note, empty = "no-form-990-data (pdf-only or no filings)", True
+    else:
+        note, empty = f"filings={len(parsed['filings'])} people={len(parsed['people'])}", False
+    conn.execute(
+        "UPDATE nonprofit_candidate SET page_done=1, page_ts=?, page_note=? WHERE ein=?",
+        (now(), note[:200], ein),
+    )
+    return added, empty
+
+
 def phase_pages(conn, cfg):
     max_pages = int(cfg.get("max_pages", os.environ.get("NONPROFIT_MAX_PAGES", "2000")))
     budget = float(cfg.get("budget_seconds", os.environ.get("NONPROFIT_BUDGET", "1700")))
@@ -626,69 +701,33 @@ def phase_pages(conn, cfg):
             blob = fetch(url, domain=DOMAIN)
         except Exception as e:
             note = str(e)[:200]
-            conn.execute(
-                "UPDATE nonprofit_candidate SET page_done=2, page_ts=?, page_note=? WHERE ein=?",
-                (now(), note, ein),
-            )
+            _retry(conn.execute,
+                   "UPDATE nonprofit_candidate SET page_done=2, page_ts=?, page_note=? WHERE ein=?",
+                   (now(), note, ein))
+            _commit(conn)
             errors += 1
-            if errors % 25 == 0:
-                conn.commit()
             continue
-        sid = _sid(conn, url, blob, title=f"Form 990 filing summary for EIN {c['ein']}",
-                   publisher="ProPublica Nonprofit Explorer / IRS",
-                   license="public data (IRS Form 990)")
         try:
             parsed = _parse_filing_page(blob)
         except Exception as e:
-            conn.execute(
-                "UPDATE nonprofit_candidate SET page_done=3, page_ts=?, page_note=? WHERE ein=?",
-                (now(), f"parse {e}"[:200], ein),
-            )
+            _retry(conn.execute,
+                   "UPDATE nonprofit_candidate SET page_done=3, page_ts=?, page_note=? WHERE ein=?",
+                   (now(), f"parse {e}"[:200], ein))
+            _commit(conn)
             errors += 1
             continue
-        m = parsed["meta"]
-        name = m.get("name") or c["name"]
-        org_row = {
-            "name": name, "name_norm": name_norm(name), "ein": ein, "org_type": "nonprofit",
-            "address1": m.get("address1") or c["address1"],
-            "city": m.get("city") or c["city"], "state": m.get("state") or c["state"],
-            "zip": m.get("zip") or c["zip"], "ntee": m.get("ntee") or c["ntee"],
-            "status": "active" if (c["bmf_status"] or "") == "01" else None,
-            "source_id": sid,
-        }
-        filings = [f for f in parsed["filings"] if f.get("revenue") is not None]
-        if filings:
-            lat = max(filings, key=lambda f: f["year"])
-            org_row["revenue"] = lat.get("revenue")
-            org_row["expenses"] = lat.get("expenses")
-            org_row["assets"] = lat.get("assets") if lat.get("assets") is not None else lat.get("net_assets")
-            org_row["fiscal_year"] = lat["year"]
-        org_id, _ = _merge_org(conn, org_row)
-
-        canonical_name = conn.execute(
-            "SELECT name FROM org WHERE id=?", (org_id,)
-        ).fetchone()["name"]
-
-        years_with_people = sorted({p["year"] for p in parsed["people"]}, reverse=True)[:keep_years]
-        keepset = set(years_with_people)
-        for p in parsed["people"]:
-            if p["year"] not in keepset:
-                continue
-            persons += _add_person(conn, org_id, canonical_name, p["person"], p["title"],
-                                   p["comp"], p["year"], role_class(p["title"]), sid)
-        if not parsed["filings"] and not parsed["people"]:
-            empty += 1
-            note = "no-form-990-data (pdf-only or no filings)"
-        else:
-            note = f"filings={len(parsed['filings'])} people={len(parsed['people'])}"
-        conn.execute(
-            "UPDATE nonprofit_candidate SET page_done=1, page_ts=?, page_note=? WHERE ein=?",
-            (now(), note[:200], ein),
-        )
+        sid = _sid(conn, url, blob, title=f"Form 990 filing summary for EIN {ein}",
+                   publisher="ProPublica Nonprofit Explorer / IRS",
+                   license="public data (IRS Form 990)")
+        added, was_empty = _retry(_write_page, conn, c, parsed, sid, keep_years)
+        _commit(conn)
+        persons += added
+        empty += 1 if was_empty else 0
         done += 1
-        if done % 20 == 0:
-            conn.commit()
-    conn.commit()
+        if done % 25 == 0:
+            print(f"[{DOMAIN}] pages={done} persons={persons} "
+                  f"({round(time.time()-t0)}s)", flush=True)
+    _commit(conn)
     return {"pages": done, "persons": persons, "empty": empty, "errors": errors,
             "seconds": round(time.time() - t0, 1)}
 
@@ -747,7 +786,7 @@ def phase_wikidata(conn, cfg):
                 filled += cur.rowcount
         for r in chunk:
             _p_mark(conn, "wikidata", f"wd|{r['ein']}", f"batch {i//batch}")
-        conn.commit()
+        _commit(conn)
     return filled
 
 
@@ -759,18 +798,18 @@ def run(conn, cfg):
     cfg.setdefault("domain", DOMAIN)
     t0 = time.time()
     _ensure_tables(conn)
-    conn.commit()
+    _commit(conn)
 
     n_bmf = phase_bmf(conn, cfg)
-    conn.commit()
+    _commit(conn)
     n_search, s_pages = phase_search(conn, cfg)
-    conn.commit()
+    _commit(conn)
     n_orgs = phase_orgs(conn, cfg)
-    conn.commit()
+    _commit(conn)
     page_stats = phase_pages(conn, cfg)
-    conn.commit()
+    _commit(conn)
     n_wiki = phase_wikidata(conn, cfg)
-    conn.commit()
+    _commit(conn)
 
     remaining = conn.execute(
         "SELECT COUNT(*) FROM nonprofit_candidate WHERE page_done=0").fetchone()[0]
@@ -800,7 +839,7 @@ if __name__ == "__main__":
         conn = db()
         res = run(conn, {"queries": ["homeless"], "max_pages": 6, "budget_seconds": 240,
                          "wiki": False})
-        conn.commit()
+        _commit(conn)
         print(res["notes"])
         selftest_report(conn, DOMAIN, "org", where="org_type='nonprofit' AND ein IS NOT NULL", n=3)
         selftest_report(conn, DOMAIN, "org_person", where="1=1", n=3)

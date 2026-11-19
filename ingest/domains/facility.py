@@ -139,12 +139,18 @@ def _money(v):
 
 def smart_title(s: str) -> str:
     out = []
-    for tok in (s or "").split():
+    for i, tok in enumerate((s or "").split()):
+        # hyphenated names: "STATE-HOSPITAL" -> "State-Hospital"
+        if "-" in tok and not re.search(r"\d-\d", tok):
+            left, _, right = tok.partition("-")
+            tok = f"{smart_title(left)} - {smart_title(right)}"
+            out.append(tok)
+            continue
         core = tok.strip(".,()[]")
         if core and core.isupper() and len(core) <= 4 and core in _ACRONYM_OK:
             out.append(tok)
-        elif core and core.upper() in _STOP_LOWER:
-            out.append(core.capitalize())
+        elif core and core.upper() in _STOP_LOWER and i > 0:
+            out.append(core.lower())
         elif tok.isupper():
             out.append(tok.capitalize())
         else:
@@ -152,12 +158,43 @@ def smart_title(s: str) -> str:
     return " ".join(out)
 
 
+_WIKI_STATE_FIXES = {
+    "Washington, D.C.": "District of Columbia",
+    "Washington DC": "District of Columbia",
+    "Georgia (U.S. state)": "Georgia",
+}
+
+
+def _norm_state_name(label: str) -> str:
+    label = re.sub(r"\s+", " ", label or "").strip()
+    label = label.replace("(U.S. state)", "").strip()
+    label = re.sub(r"^State of ", "", label)
+    return _WIKI_STATE_FIXES.get(label, label)
+
+
+def _state_from_list_title(title: str):
+    """'List of Georgia state prisons' -> 'GA'."""
+    t = re.sub(r"^List of ", "", title or "")
+    for suf in (" state correctional facilities", " state prisons", " prisons and jails",
+                " state penitentiary", " prisons", " state correctional institution",
+                " state hospital", " state hospitals"):
+        if t.lower().endswith(suf):
+            t = t[: -len(suf)]
+            break
+    t = t.replace("U.S. ", "").replace("United States ", "").strip()
+    return STATE_ABBR.get(_norm_state_name(t))
+
+
 def _state_from_label(label: str | None):
     if not label:
         return None
     label = re.sub(r"\s+", " ", label).strip()
-    if label in STATE_ABBR:
-        return STATE_ABBR[label]
+    if _norm_state_name(label) in STATE_ABBR:
+        return STATE_ABBR[_norm_state_name(label)]
+    # "List of Georgia state prisons", "Georgia state prisons"
+    m = re.match(r"^(?:List of )?(.+?) (?:state )?(?:prisons|psychiatric hospitals)$", label)
+    if m and _norm_state_name(m.group(1)) in STATE_ABBR:
+        return STATE_ABBR[_norm_state_name(m.group(1))]
     # longest state names first so "West Virginia" wins over "Virginia"
     for nm in sorted(STATE_ABBR, key=len, reverse=True):
         if re.search(r"(^|[,\s])" + re.escape(nm) + r"$", label) or label.endswith(", " + nm):
@@ -239,6 +276,8 @@ def hifld_records(conn):
         lon = g.get("x") if g else None
         owner = clean(a.get("OWNER"))
         kind = "state_psychiatric" if (owner or "").upper() == "GOVERNMENT - STATE" else "psych_unit"
+        if re.search(r"university|ucla|uc |veterans|va ", (a.get("NAME") or ""), re.I):
+            kind = "psych_unit"
         status = {"OPEN": "open", "CLOSED": "closed"}.get((a.get("STATUS") or "").upper(), "unknown")
         vintage = _year(a.get("VAL_DATE")) or _year(a.get("SOURCEDATE"))
         notes = [f"HIFLD Hospitals layer (record vintage {vintage or 'n/a'}); owner {owner or 'n/a'}"]
@@ -348,6 +387,7 @@ WHERE {{
   {{ ?i wdt:P17 wd:Q30 . }}
   UNION {{ ?i wdt:P131 ?st . VALUES ?st {{ {sv} }} }}
   UNION {{ ?i wdt:P131 ?adm0 . ?adm0 wdt:P131 ?st . VALUES ?st {{ {sv} }} }}
+  UNION {{ ?i wdt:P131 ?adm0 . ?adm0 wdt:P131 ?adm1 . ?adm1 wdt:P131 ?st . VALUES ?st {{ {sv} }} }}
   ?i rdfs:label ?label . FILTER(lang(?label)="en")
   OPTIONAL {{ ?i wdt:P31 ?x . ?x rdfs:label ?typeLabel . FILTER(lang(?typeLabel)="en") }}
   OPTIONAL {{ ?i wdt:P571 ?inception }}
@@ -377,6 +417,10 @@ WHERE {{
                 if needle in typ:
                     kind = k
                     break
+            if re.search(r"\bjail\b", label, re.I):
+                kind = "jail"
+            elif re.search(r"\bpsychiatric hospital\b", typ, re.I) and kind == "other":
+                kind = "state_psychiatric"
             state = _state_from_label(r.get("admin")) or _state_from_label(r.get("walabel"))
             lat = lon = None
             coord = r.get("coord") or ""
@@ -489,7 +533,8 @@ def wiki_pages(conn, titles):
     titles = sorted(t for t in titles if t and ":" not in t.split("(")[0])
     for i in range(0, len(titles), 40):
         batch = titles[i:i + 40]
-        j = _wiki({"action": "query", "prop": "revisions|coordinates", "rvprop": "content",
+        j = _wiki({"action": "query", "prop": "revisions|coordinates|categories",
+                   "rvprop": "content", "cllimit": "100",
                    "rvslots": "main", "titles": "|".join(batch), "redirects": "1"})
         q = j.get("query") or {}
         norm = {}
@@ -513,6 +558,7 @@ def wiki_pages(conn, titles):
                 "wikitext": wt,
                 "lat": coords[0].get("lat") if coords else None,
                 "lon": coords[0].get("lon") if coords else None,
+                "cats": [c.get("title") for c in (p.get("categories") or [])],
                 "aliases": [a for a in (norm.get(title), redir.get(title)) if a],
             }
     return pages
@@ -583,6 +629,15 @@ def record_from_page(conn, page, hint):
                     notes.append(f"budget figure from article text: \"{s[:220]}\"")
                     break
 
+    if not state:
+        for cat in page.get("cats") or []:
+            c = re.sub(r"^Category:", "", cat)
+            m = re.search(r"\bin ([A-Z][\w .,()'\-]+)$", c)
+            if m:
+                state = _state_from_label(m.group(1))
+                if state:
+                    break
+
     lat, lon = page.get("lat"), page.get("lon")
     if lat is None:
         cm = re.search(r"\{\{\s*coord\s*\|\s*([-\d.]+)\s*\|\s*([-\d.]+)", wt, re.I)
@@ -632,10 +687,9 @@ def wiki_prison_lists(conn):
             tables = pd.read_html(io.StringIO(html))
         except Exception:
             continue
-        state = _state_from_label(title.replace("List of", "").strip()) or \
-            ("US" if "federal" in title.lower() else None)
-        if title.startswith("List of Oregon"):
-            state = "OR"
+        state = _state_from_list_title(title)
+        if not state and "federal" in title.lower():
+            state = "US"
         sid = source_id_for(conn, page_url, DOMAIN, title=title, publisher="Wikipedia",
                             license="CC BY-SA 4.0")
         for t in tables:
@@ -655,7 +709,12 @@ def wiki_prison_lists(conn):
             i_cap = find(r"capacity", r"^beds", r"design capacity", r"inmates")
             i_open = find(r"^opened", r"^established", r"year opened", r"^open")
             i_closed = find(r"^closed", r"^closure", r"date closed")
-            i_city = find(r"^city", r"^location", r"^town", r"^county", r"^address")
+            i_city = find(r"^city", r"^location", r"^town", r"^address")
+            i_county = find(r"^county")
+            if i_city is None and i_county is not None:
+                i_county_only = i_county
+            else:
+                i_county_only = None
             if i_name is None or i_cap is None:
                 continue
             for _, row in t.iterrows():
@@ -671,12 +730,19 @@ def wiki_prison_lists(conn):
                 city = None
                 if i_city is not None and isinstance(row.iloc[i_city], str):
                     city = re.sub(r"\[.*?\]", "", row.iloc[i_city]).strip()
+                roster = (i_closed is None) and not re.search(r"closed", nm, re.I)
                 notes = [f"Wikipedia table '{title}'"]
+                if roster and not closed:
+                    notes.append("appears on the current state-prison roster in the table")
+                if i_county_only is not None and isinstance(row.iloc[i_county_only], str):
+                    cty = re.sub(r"\[.*?\]", "", row.iloc[i_county_only]).strip()
+                    if cty and cty.lower() != "nan":
+                        notes.append(f"county: {cty}")
                 if closed:
                     notes.append(f"table lists closure year {closed}")
                 recs.append({
                     "name": clean(nm), "kind": "prison",
-                    "status": "closed" if closed else None,
+                    "status": "closed" if closed else ("open" if roster else None),
                     "opened": opened, "closed": closed,
                     "beds": cap, "beds_year": None, "capacity_est": None,
                     "staff": None, "staff_year": None,
@@ -734,10 +800,12 @@ class Merger:
         k = _key(rec)
         if k in self.recs:
             return k
-        # same name+state, city ignored / empty
         if k[0]:
-            cands = [kk for kk in self.recs
-                     if kk[0] == k[0] and kk[1] == k[1] and (not kk[2] or not k[2])]
+            # exactly one existing facility with the same normalised name in the same state:
+            # cities routinely differ between sources (county vs city vs mailing address)
+            cands = [kk for kk in self.recs if kk[0] == k[0] and kk[1] == k[1]]
+            if not cands and k[1]:
+                cands = [kk for kk in self.recs if kk[0] == k[0] and not kk[1]]
             if len(cands) == 1:
                 return cands[0]
         # geographic proximity + name similarity
@@ -875,6 +943,11 @@ def _find_existing(conn, name_n, state, city):
     row = conn.execute(
         "SELECT id FROM facility WHERE name_norm=? AND state IS ? AND (city IS NULL OR city='') "
         "LIMIT 1", (name_n, state)).fetchone()
+    if row:
+        return row[0]
+    row = conn.execute(
+        "SELECT id FROM facility WHERE name_norm=? AND state IS ? LIMIT 1",
+        (name_n, state)).fetchone()
     return row[0] if row else None
 
 

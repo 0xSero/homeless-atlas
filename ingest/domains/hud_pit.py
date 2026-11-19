@@ -35,7 +35,9 @@ import csv
 import io
 import json
 import re
+import sqlite3
 import subprocess
+import time
 import zipfile
 from pathlib import Path
 
@@ -60,7 +62,10 @@ URL_POPSUB_NAT = ("https://files.hudexchange.info/reports/published/"
 CENSUS_LICENSE = "public domain (US Census Bureau)"
 HUD_LICENSE = "public domain (US Government work)"
 
-COC_RX = re.compile(r"^[A-Z]{2}-\d{3}$")          # excludes the MO-604a duplicate
+COC_RX = re.compile(r"^[A-Z]{2}-\d{3}$")
+# HUD writes a few cross-state CoCs as 'MO-604a' with a footnote saying the row is
+# the CoC's *total* territory (there is no plain 'MO-604' row for those years).
+COC_RX_SUFFIX = re.compile(r"^([A-Z]{2}-\d{3})[a-z]$")
 NON_CITY_SUFFIX = re.compile(
     r"\s+(city|town|village|borough|municipality|CDP|urban county|"
     r"city and borough|consolidated government|metropolitan government|"
@@ -114,7 +119,7 @@ def read_pit_workbook(path: Path):
             "(pip install --user pyxlsb)") from e
 
     rows, names, notes = {}, {}, []
-    skipped_dupe = 0
+    suffixed = 0
     with open_workbook(str(path)) as wb:
         years = sorted(int(s) for s in wb.sheets if s.isdigit() and len(s) == 4)
         for year in years:
@@ -140,9 +145,10 @@ def read_pit_workbook(path: Path):
                         continue
                     cell = r[ci].v if ci < len(r) else None
                     coc = str(cell).strip() if isinstance(cell, str) else None
+                    if coc and COC_RX_SUFFIX.match(coc):
+                        coc = COC_RX_SUFFIX.match(coc).group(1)   # 'MO-604a' -> 'MO-604'
+                        suffixed += 1
                     if not coc or not COC_RX.match(coc):
-                        if coc and re.match(r"^[A-Z]{2}-\d{3}[a-z]$", coc):
-                            skipped_dupe += 1       # MO-604a footnote duplicate
                         continue
                     rec = {}
                     for key, i in wanted.items():
@@ -151,16 +157,16 @@ def read_pit_workbook(path: Path):
                         notes.append(f"{year}: duplicate row for {coc}, kept first")
                         continue
                     rows[(coc, year)] = rec
-                    if ni is not None and ni < len(r) and coc not in names:
+                    if ni is not None and ni < len(r):   # later years overwrite: newest name wins
                         nm = clean(r[ni].v)
                         if nm:
                             names[coc] = nm
                     n += 1
                 if n == 0:
                     notes.append(f"{year}: no CoC rows parsed")
-    if skipped_dupe:
-        notes.append(f"excluded {skipped_dupe} 'NN-###x' footnote-duplicate row(s) "
-                     "(e.g. MO-604a repeats MO-604 totals)")
+    if suffixed:
+        notes.append(f"normalised {suffixed} 'NN-###x' row(s) (HUD's cross-state CoC "
+                     "footnote form, e.g. MO-604a -> MO-604 total territory)")
     return rows, names, notes
 
 
@@ -443,6 +449,27 @@ def national_pdf_totals(year: int):
 
 # --------------------------------------------------------------------- driver
 def run(conn, cfg):
+    """Retry wrapper: another domain may hold the sqlite write lock."""
+    last = None
+    for attempt in range(6):
+        try:
+            conn.commit()                      # drop any stale read snapshot
+            res = _run(conn, cfg)
+            conn.commit()
+            return res
+        except sqlite3.OperationalError as e:
+            if "locked" not in str(e) and "busy" not in str(e):
+                raise
+            last = e
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+            time.sleep(4 * (attempt + 1))
+    raise last
+
+
+def _run(conn, cfg):
     cfg = cfg or {}
     force = bool(cfg.get("force"))
     notes, written = [], {}
@@ -544,7 +571,7 @@ def run(conn, cfg):
     n = 0
     for coc in sorted(universe):
         g = coc_geo.get(coc, {})
-        name = coc_names.get(coc) or g.get("name")
+        name = g.get("name") or coc_names.get(coc)
         state = g.get("state") or coc.split("-")[0]
         cities = cities_by_coc.get(coc) or []
         city_txt = ", ".join(c["name"] for c in cities[:3]) or None

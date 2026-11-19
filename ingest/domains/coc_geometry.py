@@ -34,6 +34,7 @@ HTTP response is disk-cached by ingest.common.fetch, so a rerun replays from cac
 """
 from __future__ import annotations
 
+import hashlib
 import io
 import json
 import math
@@ -81,7 +82,7 @@ PEP_URL = ("https://www2.census.gov/programs-surveys/popest/datasets/2020-2024/"
 # exports must be < 12 MB total; leave headroom
 COC_EXPORT_BUDGET = 8_000_000
 STATE_EXPORT_BUDGET = 1_800_000
-TOL_LADDER = [0.004, 0.006, 0.008, 0.012, 0.016, 0.024, 0.032, 0.05, 0.08]
+TOL_LADDER = [0.002, 0.003, 0.004, 0.006, 0.008, 0.012, 0.016, 0.024, 0.032, 0.05, 0.08]
 
 SQ_M_PER_SQ_MI = 2589988.110336
 
@@ -115,9 +116,29 @@ def _exec(conn, sql, params=()):
     return _retry(lambda: conn.execute(sql, params))
 
 
-def _source_id(conn, url, *a, **kw):
-    """source_id_for() writes a row; other workers share the DB, so retry on locks."""
-    return _retry(lambda: source_id_for(conn, url, DOMAIN, *a, **kw))
+def _cache_file(url, method="GET", data=None):
+    """The on-disk cache path common.fetch() uses for this request (same key derivation)."""
+    key = hashlib.sha1((method + url + json.dumps(data or {}, sort_keys=True,
+                                                 default=str)).encode()).hexdigest()
+    p = common.RAW / DOMAIN / f"{key}.bin"
+    return p if p.exists() and p.stat().st_size else None
+
+
+def _source_id(conn, url, *, method="GET", data=None, **kw):
+    """source_id_for() writes a row; other workers share the DB, so retry on locks.
+
+    source_id_for() only picks up bytes/sha256 when the cache key matches sha1(url),
+    which is not the key fetch() uses, so backfill them from the real cache file here.
+    """
+    sid = _retry(lambda: source_id_for(conn, url, DOMAIN, **kw))
+    p = _cache_file(url, method=method, data=data)
+    if p is not None:
+        nbytes = p.stat().st_size
+        sha = hashlib.sha256(p.read_bytes()).hexdigest()
+        _exec(conn, """UPDATE source SET bytes=?, sha256=?
+                        WHERE id=? AND (bytes IS NULL OR sha256 IS NULL)""",
+              (nbytes, sha, sid))
+    return sid
 
 
 # --------------------------------------------------------------------------- #
@@ -457,6 +478,18 @@ def _ensure(conn):
         step TEXT PRIMARY KEY,
         value TEXT,
         done_at TEXT)""")
+    # domain-private provenance: geo_coc is shared with hud_pit, which re-writes
+    # source_id/lat/lon from its own layer; this table keeps the polygon provenance.
+    _exec(conn, """CREATE TABLE IF NOT EXISTS coc_geometry_coc(
+        coc_num TEXT PRIMARY KEY,
+        source_id INTEGER,
+        source_url TEXT,
+        tol REAL,
+        points INTEGER,
+        rings INTEGER,
+        parts TEXT,
+        state TEXT,
+        done_at TEXT)""")
     _commit(conn)
 
 
@@ -492,8 +525,41 @@ def _coc_page_url(offset):
             "&resultOffset=%d&resultRecordCount=%d" % (offset, PAGE))
 
 
+BUSY_MS = 600000
+
+
+def _soft(conn, fn, ms=2000):
+    """Best-effort DB bookkeeping.
+
+    Other workers share data/atlas.db and can hold the write lock for minutes; the
+    download / simplification / export path must not stall on that, so bookkeeping
+    runs under a short busy timeout and is simply skipped if the DB stays locked.
+    """
+    try:
+        conn.execute("PRAGMA busy_timeout=%d" % ms)
+    except sqlite3.Error:
+        pass
+    try:
+        return fn()
+    except sqlite3.OperationalError as e:
+        msg = str(e).lower()
+        if "locked" in msg or "busy" in msg:
+            return None
+        raise
+    finally:
+        try:
+            conn.execute("PRAGMA busy_timeout=%d" % BUSY_MS)
+        except sqlite3.Error:
+            pass
+
+
 def _fetch_coc(conn, max_pages=None):
-    """Download every CoC page (cached on disk + named copies in data/raw/coc_geometry/)."""
+    """Download every CoC page (cached on disk + named copies in data/raw/coc_geometry/).
+
+    No DB writes on the hot path: `feats` carries the source URL per feature and the
+    source rows are registered later, in the single DB phase, so other workers holding
+    the write lock cannot stall the download or the export.
+    """
     total, count_url = _coc_total(conn)
     print(f"[{DOMAIN}] HUD service reports {total} CoC features")
     feats = []
@@ -507,19 +573,16 @@ def _fetch_coc(conn, max_pages=None):
         page_feats = j.get("features") or []
         save_raw(DOMAIN, f"coc_page_{offset:04d}.json", raw)
         npts = sum(_count_points(f.get("geometry")) for f in page_feats)
-        _exec(conn, """INSERT INTO coc_geometry_page(page_offset,n_feat,n_points,url,done_at)
+        _soft(conn, lambda: (_exec(conn, """INSERT INTO coc_geometry_page(page_offset,n_feat,n_points,url,done_at)
                         VALUES(?,?,?,?,?)
                         ON CONFLICT(page_offset) DO UPDATE SET n_feat=excluded.n_feat,
                           n_points=excluded.n_points, url=excluded.url, done_at=excluded.done_at""",
-              (offset, len(page_feats), npts, url, now()))
-        _commit(conn)
-        src = _source_id(conn, url, title=f"{HUD_TITLE} — features {offset}-{offset + PAGE - 1}",
-                            publisher=HUD_PUBLISHER, license=HUD_LICENSE)
+              (offset, len(page_feats), npts, url, now())), _commit(conn)))
         for f in page_feats:
-            feats.append((f.get("properties") or {}, f.get("geometry"), src))
+            feats.append((f.get("properties") or {}, f.get("geometry"), url))
         pages += 1
         print(f"[{DOMAIN}] page offset={offset} feats={len(page_feats)} points={npts}")
-    _mark(conn, "coc_pages", pages)
+    _soft(conn, lambda: _mark(conn, "coc_pages", pages))
     return feats, total, count_url
 
 
@@ -759,6 +822,9 @@ def _census_places(conn, coc_geoms):
         n_pop += 1 if p is not None else 0
         n_pt += 1 if lat is not None else 0
         n_coc += 1 if coc_num else 0
+        if n % 2000 == 0:
+            _commit(conn)
+            print(f"[{DOMAIN}] places committed {n}")
     _commit(conn)
     print(f"[{DOMAIN}] places={n} with_pop={n_pop} with_point={n_pt} with_coc={n_coc}")
     return {"places": n, "with_pop": n_pop, "with_point": n_pt, "with_coc": n_coc,
@@ -770,8 +836,8 @@ def _census_places(conn, coc_geoms):
 # --------------------------------------------------------------------------- #
 def run(conn, cfg):
     cfg = cfg or {}
-    _exec(conn, "PRAGMA busy_timeout=600000")
-    _ensure(conn)
+    _exec(conn, "PRAGMA busy_timeout=%d" % BUSY_MS)
+    _soft(conn, lambda: _ensure(conn), ms=15000)
     EXPORT.mkdir(parents=True, exist_ok=True)
     max_pages = cfg.get("max_pages")
 
@@ -808,14 +874,33 @@ def run(conn, cfg):
     coc_path.write_text(coc_text)
     print(f"[{DOMAIN}] wrote {coc_path} features={len(coc_feats)} {len(coc_text)/1e6:.2f}MB")
 
+    src_by_url = {}
     for rec in simplified:
         props = rec["props"]
         coc_num = clean(props.get("COCNUM"))
         if not coc_num:
             continue
+        url = rec["src"]
+        if url not in src_by_url:
+            off = url.split("resultOffset=", 1)[-1].split("&")[0] if "resultOffset=" in url else "0"
+            src_by_url[url] = _source_id(
+                conn, url, title=f"{HUD_TITLE} — features offset {off}",
+                publisher=HUD_PUBLISHER, license=HUD_LICENSE)
         geom = rec["geom"]
         lat, lon = _center_largest(geom)
         state = (coc_num.split("-")[0] or None)
+        _upsert(conn, "coc_geometry_coc", {
+            "coc_num": coc_num,
+            "source_id": src_by_url[url],
+            "source_url": url,
+            "tol": tol,
+            "points": _count_points(geom),
+            "rings": sum(1 for poly in ([geom["coordinates"]] if geom["type"] == "Polygon"
+                                        else geom["coordinates"]) for _ in poly),
+            "parts": geom["type"],
+            "state": state,
+            "done_at": now(),
+        }, keys=["coc_num"])
         _upsert(conn, "geo_coc", {
             "coc_num": coc_num,
             "name": clean(props.get("COCNAME")),
@@ -823,12 +908,16 @@ def run(conn, cfg):
             "geometry": json.dumps(_round_geom(geom), separators=(",", ":")),
             "lat": lat,
             "lon": lon,
-            "source_id": rec["src"],
+            "source_id": src_by_url[url],
         }, keys=["coc_num"])
         coc_geoms[coc_num] = geom
         coc_rows += 1
     _commit(conn)
-    _mark(conn, "cocs", coc_rows)
+    _soft(conn, lambda: _mark(conn, "cocs", coc_rows))
+    # the count-only request is where the "387 features" figure comes from -> register it too
+    _source_id(conn, count_url,
+               title=f"{HUD_TITLE} — feature count (returnCountOnly)",
+               publisher=HUD_PUBLISHER, license=HUD_LICENSE)
     print(f"[{DOMAIN}] geo_coc rows written: {coc_rows} (service total {total})")
 
     # ---- states -----------------------------------------------------------
@@ -847,7 +936,7 @@ def run(conn, cfg):
     city_stats = {"places": 0}
     if not max_pages:
         city_stats = _census_places(conn, coc_geoms)
-    _mark(conn, "exports", total_bytes)
+    _soft(conn, lambda: _mark(conn, "exports", total_bytes))
 
     notes = (f"coc_rows={coc_rows}/{total} tol={tol} coc_pts={npts} "
              f"export_coc={len(coc_text)}B export_state={len(state_text)}B "
@@ -861,8 +950,12 @@ def run(conn, cfg):
     if not max_pages and total_bytes > 12_000_000:
         raise RuntimeError(f"export budget blown: {total_bytes} bytes")
     nonnull = conn.execute("SELECT COUNT(*) FROM geo_coc WHERE geometry IS NOT NULL").fetchone()[0]
+    mine = conn.execute("SELECT COUNT(*) FROM coc_geometry_coc").fetchone()[0]
     if not max_pages and nonnull < 380:
         raise RuntimeError(f"only {nonnull} CoCs have geometry")
+    if not max_pages and mine < 380:
+        raise RuntimeError(f"only {mine} CoCs in coc_geometry_coc")
+    notes += f" geom_nonnull={nonnull} provenance_rows={mine}"
 
     return {"rows": coc_rows, "notes": notes}
 
