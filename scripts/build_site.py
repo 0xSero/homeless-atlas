@@ -1179,6 +1179,9 @@ def page_country(country, manifest_total):
              esc((r["metric"] or "").replace("_", " ")), "", r["metric"] or "",
              num(r["value"]) + ("†" if r["is_est"] else ""), "r", r["value"] or 0,
              yr(r["year"]), "", r["year"] or 0] for r in subs[:400]]
+    # the page file is keyed by the metric entity type (us/uk/canada/australia), not the ISO code
+    others = "".join(f'<a class="card" href="/country/{e2}.html"><h3>{n}</h3><div class="m">{lbl}</div></a>'
+                     for e2, n, c, lbl in COUNTRIES if e2 != etype)
     body = banner(name, f"{name}", f"Every figure on this page comes from {name}'s own statistics agency or "
                   f"funding department, retrieved by an ingestor and cited per row.",
                   crumbs=f'<a href="/index.html">Atlas</a> / {name}', small=True) + f"""
@@ -1190,6 +1193,9 @@ def page_country(country, manifest_total):
   <h2>Subnational detail</h2>
   {table([("Geography level",""),("Area",""),("Measure",""),("Value","r"),("Year","r")], srow,
          note="Local-authority, community or state rows, exactly as the source publishes them.")}
+  <h2>Other countries</h2>
+  <div class="cards">{"".join(others)}</div>
+  </div>
 </div>"""
     return shell("../", name, "", body, manifest_total=manifest_total)
 
