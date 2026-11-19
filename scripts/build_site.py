@@ -9,6 +9,7 @@ Run: python3 scripts/build_site.py [--fast]
 """
 from __future__ import annotations
 import hashlib, json, math, os, re, shutil, sqlite3, sys
+import time
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
