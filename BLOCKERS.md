@@ -285,3 +285,32 @@ host reachable, or the NASHH bilateral schedules as CSV in `data/raw/australia/`
 for this domain defines only `au_state` and `au_lga` entities; parking SA4 rows in `kind='au_lga'`
 would mislabel geography. ABS also publishes no LGA-level estimate for 2006/2011 in this release,
 so the LGA layer is two Census years, not four.
+
+## sf
+
+**Blocked: no reachable primary source for the November 2024 ballot measures (`sfelections.org`, `sf.gov`, `ourcityourhome.org`).**
+The assignment asks for Measure C 2024 budget tracking next to Prop C 2018. What was tried, on
+2026-11-19:
+
+| URL | result |
+|---|---|
+| `https://www.sfelections.org/` | HTTP 403 (also `sfelections.sfgov.org/`) |
+| `https://www.sf.gov/measures-and-ballot-arguments` | HTTP 202 with an empty body (bot challenge) — same for every `sf.gov` page tried, including `/reports`, `/departments/sheriff`, `/new-laguna-honda`, `/departments/department-homelessness-and-supportive-housing` |
+| `https://www.sf.gov/sites/default/files/2024-07/LHH%20Community%20Report.pdf` | HTTP 202, empty body |
+| `https://ourcityourhome.org/` | DNS/connection failure (host does not resolve from here) — no OCOH committee reports, no Prop C spending plan |
+| `https://openbook.sfgov.org/` | connection timeout |
+| `https://ballotpedia.org/San_Francisco,_California_measures,_November_2024` | HTTP 202, empty body |
+| `http://web.archive.org/cdx/search/cdx?url=www.sfelections.org/results_110524/*` | 200, **zero** snapshots — the archive has nothing for the SF 2024 results pages |
+| `https://data.sf.gov/resource/88s2-6ua9.json?$where=year='2024'` | works, but that database stops at the **March 2024** ballot (7 measures); the only 2024 Measure C it has is the March 2024 real-estate-transfer-tax exemption, which is not a homelessness measure |
+
+No API key exists for this — it is a WAF/IP rule plus one dead domain. What unblocks it: an
+allowlist for this host's egress IP, or a copy of the November 2024 voter information pamphlet /
+OCOH annual report dropped in `data/raw/sf/`. Until then this domain publishes Prop C 2018 and the
+`SR Our City Our Home Fund` appropriations (FY2019–FY2028) and **asserts nothing** about Measure C 2024.
+
+**Partial: granular SF program-level budget stops at FY2018.** The Controller's Budget dataset
+(`xdgd-c79v`) publishes per-program lines (Laguna Honda `DA5`, SFGH `D1H`/`D1P`/`D5S`, Sheriff
+`AFC`, HSH `CSH`/`COT`) only through FY2018; from FY2019 every department reports a single `OPR`
+"Operating" program, so later years are captured at department total and at hospital operating-fund
+level instead. Unblocks it: a Socrata dataset or CSV of the Annual Appropriation Ordinance detail
+for FY2019+ (OpenBook's own exports).

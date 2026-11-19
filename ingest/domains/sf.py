@@ -198,28 +198,33 @@ def ingest_budget(conn):
         if not metric or not amt:
             continue
         n += put_metric(conn, metric, fy, amt, sid, unit="usd",
-                        note=f"department_code='HOM', program_code='{pc}'")
+                        note=f"department_code='HOM', program_code='{pc}' (the Controller publishes the "
+                             f"program-level split through FY2018; later years report under program 'OPR')")
 
     # 1b2. Laguna Honda and SF General operating funds. The Controller's granular program codes end at
-    # FY2018 (from FY2019 the same departments report under program 'OPR'), but the enterprise funds that
-    # carry each hospital keep reporting through FY2028.
-    where = "fund_type in ('Laguna Honda Hospital Funds','General Hospital Medical Center Funds')"
+    # FY2018 (from FY2019 the same departments report under program 'OPR'), but the hospitals' operating
+    # funds keep reporting through FY2028 — the fund names just change spelling in FY2019.
+    LHH_FUNDS = ("Laguna Honda Operating Fund", "LHH-Operating Fund")
+    SFGH_FUNDS = ("General Hopsital Operating Fund", "General Hospital Operating Fund", "SFGH-Operating Fund")
+    where = "fund in ('%s')" % "','".join(LHH_FUNDS + SFGH_FUNDS)
     recs, sid, _ = socrata(
         conn, "xdgd-c79v",
-        select="fiscal_year,fund_type,sum(budget) as amt", where=where, group="fiscal_year,fund_type",
-        order="fiscal_year,fund_type",
+        select="fiscal_year,fund,fund_type,sum(budget) as amt", where=where, group="fiscal_year,fund,fund_type",
+        order="fiscal_year,fund",
         title="San Francisco Controller budget — Laguna Honda and SF General operating funds",
     )
     for r in recs:
-        fy, ftype, amt = to_int(r.get("fiscal_year")), r.get("fund_type"), num(r.get("amt")) or 0.0
+        fy, fund, amt = to_int(r.get("fiscal_year")), (r.get("fund") or ""), num(r.get("amt")) or 0.0
         if not amt:
             continue
-        if ftype.startswith("Laguna Honda"):
+        if fund in LHH_FUNDS:
             n += put_metric(conn, "laguna_honda_operating_budget", fy, amt, sid, unit="usd",
-                            note="Sum of budget lines with fund_type='Laguna Honda Hospital Funds'")
-        else:
+                            note="Budget for the Laguna Honda operating fund (fund name varies: 'Laguna Honda "
+                                 "Operating Fund' through FY2018, 'LHH-Operating Fund' after)")
+        elif fund in SFGH_FUNDS:
             n += put_metric(conn, "sfgh_operating_budget", fy, amt, sid, unit="usd",
-                            note="Sum of budget lines with fund_type='General Hospital Medical Center Funds'")
+                            note="Budget for the SF General operating fund (fund name varies: 'General "
+                                 "Hopsital Operating Fund' [sic] through FY2018, 'SFGH-Operating Fund' after)")
 
     # 1c. HSH staffing (Budget - FTE dataset): the `budget` column in that resource is FTE count
     recs, sid, _ = socrata(
@@ -246,7 +251,8 @@ def ingest_budget(conn):
         if not metric or not amt:
             continue
         n += put_metric(conn, metric, fy, amt, sid, unit="usd",
-                        note=f"department_code='DPH', program_code='{pc}'")
+                        note=f"department_code='DPH', program_code='{pc}' (the Controller publishes the "
+                             f"program-level split through FY2018; later years report under program 'OPR')")
 
     # 1e. Sheriff budget (the jails the mental-health numbers below describe), department total and —
     # where the Controller still publishes the program split — the Custody program.
@@ -303,6 +309,9 @@ def ingest_contracts(conn):
         desc = title
         if scope and scope not in (title or ""):
             desc = f"{title}: {scope}" if title else scope
+        end = day(r.get("term_end_date"))
+        if end and end[:4] > "2100":  # the source uses 2200-12-31 as an open-ended sentinel
+            end = None
         row = {
             "award_key": f"SF-{no}",
             "award_id": no,
@@ -317,7 +326,7 @@ def ingest_contracts(conn):
             "amount_total": num(r.get("agreed_amt")),
             "amount_obligated": num(r.get("consumed_amt")),
             "pop_start": day(r.get("term_start_date")),
-            "pop_end": day(r.get("term_end_date")),
+            "pop_end": end,
             "place_state": "CA",
             "place_city": "San Francisco",
             "place_county": "San Francisco",
@@ -326,6 +335,8 @@ def ingest_contracts(conn):
         }
         upsert(conn, "award", row, keys=["award_key"])
         n += 1
+    # upsert cannot clear a column, so scrub the open-ended sentinel from rows this domain owns
+    conn.execute("UPDATE award SET pop_end=NULL WHERE award_key LIKE 'SF-%' AND pop_end >= '2100-01-01'")
     return n
 
 
@@ -415,11 +426,15 @@ def _int(v):
     return to_int(re.sub(r"[^0-9]", "", v)) if v else None
 
 
-def latest_metric(conn, metric):
-    """(year, value) of the newest year for one of this domain's San Francisco metrics."""
+def latest_metric(conn, metric, prefer=2026):
+    """(year, value) for one of this domain's San Francisco metrics: `prefer` if present, else newest."""
     r = conn.execute(
         "SELECT year, value FROM metric WHERE entity_type='city' AND entity_id=? AND metric=? "
-        "ORDER BY year DESC LIMIT 1", (ENTITY, metric)).fetchone()
+        "AND year=?", (ENTITY, metric, prefer)).fetchone()
+    if not r:
+        r = conn.execute(
+            "SELECT year, value FROM metric WHERE entity_type='city' AND entity_id=? AND metric=? "
+            "ORDER BY year DESC LIMIT 1", (ENTITY, metric)).fetchone()
     return (r[0], r[1]) if r else (None, None)
 
 
@@ -466,7 +481,10 @@ def ingest_facilities(conn):
                 "name": name, "name_norm": name_norm(name), "kind": "jail", "status": "open",
                 "opened": opened, "beds": cap, "operator": "San Francisco Sheriff's Office",
                 "owner": CITY, "state": "CA", "city": city, "address": addr,
-                "population_note": f"Capacity {cap}, average jail population {pop} (2025 Annual Report)",
+                "population_note": (f"Capacity {cap}, average jail population {pop} (2025 Annual Report)"
+                                    + ("; note the Sheriff's Office web page for County Jail #3 says it houses "
+                                       "'up to 768 people', so capacity is reported differently by the same "
+                                       "department" if num_ == "3" else "")),
                 "source_id": jail_sid,
             })
         # Jail Health Services volumes. The PDF lays this stat grid out as all nine numbers, then all

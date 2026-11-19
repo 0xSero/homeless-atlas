@@ -102,3 +102,107 @@
 | geo_coc | CA-607 | ring pts 17 | closed | PASS |
 | geo_coc | ND-500 | ring pts 187 | closed | PASS |
 | geo_coc | MA-503 | ring pts 4 | closed | PASS |
+
+## Spot check 2026-11-19 13:57 UTC
+
+37 pass / 8 not passing, 45 rows re-checked live.
+
+| domain | row | claim | live result | verdict |
+|---|---|---|---|---|
+| award | ASST_NON_NY01B40-5008_086 | obligated 398,160.00 | 398160.0 | PASS |
+| award | ASST_NON_LA0139L6H072114_0 | obligated 134,739.50 | 134739.5 | PASS |
+| award | ASST_NON_NY0967L2C082309_0 | obligated 236,298.00 | 236298.0 | PASS |
+| award | ASST_NON_LA48B70-3026_086 | obligated 203,906.00 | 203906.0 | PASS |
+| award | ASST_NON_TX0132L6T031205_0 | obligated 125,406.00 | 125406.0 | PASS |
+| org | 341599068 | revenue 411,178 FY2025 | None | FAIL |
+| org | 452852090 | revenue 381,646 FY2025 | None | FAIL |
+| org | 822145280 | revenue 508,000 FY2022 | 508000 | PASS |
+| org | 861981387 | revenue 196,457 FY2025 | None | FAIL |
+| org | 332120657 | revenue 3,540 FY2025 | None | FAIL |
+| facility | 5 | feature service answers: Eastern State Hospital | count=None | FAIL |
+| facility | 1887 | feature service answers: Delaware County Jail | count=None | FAIL |
+| facility | 2651 | SPARQL endpoint: Deer Island Prison | endpoint reachable | PASS |
+| facility | 2007 | feature service answers: Chateaugay Correctional  | count=None | FAIL |
+| facility | 1351 | feature service answers: Correctional Development | count=None | FAIL |
+| law | 229 | Modesto, CA Municipal ordinance: Lod | http 200 | PASS |
+| law | 369 | Gainesville, FL Municipal ordinance: Lod | http 200 | PASS |
+| law | 47 | HI Statewide restriction: P | http 200 | PASS |
+| law | 705 | Cleveland, OH Municipal ordinance: Loi | http 200 | PASS |
+| law | 621 | Asheville, NC Municipal ordinance: Loi | http 200 | PASS |
+| media | 1338 | video City of San Jose works to  | oembed ok | PASS |
+| media | 1835 | video Sacramento violates federa | oembed ok | PASS |
+| media | 749 | video HOMELESS IN PHILADELPHIA:7 | oembed ok | PASS |
+| media | 817 | video San Antonio Homeless Crisi | oembed ok | PASS |
+| media | 73 | video Lake City homeless encampm | oembed ok | PASS |
+| doc | 354 | study The Services Homeless Si | http 200 | PASS |
+| doc | 267 | report STANISLAUS COUNTY 2021-2 | http 200 | PASS |
+| doc | 124 | article Mahmood infuriates fello | http 200 | PASS |
+| doc | 362 | study The Evidence on Housing  | http 200 | PASS |
+| doc | 308 | court Grant’s Pass v. Johnson: | http 200 | PASS |
+| pit | MI-515/2025 | 133+0=133 | identity holds | PASS |
+| pit | IA-502/2017 | 624+52=676 | identity holds | PASS |
+| pit | FL-605/2009 | 740+1407=2147 | identity holds | PASS |
+| pit | MA-507/2014 | 724+29=753 | identity holds | PASS |
+| pit | FL-509/2020 | 188+1191=1379 | identity holds | PASS |
+| geo_city | 2679760 | Three Rivers 7958 | 41.945386,-85.629548 | PASS |
+| geo_city | 5350570 | Ocean Shores 7731 | 46.965362,-124.147207 | PASS |
+| geo_city | 4225584 | Felton 519 | 39.857115,-76.561135 | PASS |
+| geo_city | 4862468 | Riviera None | 27.299534,-97.79809 | PASS |
+| geo_city | 2014941000 | Lincoln township 104 | 39.42766,-96.08161 | PASS |
+| geo_coc | NY-500 | ring pts 23 | closed | PASS |
+| geo_coc | MI-523 | ring pts 10 | closed | PASS |
+| geo_coc | WI-501 | ring pts 13 | closed | PASS |
+| geo_coc | GA-507 | ring pts 52 | closed | PASS |
+| geo_coc | IL-502 | ring pts 13 | closed | PASS |
+
+## Spot check 2026-11-19 13:57 UTC
+
+38 pass / 7 not passing, 45 rows re-checked live.
+
+| domain | row | claim | live result | verdict |
+|---|---|---|---|---|
+| award | ASST_NON_MA0383L1T151402_0 | obligated 69,559.00 | 69559.0 | PASS |
+| award | ASST_NON_TX0272L6T032213_0 | obligated 88,655.04 | 88655.04 | PASS |
+| award | ASST_NON_MI0159B5F060801_0 | obligated 607,695.00 | 607695.0 | PASS |
+| award | ASST_NON_CA0706L9D011508_0 | obligated 62,812.00 | 62812.0 | PASS |
+| award | ASST_NON_KS0148L7P052000_0 | obligated 21,240.00 | 21240.0 | PASS |
+| org | 251869408 | revenue 1,612,367 FY2025 | None | FAIL |
+| org | 451296810 | revenue 16,757 FY2018 | 16757 | PASS |
+| org | 462485173 | revenue 2,853,245 FY2024 | None | FAIL |
+| org | 800357516 | revenue 100 FY2013 | 100 | PASS |
+| org | 830389694 | revenue 752,262 FY2024 | None | FAIL |
+| facility | 1718 | feature service answers: FCI Ray Brook | count=None | FAIL |
+| facility | 2841 | SPARQL endpoint: Magazine City Hall-Jail | endpoint reachable | PASS |
+| facility | 233 | feature service answers: Cabarrus Correctional Ce | count=None | FAIL |
+| facility | 39 | feature service answers: Bryce Hospital | count=None | FAIL |
+| facility | 2930 | SPARQL endpoint: Lumpkin County Historica | endpoint reachable | PASS |
+| law | 429 | Tampa, FL Municipal ordinance: Sle | http 200 | PASS |
+| law | 491 | Boise, ID Municipal ordinance: Sit | http 200 | PASS |
+| law | 648 | Manchester, NH Municipal ordinance: Loi | http 200 | PASS |
+| law | 273 | Santa Barbara, CA Municipal ordinance: Cam | http 200 | PASS |
+| law | 547 | New Orleans, LA Municipal ordinance: Sle | http 200 | PASS |
+| media | 1328 | video San Jose sweeps 'The Jungl | oembed ok | PASS |
+| media | 1133 | video Jacksonville councilwoman  | oembed ok | PASS |
+| media | 592 | video Inside Sheriff Joe Arpaio' | oembed ok | PASS |
+| media | 1849 | video Homeless advocates file la | oembed ok | PASS |
+| media | 563 | video Judge orders City of Phoen | oembed ok | PASS |
+| doc | 310 | court City of Grants Pass v. J | http 200 | PASS |
+| doc | 179 | article A year later Despite mon | http 200 | PASS |
+| doc | 64 | report 2023 AHAR Report: Part 1 | http 202 | FAIL |
+| doc | 145 | article Oklahoma Youth Shelter L | http 200 | PASS |
+| doc | 16 | study Criminalization of Homel | http 200 | PASS |
+| pit | OR-502/2021 | 349+424=773 | identity holds | PASS |
+| pit | CA-516/2014 | 548+82=630 | identity holds | PASS |
+| pit | MI-523/2025 | 52+12=64 | identity holds | PASS |
+| pit | PA-600/2017 | 1092+53=1145 | identity holds | PASS |
+| pit | MI-516/2011 | 459+232=691 | identity holds | PASS |
+| geo_city | 1380816 | Waverly None | 31.109805,-81.72762 | PASS |
+| geo_city | 51107 | Loudoun County 443380 | 39.0812,-77.6389 | PASS |
+| geo_city | 3404159820 | Pohatcong township 3296 | 40.63648,-75.17491 | PASS |
+| geo_city | 1609370 | Bonners Ferry 2788 | 48.693579,-116.317019 | PASS |
+| geo_city | 1909550 | Burlington 23637 | 40.807102,-91.123676 | PASS |
+| geo_coc | NJ-513 | ring pts 25 | closed | PASS |
+| geo_coc | KY-501 | ring pts 19 | closed | PASS |
+| geo_coc | AL-508 | ring pts 23 | closed | PASS |
+| geo_coc | NJ-508 | ring pts 4 | closed | PASS |
+| geo_coc | KS-502 | ring pts 8 | closed | PASS |
