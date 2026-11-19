@@ -44,79 +44,100 @@ Against a population of 827,526 [US Census Bureau](https://www2.census.gov/progr
 
 ## 3. The money
 
-**Not yet computable.** USASpending rows carry a place-of-performance state but the city and county fields are empty for the whole table, so an award can be attributed to California but not yet to San Francisco. The queue item `award-places` fills those fields from the award-detail endpoint. Until then this section states the gap rather than showing a total that would be wrong.
+The atlas holds **10 federal awards** with a San Francisco place of performance or a San Francisco recipient, worth **$12.31M obligated**.
+
+The largest individual awards, each with the record it came from:
+
+| Recipient | Award | Amount | Start | Source |
+|---|---|---|---|---|
+| CITY AND COUNTY OF SAN FRANCISCO | E12-MC-06-0016 | $1.61M | 2012 | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| CITY AND COUNTY OF SAN FRANCISCO | E16-MC-06-0016 | $1.48M |  | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| CITY AND COUNTY OF SAN FRANCISCO | E15-MC-06-0016 | $1.48M | 2015 | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| CITY AND COUNTY OF SAN FRANCISCO | E11-MC-06-0016 | $1.41M | 2011 | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| CITY AND COUNTY OF SAN FRANCISCO | E14-MC-06-0016 | $1.39M | 2014 | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| CITY AND COUNTY OF SAN FRANCISCO | E13-MC-06-0016 | $1.18M | 2013 | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| SAN FRANCISCO SUBSTANCE ABUSE SERVICE | S08-MC-06-0016 | $944.91K | 2007 | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| SAN FRANCISCO SUBSTANCE ABUSE SERVICE | S07-MC-06-0016 | $943.17K | 2007 | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| SAN FRANCISCO SUBSTANCE ABUSE SERVICE | S09-MC-06-0016 | $938.87K | 2009 | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| CITY OF SAN FRANCISCO | S10-MC-06-0016 | $926.52K | 2010 | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+
+| Assistance listing | Awards | Obligated |
+|---|---|---|
+| 14.231 | 10 | $12.31M |
+
+Obligated is not spent, and place of performance is where the work is recorded, not necessarily where the money lands. City general fund, county health dollars and Medicaid are not in this total.
 
 ## 4. The organizations based in the city
 
-| Organization | Revenue (990) | Expenses | Employees | EIN |
-|---|---|---|---|---|
-| [BRIDGE HOUSING CORPORATION](/org/12857-bridge-housing-corporation.html) | $101.78M | $47.55M | not published | 942827909 |
-| [EPISCOPAL COMMUNITY SERVICES OF SAN FRANCISCO](/org/12874-episcopal-community-services-of-san-francisco.html) | $68.75M | $74.77M | not published | 943096716 |
-| [DIGNITYMOVES](/org/11772-dignitymoves.html) | $61.81M | $64.26M | not published | 871111468 |
-| [MISSION ACTION INC](/org/12862-mission-action-inc.html) | $28.72M | $23.57M | not published | 942919302 |
-| [Homeless Prenatal Program Inc](/org/12882-homeless-prenatal-program-inc.html) | $20.37M | $20.61M | not published | 943146280 |
-| [COMMUNITY HOUSING PARTNERSHIP](/org/12876-community-housing-partnership.html) | $19.02M | $19.63M | not published | 943112338 |
-| [HAMILTON FAMILIES](/org/12868-hamilton-families.html) | $16.71M | $18.91M | not published | 943055602 |
-| [Homeless Childrens Network](/org/12896-homeless-childrens-network.html) | $12.74M | $13.37M | not published | 943266686 |
-| [BRIDGE HOUSING CORPORATION - SOUTHERN CALIFORNIA](/org/12892-bridge-housing-corporation---southern-california.html) | $6.80M | $7.77M | not published | 943233154 |
-| [LEAHS PANTRY INC](/org/7331-leahs-pantry-inc.html) | $5.40M | $5.08M | not published | 205512442 |
-| [NEW DOOR VENTURES](/org/12854-new-door-ventures.html) | $4.72M | $6.51M | not published | 942780274 |
-| [ONE TREASURE ISLAND](/org/12898-one-treasure-island.html) | $3.53M | $2.90M | not published | 943280624 |
-| [SAN FRANCISCO RESCUE MISSION SAN FRANCISCO BAY AREA RESCUE MISSION](/org/12884-san-francisco-rescue-mission-san-francisco-bay-area-rescue-mission.html) | $1.96M | $1.56M | not published | 943163872 |
-| [Homeless Youth Alliance Inc](/org/10459-homeless-youth-alliance-inc.html) | $1.89M | $1.56M | not published | 813036333 |
-| [NORTH BEACH CITIZENS](/org/12904-north-beach-citizens.html) | $1.52M | $1.31M | not published | 943360013 |
-| [BRIDGE HOUSING VENTURES INC](/org/12883-bridge-housing-ventures-inc.html) | $1.39M | $20.18M | not published | 943147882 |
-| [COALITION ON HOMELESSNESS](/org/12875-coalition-on-homelessness.html) | $1.12M | $1.15M | not published | 943111898 |
-| [URBAN VISION ALLIANCE](/org/9673-urban-vision-alliance.html) | $1.10M | $1.02M | not published | 474238129 |
-| [HOMEBASE](/org/15-homebase.html) | not published | not published | not published |  |
-| [CITY OF SAN FRANCISCO](/org/1011-city-of-san-francisco.html) | not published | not published | not published |  |
-| [SAN FRANCISCO SUBSTANCE ABUSE SERVICE](/org/1221-san-francisco-substance-abuse-service.html) | not published | not published | not published |  |
-| [RENE AND MARIE CHARITY FOUNDATION CORP](/org/7915-rene-and-marie-charity-foundation-corp.html) | not published | not published | not published | 332308545 |
-| [WE SAY HELLO](/org/8050-we-say-hello.html) | not published | not published | not published | 333885026 |
-| [REAL FATHERS](/org/8200-real-fathers.html) | not published | not published | not published | 383781664 |
-| [SHELTER TECH](/org/8206-shelter-tech.html) | not published | not published | not published | 383984099 |
-| [DO THE RIGHT THING FOUNDATION INCOR PORATED](/org/8308-do-the-right-thing-foundation-incor-porated.html) | not published | not published | not published | 393100611 |
-| [ISAMICAS SAFEHOUSE SHELTER SERVICES ON WHEELS](/org/8660-isamicas-safehouse-shelter-services-on-wheels.html) | not published | not published | not published | 413714366 |
-| [ASCENT LIVING](/org/8994-ascent-living.html) | not published | not published | not published | 423032896 |
-| [URBAN ANGELS SF](/org/11188-urban-angels-sf.html) | not published | not published | not published | 843536488 |
-| [HOMEMORE PROJECT INC](/org/11438-homemore-project-inc.html) | not published | not published | not published | 852644419 |
+| Organization | Revenue (990) | Expenses | Employees | EIN | Source |
+|---|---|---|---|---|---|
+| [BRIDGE HOUSING CORPORATION](/org/12857-bridge-housing-corporation.html) | $101.78M | $47.55M | not published | 942827909 | [Internal Revenue Service](https://www.irs.gov/pub/irs-soi/eo1.csv) |
+| [EPISCOPAL COMMUNITY SERVICES OF SAN FRANCISCO](/org/12874-episcopal-community-services-of-san-francisco.html) | $68.75M | $74.77M | not published | 943096716 | [Internal Revenue Service](https://www.irs.gov/pub/irs-soi/eo1.csv) |
+| [DIGNITYMOVES](/org/11772-dignitymoves.html) | $61.81M | $64.26M | not published | 871111468 | [Internal Revenue Service](https://www.irs.gov/pub/irs-soi/eo1.csv) |
+| [MISSION ACTION INC](/org/12862-mission-action-inc.html) | $28.72M | $23.57M | not published | 942919302 | [Internal Revenue Service](https://www.irs.gov/pub/irs-soi/eo1.csv) |
+| [Homeless Prenatal Program Inc](/org/12882-homeless-prenatal-program-inc.html) | $20.37M | $20.61M | not published | 943146280 | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
+| [COMMUNITY HOUSING PARTNERSHIP](/org/12876-community-housing-partnership.html) | $19.02M | $19.63M | not published | 943112338 | [Internal Revenue Service](https://www.irs.gov/pub/irs-soi/eo1.csv) |
+| [HAMILTON FAMILIES](/org/12868-hamilton-families.html) | $16.71M | $18.91M | not published | 943055602 | [Internal Revenue Service](https://www.irs.gov/pub/irs-soi/eo1.csv) |
+| [Homeless Childrens Network](/org/12896-homeless-childrens-network.html) | $12.74M | $13.37M | not published | 943266686 | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
+| [BRIDGE HOUSING CORPORATION - SOUTHERN CALIFORNIA](/org/12892-bridge-housing-corporation---southern-california.html) | $6.80M | $7.77M | not published | 943233154 | [Internal Revenue Service](https://www.irs.gov/pub/irs-soi/eo1.csv) |
+| [LEAHS PANTRY INC](/org/7331-leahs-pantry-inc.html) | $5.40M | $5.08M | not published | 205512442 | [Internal Revenue Service](https://www.irs.gov/pub/irs-soi/eo1.csv) |
+| [NEW DOOR VENTURES](/org/12854-new-door-ventures.html) | $4.72M | $6.51M | not published | 942780274 | [Internal Revenue Service](https://www.irs.gov/pub/irs-soi/eo1.csv) |
+| [ONE TREASURE ISLAND](/org/12898-one-treasure-island.html) | $3.53M | $2.90M | not published | 943280624 | [Internal Revenue Service](https://www.irs.gov/pub/irs-soi/eo1.csv) |
+| [SAN FRANCISCO RESCUE MISSION SAN FRANCISCO BAY AREA RESCUE MISSION](/org/12884-san-francisco-rescue-mission-san-francisco-bay-area-rescue-mission.html) | $1.96M | $1.56M | not published | 943163872 | [Internal Revenue Service](https://www.irs.gov/pub/irs-soi/eo1.csv) |
+| [Homeless Youth Alliance Inc](/org/10459-homeless-youth-alliance-inc.html) | $1.89M | $1.56M | not published | 813036333 | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
+| [NORTH BEACH CITIZENS](/org/12904-north-beach-citizens.html) | $1.52M | $1.31M | not published | 943360013 | [Internal Revenue Service](https://www.irs.gov/pub/irs-soi/eo1.csv) |
+| [BRIDGE HOUSING VENTURES INC](/org/12883-bridge-housing-ventures-inc.html) | $1.39M | $20.18M | not published | 943147882 | [Internal Revenue Service](https://www.irs.gov/pub/irs-soi/eo1.csv) |
+| [COALITION ON HOMELESSNESS](/org/12875-coalition-on-homelessness.html) | $1.12M | $1.15M | not published | 943111898 | [Internal Revenue Service](https://www.irs.gov/pub/irs-soi/eo1.csv) |
+| [URBAN VISION ALLIANCE](/org/9673-urban-vision-alliance.html) | $1.10M | $1.02M | not published | 474238129 | [Internal Revenue Service](https://www.irs.gov/pub/irs-soi/eo1.csv) |
+| [MIDORI HOUSING CORPORATION](/org/12879-midori-housing-corporation.html) | $506.57K | $1.65M | not published | 943129466 | [Internal Revenue Service](https://www.irs.gov/pub/irs-soi/eo1.csv) |
+| [ST PETERS SUPPORTIVE HOUSING INC](/org/12236-st-peters-supportive-housing-inc.html) | $453.47K | $783.59K | not published | 900354205 | [Internal Revenue Service](https://www.irs.gov/pub/irs-soi/eo1.csv) |
+| [HOMEMORE PROJECT INC](/org/11438-homemore-project-inc.html) | $423.15K | $224.61K | not published | 852644419 | [Internal Revenue Service](https://www.irs.gov/pub/irs-soi/eo1.csv) |
+| [CHILDREN OF SHELTERS](/org/12887-children-of-shelters.html) | $389.92K | $397.97K | not published | 943192608 | [Internal Revenue Service](https://www.irs.gov/pub/irs-soi/eo1.csv) |
+| [URBAN ANGELS SF](/org/11188-urban-angels-sf.html) | $310.81K | $289.27K | not published | 843536488 | [Internal Revenue Service](https://www.irs.gov/pub/irs-soi/eo1.csv) |
+| [HAIGHT ASHBURY FOOD PROGRAM](/org/12864-haight-ashbury-food-program.html) | $239.95K | $202.04K | not published | 942970899 | [Internal Revenue Service](https://www.irs.gov/pub/irs-soi/eo1.csv) |
+| [ARTSPACE DEVELOPMENT CORPORATION](/org/12858-artspace-development-corporation.html) | $221.33K | $273.20K | not published | 942832487 | [Internal Revenue Service](https://www.irs.gov/pub/irs-soi/eo1.csv) |
+| [SHELTER TECH](/org/8206-shelter-tech.html) | $171.03K | $170.18K | not published | 383984099 | [Internal Revenue Service](https://www.irs.gov/pub/irs-soi/eo1.csv) |
+| [HOMEBASE](/org/15-homebase.html) | not published | not published | not published |  | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| [CITY OF SAN FRANCISCO](/org/1011-city-of-san-francisco.html) | not published | not published | not published |  | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| [SAN FRANCISCO SUBSTANCE ABUSE SERVICE](/org/1221-san-francisco-substance-abuse-service.html) | not published | not published | not published |  | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| [RENE AND MARIE CHARITY FOUNDATION CORP](/org/7915-rene-and-marie-charity-foundation-corp.html) | not published | not published | not published | 332308545 | [Internal Revenue Service](https://www.irs.gov/pub/irs-soi/eo1.csv) |
 
-The 30 largest San Francisco homelessness organisations by reported revenue account for **$359.31M** between them [Internal Revenue Service](https://www.irs.gov/pub/irs-soi/eo1.csv). Revenue is self-reported on IRS Form 990 and lags the fiscal year it describes by up to eighteen months.
+The 30 largest San Francisco homelessness organisations by reported revenue account for **$362.03M** between them [Internal Revenue Service](https://www.irs.gov/pub/irs-soi/eo1.csv). Revenue is self-reported on IRS Form 990 and lags the fiscal year it describes by up to eighteen months.
 
 ### The people running them
 
-| Person | Title | Organization | Compensation | Year |
-|---|---|---|---|---|
-| Kenneth Lombard | President/ceo | BRIDGE HOUSING CORPORATION | 1,067,527 | 2024 |
-| Kenneth Lombard | President/ceo | BRIDGE HOUSING CORPORATION | 1,007,909 | 2023 |
-| Simone Robinson | Svp Of Human Resources (outgoing) | BRIDGE HOUSING CORPORATION | 592,378 | 2022 |
-| Kenneth Lombard | President & Ceo | BRIDGE HOUSING CORPORATION | 503,363 | 2022 |
-| Kimberly Mckay | Evp Of Development (outgoing) | BRIDGE HOUSING CORPORATION | 486,042 | 2022 |
-| Aruna Doddapaneni | Svp Development (outgoing) | BRIDGE HOUSING CORPORATION | 474,486 | 2023 |
-| Sierra Atilano | Chief Real Estate Officer | BRIDGE HOUSING CORPORATION | 452,551 | 2024 |
-| Delphine Sherman | Evp/cfo | BRIDGE HOUSING CORPORATION | 429,032 | 2024 |
-| Delphine Sherman | Evp/cfo | BRIDGE HOUSING CORPORATION | 417,504 | 2023 |
-| Smitha Seshadri | Evp Development | BRIDGE HOUSING CORPORATION | 417,409 | 2023 |
-| Smitha Seshadri | Evp Development | BRIDGE HOUSING CORPORATION | 410,204 | 2024 |
-| Rebecca Hlebasko | Svp General Counsel/secretary | BRIDGE HOUSING CORPORATION | 408,787 | 2023 |
-| Rebecca Hlebasko | Svp General Counsel/secretary | BRIDGE HOUSING CORPORATION | 405,549 | 2024 |
-| James Mather | Evp/cio | BRIDGE HOUSING CORPORATION | 405,393 | 2023 |
-| Brad Wiblin | Evp Business Development (outgoing) | BRIDGE HOUSING CORPORATION | 397,025 | 2023 |
-| James Mather | Evp/cio | BRIDGE HOUSING CORPORATION | 387,481 | 2024 |
-| Kurt Creager | Evp Development | BRIDGE HOUSING CORPORATION | 374,930 | 2023 |
-| Smitha Seshadri | Evp Of Development | BRIDGE HOUSING CORPORATION | 371,530 | 2022 |
-| Mary E Stokes | Executive Director | EPISCOPAL COMMUNITY SERVICES OF SAN FRANCISCO | 367,885 | 2025 |
-| Sierra Atilano | Evp Development | BRIDGE HOUSING CORPORATION | 366,441 | 2023 |
-| Thuong Luong | Evp, Chief Of Staff (outgoing) | BRIDGE HOUSING CORPORATION | 355,650 | 2022 |
-| James Mather | Evp & Cio | BRIDGE HOUSING CORPORATION | 347,823 | 2022 |
-| Delphine Sherman | Evp & Cfo | BRIDGE HOUSING CORPORATION | 347,144 | 2022 |
-| Mary E Stokes | Executive Director | EPISCOPAL COMMUNITY SERVICES OF SAN FRANCISCO | 347,112 | 2024 |
-| Natalia Williams | Svp Asset Mgmt & Portfolio | BRIDGE HOUSING CORPORATION | 346,950 | 2024 |
-| Rebecca Hlebasko | Svp, General Counsel, & Secty | BRIDGE HOUSING CORPORATION | 342,254 | 2022 |
-| Kurt Creager | Evp Of Development | BRIDGE HOUSING CORPORATION | 333,278 | 2022 |
-| Brad Wiblin | Evp Property Acquisitions | BRIDGE HOUSING CORPORATION | 325,537 | 2022 |
-| Mary E Stokes | Executive Director | EPISCOPAL COMMUNITY SERVICES OF SAN FRANCISCO | 297,866 | 2023 |
-| Christian Wiedel | Vp Bpmc (outgoing) | BRIDGE HOUSING CORPORATION | 297,688 | 2023 |
+| Person | Title | Organization | Compensation | Year | Source |
+|---|---|---|---|---|---|
+| Kenneth Lombard | President/ceo | BRIDGE HOUSING CORPORATION | 1,067,527 | 2024 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/942827909) |
+| Kenneth Lombard | President/ceo | BRIDGE HOUSING CORPORATION | 1,007,909 | 2023 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/942827909) |
+| Simone Robinson | Svp Of Human Resources (outgoing) | BRIDGE HOUSING CORPORATION | 592,378 | 2022 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/942827909) |
+| Kenneth Lombard | President & Ceo | BRIDGE HOUSING CORPORATION | 503,363 | 2022 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/942827909) |
+| Kimberly Mckay | Evp Of Development (outgoing) | BRIDGE HOUSING CORPORATION | 486,042 | 2022 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/942827909) |
+| Aruna Doddapaneni | Svp Development (outgoing) | BRIDGE HOUSING CORPORATION | 474,486 | 2023 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/942827909) |
+| Sierra Atilano | Chief Real Estate Officer | BRIDGE HOUSING CORPORATION | 452,551 | 2024 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/942827909) |
+| Delphine Sherman | Evp/cfo | BRIDGE HOUSING CORPORATION | 429,032 | 2024 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/942827909) |
+| Delphine Sherman | Evp/cfo | BRIDGE HOUSING CORPORATION | 417,504 | 2023 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/942827909) |
+| Smitha Seshadri | Evp Development | BRIDGE HOUSING CORPORATION | 417,409 | 2023 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/942827909) |
+| Smitha Seshadri | Evp Development | BRIDGE HOUSING CORPORATION | 410,204 | 2024 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/942827909) |
+| Rebecca Hlebasko | Svp General Counsel/secretary | BRIDGE HOUSING CORPORATION | 408,787 | 2023 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/942827909) |
+| Rebecca Hlebasko | Svp General Counsel/secretary | BRIDGE HOUSING CORPORATION | 405,549 | 2024 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/942827909) |
+| James Mather | Evp/cio | BRIDGE HOUSING CORPORATION | 405,393 | 2023 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/942827909) |
+| Brad Wiblin | Evp Business Development (outgoing) | BRIDGE HOUSING CORPORATION | 397,025 | 2023 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/942827909) |
+| James Mather | Evp/cio | BRIDGE HOUSING CORPORATION | 387,481 | 2024 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/942827909) |
+| Kurt Creager | Evp Development | BRIDGE HOUSING CORPORATION | 374,930 | 2023 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/942827909) |
+| Smitha Seshadri | Evp Of Development | BRIDGE HOUSING CORPORATION | 371,530 | 2022 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/942827909) |
+| Mary E Stokes | Executive Director | EPISCOPAL COMMUNITY SERVICES OF SAN FRANCISCO | 367,885 | 2025 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/943096716) |
+| Sierra Atilano | Evp Development | BRIDGE HOUSING CORPORATION | 366,441 | 2023 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/942827909) |
+| Thuong Luong | Evp, Chief Of Staff (outgoing) | BRIDGE HOUSING CORPORATION | 355,650 | 2022 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/942827909) |
+| James Mather | Evp & Cio | BRIDGE HOUSING CORPORATION | 347,823 | 2022 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/942827909) |
+| Delphine Sherman | Evp & Cfo | BRIDGE HOUSING CORPORATION | 347,144 | 2022 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/942827909) |
+| Mary E Stokes | Executive Director | EPISCOPAL COMMUNITY SERVICES OF SAN FRANCISCO | 347,112 | 2024 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/943096716) |
+| Natalia Williams | Svp Asset Mgmt & Portfolio | BRIDGE HOUSING CORPORATION | 346,950 | 2024 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/942827909) |
+| Rebecca Hlebasko | Svp, General Counsel, & Secty | BRIDGE HOUSING CORPORATION | 342,254 | 2022 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/942827909) |
+| Kurt Creager | Evp Of Development | BRIDGE HOUSING CORPORATION | 333,278 | 2022 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/942827909) |
+| Brad Wiblin | Evp Property Acquisitions | BRIDGE HOUSING CORPORATION | 325,537 | 2022 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/942827909) |
+| Mary E Stokes | Executive Director | EPISCOPAL COMMUNITY SERVICES OF SAN FRANCISCO | 297,866 | 2023 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/943096716) |
+| Christian Wiedel | Vp Bpmc (outgoing) | BRIDGE HOUSING CORPORATION | 297,688 | 2023 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/942827909) |
 
 That is 30 of the officers, directors and key employees published in Form 990 Part VII for San Francisco homelessness nonprofits [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/942827909). Professional roles only — no personal contact details are collected.
 
@@ -168,10 +189,10 @@ From IRS Form 990 Part VII — published professional roles only.
 
 ## 6. Beds: what exists, what was closed
 
-| Institution | Kind | Status | Beds | Opened | Closed | Budget |
-|---|---|---|---|---|---|---|
-| San Francisco County Jail #2 | jail | open | 392 | not published | not published | not published |
-| Alcatraz Federal Penitentiary | prison | closed | 312 | 1,934 | 1,963 | not published |
+| Institution | Kind | Status | Beds | Opened | Closed | Budget | Source |
+|---|---|---|---|---|---|---|---|
+| San Francisco County Jail #2 | jail | open | 392 | not published | not published | not published | [DHS Homeland Infrastructure Foundation-Level Dat](https://services.arcgis.com/XG15cJAlne2vxtgt/arcgis/rest/services/prison/FeatureServer/0) |
+| Alcatraz Federal Penitentiary | prison | closed | 312 | 1934 | 1963 | not published | [Wikidata](https://query.wikidata.org/sparql) |
 
 **312 beds** in San Francisco institutions in this database are recorded as closed. Reopening capacity at today's state-hospital cost of roughly $250,000–$400,000 per bed-year† would cost $78.00M–$124.80M a year† (beds × published per-bed cost range; the range itself must be re-verified per state).
 
@@ -258,6 +279,25 @@ No national crime dataset records whether an offender was homeless. Area-level c
 - [Tensions flare as homeless encampment along Sausalito waterfront is cleared](https://www.youtube.com/watch?v=f5QmeGfkPSQ) — KTVU FOX 2 San Francisco 
 - [San Francisco's appeal of encampment sweeps injunction draws out supporters, protesters](https://www.youtube.com/watch?v=aomyR4F_FtI) — KPIX | CBS NEWS BAY AREA 
 - [Punishing the Poorest: How the Criminalization of Homelessness Perpetuates Poverty in San Francisco](https://doi.org/10.2139/ssrn.2620426) — Elsevier BV 2015 (study)
+- [SF Sees Massive Increase in Children Experiencing Homelessness](https://www.streetsheet.org/sf-sees-massive-increase-in-children-experiencing-homelessness/) — Street Sheet 2026-11-16 (article)
+- [For Some SF Women, Violence is a Both a Cause and Effect of Homelessness: Report](https://www.streetsheet.org/for-some-sf-women-violence-is-a-both-a-cause-and-effect-of-homelessness-report/) — Street Sheet 2026-11-16 (article)
+- [Election Recap: Mayor’s Executive Power Expands, Housing Fee Blocked](https://www.streetsheet.org/election-recap-mayors-executive-power-expands-housing-fee-blocked/) — Street Sheet 2026-11-16 (article)
+- [Targeted Violence Against Unhoused People Reached 25-year High, New Report Finds](https://www.streetsheet.org/targeted-violence-against-unhoused-people-reached-25-year-high-new-report-finds/) — Street Sheet 2026-11-16 (article)
+- [A Deep Dive Into The Deep Dive On PSH Evictions And Exits](https://www.streetsheet.org/a-deep-dive-into-the-deep-dive-on-psh-evictions-and-exits/) — Street Sheet 2026-10-30 (article)
+- [Cities Often Squabble Over Homelessness. A New California Law Forces One Community to Try Something Different](https://www.streetsheet.org/cities-often-squabble-over-homelessness-a-new-california-law-forces-one-community-to-try-something-different/) — Street Sheet 2026-10-30 (article)
+- [Care vs. Criminalization Panel: The Takeaways](https://www.streetsheet.org/care-vs-criminalization-panel-the-takeaways/) — Street Sheet 2026-10-15 (article)
+- [Editorial San Francisco’s homelessness is a humanitarian crisis](https://www.sfchronicle.com/opinion/editorials/article/Editorial-San-Francisco-s-homelessness-is-a-16586799.php) — San Francisco Chronicle  (article)
+- [Chronicle Live Register for our Homeless Project live event](https://www.sfchronicle.com/membership/article/Chronicle-Live-The-Homeless-Project-event-with-16570085.php) — San Francisco Chronicle  (article)
+- [Editorial Can the coronavirus force California to cure its chronic homelessness?](https://www.sfchronicle.com/opinion/editorials/article/Editorial-Can-the-coronavirus-force-California-15400470.php) — San Francisco Chronicle  (article)
+- [Reader Q&A 97 answers to your questions on homelessness](https://projects.sfchronicle.com/sf-homeless/homeless-questions/) — San Francisco Chronicle  (article)
+- [Mental Illness Mentally ill homeless may have a harder time finding help](https://www.sfchronicle.com/news/article/Mentally-ill-homeless-will-have-a-harder-time-15367216.php) — San Francisco Chronicle  (article)
+- [Elderly homeless Pandemic puts homeless seniors in greater jeopardy on Bay Area streets](https://www.sfchronicle.com/bayarea/article/Bay-Area-s-elderly-homeless-population-is-15367447.php) — San Francisco Chronicle  (article)
+- [Suburban homeless Homelessness surging in Bay Area suburbs](https://www.sfchronicle.com/projects/sf-homeless/homeless-suburbs/) — San Francisco Chronicle  (article)
+- [Stories from the street ‘The real pandemic is homelessness’: Stories of fear, hope, survival](https://www.sfchronicle.com/bayarea/article/Pure-survival-mode-15364213.php) — San Francisco Chronicle  (article)
+- [Impact of coronavirus Homeless crisis: Will the pandemic make things worse?](https://www.sfchronicle.com/bayarea/article/Bay-Area-s-homeless-crisis-was-severe-before-15366766.php) — San Francisco Chronicle  (article)
+- [From the Editor As homeless crisis worsens, seeking signs of hope](https://www.sfchronicle.com/bayarea/article/SF-homeless-project-As-crisis-worsens-seeking-15383255.php) — San Francisco Chronicle  (article)
+- [No relief 24 hours inside San Francisco’s homeless crisis](https://projects.sfchronicle.com/sf-homeless/24-hours-homelessness/) — San Francisco Chronicle  (article)
+- [Oakland Bay Area’s new homeless epicenter?](https://www.sfchronicle.com/bayarea/article/Oakland-surpasses-other-large-California-cities-14271160.php?psid=dnQxv) — San Francisco Chronicle  (article)
 
 ## 10. What it would cost to end it here
 
@@ -269,6 +309,6 @@ These are order-of-magnitude figures built from published per-unit costs, not a 
 
 ## 11. What is still missing from this brief
 
-- federal award detail
+- Nothing flagged. Cross-check each section against its cited source before relying on it.
 
-*Generated 2026-11-19 by `scripts/sf_report.py` from `data/atlas.db`. 4 distinct sources cited.*
+*Generated 2026-11-19 by `scripts/sf_report.py` from `data/atlas.db`. 9 distinct sources cited.*

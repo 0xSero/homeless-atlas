@@ -269,6 +269,22 @@ def _ensure_tables(conn):
         );
         """
     )
+    # A DB repair/recovery pass can recreate domain tables without their
+    # PRIMARY KEY; ON CONFLICT(ein)/(phase,key) needs a unique index to exist.
+    for stmt in (
+        "DELETE FROM nonprofit_candidate WHERE rowid NOT IN (SELECT rowid FROM ("
+        "  SELECT rowid, ROW_NUMBER() OVER (PARTITION BY ein ORDER BY page_done DESC) rn"
+        "  FROM nonprofit_candidate) WHERE rn=1)",
+        "CREATE UNIQUE INDEX IF NOT EXISTS ux_np_cand_ein ON nonprofit_candidate(ein)",
+        "DELETE FROM nonprofit_progress WHERE rowid NOT IN (SELECT rowid FROM ("
+        "  SELECT rowid, ROW_NUMBER() OVER (PARTITION BY phase,key ORDER BY done DESC) rn"
+        "  FROM nonprofit_progress) WHERE rn=1)",
+        "CREATE UNIQUE INDEX IF NOT EXISTS ux_np_prog ON nonprofit_progress(phase,key)",
+    ):
+        try:
+            conn.execute(stmt)
+        except Exception as e:
+            print(f"[{DOMAIN}] schema fix skipped: {str(e)[:120]}", flush=True)
     _commit(conn)
 
 

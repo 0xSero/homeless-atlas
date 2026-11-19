@@ -198,6 +198,14 @@ else:
       "rather than showing a total that would be wrong.")
 w()
 if sf_awards:
+    top = sorted(sf_awards, key=lambda a: -(a.get("amount_obligated") or 0))[:25]
+    w("The largest individual awards, each with the record it came from:")
+    w()
+    w(table(["Recipient", "Award", "Amount", "Start", "Source"],
+            [[a.get("recipient_name") or "", (a.get("award_id") or "")[:28],
+              money(a.get("amount_obligated")), yr((a.get("pop_start") or "")[:4]),
+              cite(a.get("source_id"), "—")] for a in top]))
+    w()
     by_cfda = defaultdict(lambda: [0, 0.0])
     for a in sf_awards:
         k = a.get("cfda") or "unclassified"
@@ -218,9 +226,10 @@ sf_by_rev = q("""SELECT id, name, revenue, expenses, employees, ein, website, so
                  FROM org WHERE city LIKE 'San Francisco%' AND state='CA'
                  ORDER BY COALESCE(revenue,0) DESC LIMIT 30""")
 if sf_by_rev:
-    w(table(["Organization", "Revenue (990)", "Expenses", "Employees", "EIN"],
+    w(table(["Organization", "Revenue (990)", "Expenses", "Employees", "EIN", "Source"],
             [[(f"[{o['name']}](/org/{o['id']}-{o['name'].lower().replace(' ', '-')}.html)"),
-              money(o.get("revenue")), money(o.get("expenses")), num(o.get("employees")), o.get("ein") or ""]
+              money(o.get("revenue")), money(o.get("expenses")), num(o.get("employees")), o.get("ein") or "",
+              cite(o.get("source_id"), "—")]
              for o in sf_by_rev]))
     w()
     covered = sum(o.get("revenue") or 0 for o in sf_by_rev)
@@ -235,8 +244,9 @@ if sf_by_rev:
                  WHERE o.city LIKE 'San Francisco%' AND o.state='CA' AND p.person IS NOT NULL
                  ORDER BY COALESCE(p.comp,0) DESC LIMIT 30""")
     if sfppl:
-        w(table(["Person", "Title", "Organization", "Compensation", "Year"],
-                [[p["person"], p.get("title") or "", p.get("org_name") or "", num(p.get("comp")), yr(p.get("year"))]
+        w(table(["Person", "Title", "Organization", "Compensation", "Year", "Source"],
+                [[p["person"], p.get("title") or "", p.get("org_name") or "", num(p.get("comp")), yr(p.get("year")),
+                  cite(p.get("source_id"), "—")]
                  for p in sfppl]))
         w()
         w(f"That is {num(len(sfppl))} of the officers, directors and key employees published in Form 990 Part VII for "
@@ -270,9 +280,10 @@ if sf_people:
 w("## 6. Beds: what exists, what was closed")
 w()
 if sf_fac:
-    w(table(["Institution", "Kind", "Status", "Beds", "Opened", "Closed", "Budget"],
+    w(table(["Institution", "Kind", "Status", "Beds", "Opened", "Closed", "Budget", "Source"],
             [[f["name"], (f.get("kind") or "").replace("_", " "), f.get("status") or "?",
-              num(f.get("beds")), num(f.get("opened")), num(f.get("closed")), money(f.get("budget"))] for f in sf_fac]))
+              num(f.get("beds")), yr(f.get("opened")), yr(f.get("closed")), money(f.get("budget")),
+              cite(f.get("source_id"), "—")] for f in sf_fac]))
     w()
     closed_beds = sum(f.get("beds") or 0 for f in sf_fac if f.get("status") == "closed")
     if closed_beds:

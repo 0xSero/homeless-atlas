@@ -1,6 +1,6 @@
 {
- "award": 18864,
- "doc": 61,
+ "award": 19769,
+ "doc": 188,
  "facility": 4505,
  "geo_city": 56819,
  "geo_coc": 414,
@@ -8,8 +8,8 @@
  "law": 1164,
  "media": 1999,
  "metric": 31948,
- "org": 14851,
- "org_person": 68314,
+ "org": 14919,
+ "org_person": 82838,
  "pit": 12192,
- "source": 3295
+ "source": 4125
 }

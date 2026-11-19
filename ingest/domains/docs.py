@@ -77,7 +77,7 @@ LIC_CROSSREF = "Crossref metadata (CC0); article rights vary by publisher"
 
 HOMELESS_KW = re.compile(
     r"homeless|encampment|unsheltered|tent city|skid row|continuum of care|housing first|"
-    r"street sleep|rv dwell|sit-lie|anti-camping|camping ban|camping ordinance", re.I)
+    r"street sleep|rough sleep|rv dwell|sit-lie|anti-camping|camping ban|camping ordinance", re.I)
 
 GAO_KW = re.compile(r"homeless|encampment|unsheltered|shelter|transitional housing|"
                     r"supportive housing|continuum of care|housing first", re.I)
@@ -610,8 +610,12 @@ CITY_SITES = [
 
 
 def _abs(base: str, href: str) -> str:
-    u = urllib.parse.urljoin(base, href)
-    return u.split("#")[0]
+    # Seattle publishes auditor PDF links as "documents/Departments/..." (relative to the site
+    # root, not to /city-auditor/), so a plain urljoin produces a 404; rebuild those from origin.
+    if href.startswith(("documents/", "sites/", "files/")):
+        p = urllib.parse.urlparse(base)
+        return f"{p.scheme}://{p.netloc}/{href.split('#')[0]}"
+    return urllib.parse.urljoin(base, href).split("#")[0]
 
 
 def _meta_date(soup: BeautifulSoup) -> str | None:
@@ -654,6 +658,8 @@ def _city_candidates(html: str, base: str, cap: int) -> list[tuple[str, str]]:
 def city_audits(conn) -> int:
     before = COUNTER[0]
     for site in CITY_SITES:
+        if _done(conn, f"city:{site['city']}"):
+            continue
         got = 0
         for page_url in site["urls"]:
             try:
@@ -728,7 +734,7 @@ NPR_NATIONAL = "https://www.npr.org/sections/national/"
 # same series, so Guardian reporting is captured from the feed the paper publishes.
 RSS_FEEDS = [
     dict(publisher="The Guardian", url="https://www.theguardian.com/society/homelessness/rss",
-         place=None, state=None, cap=60),
+         place=None, state=None, cap=60, all_items=True),
     dict(publisher="Los Angeles Times", url="https://www.latimes.com/homeless-housing.rss",
          place=None, state="CA", cap=40),
     dict(publisher="Los Angeles Times", url="https://www.latimes.com/california.rss",
@@ -742,11 +748,11 @@ RSS_FEEDS = [
     dict(publisher="NPR", url="https://feeds.npr.org/1032/rss.xml", place=None, state=None,
          cap=15),
     dict(publisher="Street Sheet", url="https://streetsheet.org/feed/",
-         place="San Francisco", state="CA", cap=25),
+         place="San Francisco", state="CA", cap=25, all_items=True),
     dict(publisher="Crosscut", url="https://crosscut.com/feed", place="Seattle", state="WA",
          cap=20),
     dict(publisher="Invisible People", url="https://invisiblepeople.tv/feed/", place=None,
-         state=None, cap=25),
+         state=None, cap=25, all_items=True),
 ]
 
 
@@ -769,7 +775,10 @@ def investigative(conn) -> int:
         except Exception as e:  # noqa: BLE001
             NOTES.append(f"feed {feed['publisher']}: {feed['url'][:60]} failed {repr(e)[:70]}")
             continue
-        kept = [it for it in items if HOMELESS_KW.search(it["title"] + " " + it["desc"])]
+        # a section feed (Guardian homelessness, Street Sheet, Invisible People) is already
+        # scoped by the publisher; a general feed (LA Times California, NPR news) is filtered.
+        kept = [it for it in items if feed.get("all_items")
+                or HOMELESS_KW.search(it["title"] + " " + it["desc"])]
         NOTES.append(f"feed {feed['publisher']}: {len(kept)}/{len(items)} in scope")
         n_here = 0
         for it in kept:
@@ -886,6 +895,45 @@ def openalex(conn) -> int:
     return n
 
 
+# ------------------------------------------------ 7b. DC Auditor (WordPress REST search)
+def dc_auditor(conn) -> int:
+    """D.C. Office of the District of Columbia Auditor: its report listing is rendered client
+    side, but the office's WordPress REST API answers a server-side search."""
+    before = COUNTER[0]
+    keep_sub = {"report", "press_releases", "testimony"}
+    seen: set[str] = set()
+    for term in ("homeless", "encampment"):
+        url = (f"https://dcauditor.org/wp-json/wp/v2/search?search={term}&per_page=50")
+        try:
+            hits = json.loads(_fetch(url, browser=True, timeout=120))
+        except Exception as e:  # noqa: BLE001
+            NOTES.append(f"dc_auditor {term}: {repr(e)[:90]}")
+            continue
+        for h in hits:
+            u, sub = h.get("url"), h.get("subtype")
+            title = clean(h.get("title"))
+            if not u or not title or u in seen or sub not in keep_sub:
+                continue
+            seen.add(u)
+            published = None
+            try:
+                page = _fetch(u, browser=True, timeout=120).decode("utf-8", "replace")
+                published = _meta_date(BeautifulSoup(page, "lxml"))
+                body = BeautifulSoup(page, "lxml").get_text(" ", strip=True)
+            except Exception:  # noqa: BLE001
+                body = ""
+            kind = "audit" if (sub == "report" and "audit" in title.lower()) else "report"
+            _doc(conn, kind=kind, title=title, url=u,
+                 publisher="Office of the District of Columbia Auditor", license=LIC_CITY,
+                 summary=_summ(kind, "the Office of the District of Columbia Auditor", title,
+                               published, "Washington, DC", _sentence(body, HOMELESS_KW)),
+                 published=published, place="Washington", state="DC",
+                 author="Office of the District of Columbia Auditor")
+    n = COUNTER[0] - before
+    _mark(conn, "dc_auditor", n > 0, f"{n} DC Auditor docs")
+    return n
+
+
 # ---------------------------------------------------------------- 8. HUD OIG (blocked?)
 def hud_oig(conn) -> int:
     """HUD OIG audits are published on hudoig.gov, which answers 403 to this host for every
@@ -909,6 +957,7 @@ STEPS = [
     ("congress", congress),
     ("ahar", ahar),
     ("city_audits", city_audits),
+    ("dc_auditor", dc_auditor),
     ("investigative", investigative),
     ("openalex", openalex),
     ("hud_oig", hud_oig),
@@ -927,7 +976,7 @@ def run(conn, cfg=None) -> dict:
     for name, fn in STEPS:
         if only and name not in only:
             continue
-        if not force and _done(conn, name):
+        if not force and _done(conn, name) and name != "city_audits":
             counts[name] = -1          # already finished in an earlier run
             continue
         try:

@@ -115,3 +115,33 @@ without a token (`COURTLISTENER_API_TOKEN`, free signup at https://www.courtlist
 endpoints are paywalled per page). The Grants Pass holding and the Martin v. Boise rule
 were therefore taken from the Supreme Court opinion text on Cornell LII (which quotes both),
 not from the dockets. Unblocks injunction rows (status=enjoined) per city with a token.
+
+## budgets
+
+**Blocked: California HCD homelessness programme allocations (`hcd.ca.gov`) — HTTP 403.**
+`https://www.hcd.ca.gov/grants-and-funding/homeless-housing-assistance-and-prevention` returns
+403 with the ingest user agent, so the state's own HHAP round allocations (a per-CoC table) could
+not be captured. No key exists for this — it is a WAF/IP rule, same class as the SAMHSA block
+above. Unblocks a state-own-money line for the largest state programme: allowlist the egress IP or
+drop the allocation table in `data/raw/budgets/` and point a `STATE_OWN`-style spec at it.
+
+**Blocked: six of the ten named city budget portals are not machine-readable from this host.**
+
+| City | Portal tried | Result |
+|---|---|---|
+| Portland | `data.portlandoregon.gov`, `opendata.portland.gov` | connection reset / host unreachable (every attempt) |
+| Houston | `data.houstontx.gov` | HTTP 404 on `/api/views.json`, `/resource/...`, DCAT feed |
+| Boston | `data.boston.gov` | HTTP 404 on `/api/views.json`, DCAT feed |
+| Denver | `data.denvergov.org` | `/api/views.json` and `/resource/...` return the HTML catalogue page, not JSON |
+| San Diego | `data.sandiego.gov` | HTTP 404 on `/api/views.json`, DCAT feed, CKAN API |
+| Washington DC | `opendata.dc.gov` (DCAT feed, 1,919 datasets) | no citywide homelessness budget dataset: only "FY2020 Proposed Mayoral Budget Submission", school/DCPS budgets and a 2014-2018 employment-services extract |
+
+Their CoC-level federal money is still captured (`hud_coc_esg_obligated_county_attributed`,
+`award_hud_coc_attributed`); what is missing is the city's *own* appropriation. Unblocks per city:
+a `CITY_BUDGETS`-style spec against a tabular budget endpoint (Socrata resource, ArcGIS feature
+service or CSV) that shows the homelessness department/programme line.
+
+**Note, not a block:** `api.census.gov` government-finance series would give every state's
+"housing and community development" expenditure, but keyless calls now return the *Missing Key*
+page (see the `CENSUS_API_KEY` entry above); it is also a housing function, not homelessness, so
+it was not used as a state-budget proxy.
