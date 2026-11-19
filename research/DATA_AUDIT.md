@@ -36,3 +36,7 @@ Flagged `status='unknown'` and the impossible `closed` year removed (not silentl
 - pit PR-503 2011: chronic 1847 > total 1538 -> NULL
 - pit PR-503 2012: chronic 1684 > total 1527 -> NULL
 - facility Wyoming State Penitentiary (396): closed 1980 < opened 2001 -> closed NULL, status unknown
+
+### audit --fix pass
+
+- facility Wyoming State Penitentiary (378): closed 1980 < opened 2001 -> closed NULL, status unknown

@@ -1477,14 +1477,24 @@ def run(conn, cfg):
                 "type classified from the Wikidata class / Wikipedia category; the sources record "
                 "no operator or owner for this facility")
 
-    # 6. write facilities ----------------------------------------------------------------
+    # 6. write facilities (commit-safe: no table-wide delete, WAL-visible incremental commits)
+    run_ts = now()
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS facility_seen (run_ts TEXT NOT NULL, facility_id INTEGER "
+        "NOT NULL, PRIMARY KEY(run_ts, facility_id))")
+    conn.commit()
     ids = {}
-    rows = 0
+    n_written = 0
     for k, rec in merger.recs.items():
         fid = _write_facility(conn, rec)
         if fid:
             ids[k] = fid
-            rows += 1
+            conn.execute("INSERT OR IGNORE INTO facility_seen(run_ts, facility_id) VALUES(?,?)",
+                         (run_ts, fid))
+            n_written += 1
+            if n_written % 200 == 0:
+                conn.commit()
+    conn.commit()
     rows = len(set(ids.values()))
     notes.append(f"facilities={rows}")
 
@@ -1520,7 +1530,7 @@ def run(conn, cfg):
                     note="annual operating budget as reported; see population_note",
                     source_id=rec.get("source_id"))
             n_budget += 1
-            if rec.get("beds"):
+            if rec.get("beds") and not rec.get("annual_cost_per_bed"):
                 cpb = int(round(rec["budget"] / rec["beds"]))
                 _metric(conn, fid, "cost_per_bed_year", cpb, rec.get("budget_year") or 0,
                         unit="USD/bed/year", is_est=1,
@@ -1528,6 +1538,16 @@ def run(conn, cfg):
                              f"= ${cpb:,} per bed-year (is_est=1 means derived by division)",
                         source_id=rec.get("source_id"))
                 n_cost += 1
+        if rec.get("annual_cost_per_bed"):
+            _metric(conn, fid, "cost_per_bed_year", rec["annual_cost_per_bed"],
+                    rec.get("cpb_year") or rec.get("budget_year") or rec.get("beds_year") or 0,
+                    unit="USD/bed/year", is_est=int(rec.get("cpb_is_est") or 0),
+                    note="per-patient/per-bed operating cost; see population_note for the "
+                         "quoted source sentence and any annualisation",
+                    source_id=rec.get("source_id"))
+            n_cost += 1
+
+    conn.commit()
 
     # 8. published operating economics (state systems) -----------------------------------
     facts = economics(conn)
@@ -1543,6 +1563,10 @@ def run(conn, cfg):
                                           "of State Hospitals Budget",
                                     publisher="California Legislative Analyst's Office",
                                     license="Public record (CA state government)")
+                conn.execute(
+                    "UPDATE facility SET annual_cost_per_bed=COALESCE(annual_cost_per_bed,?), "
+                    "is_est=CASE WHEN annual_cost_per_bed IS NULL THEN 1 ELSE is_est END "
+                    "WHERE kind='state_psychiatric' AND state='CA'", (per,))
                 for k, r in by_kind_state("state_psychiatric", "CA"):
                     _metric(conn, ids[k], "cost_per_bed_year", per, f["year"],
                             unit="USD/bed/year", is_est=1,
@@ -1566,6 +1590,10 @@ def run(conn, cfg):
                                           "Significant Population Reductions",
                                     publisher="California Legislative Analyst's Office",
                                     license="Public record (CA state government)")
+                conn.execute(
+                    "UPDATE facility SET annual_cost_per_bed=COALESCE(annual_cost_per_bed,?), "
+                    "is_est=CASE WHEN annual_cost_per_bed IS NULL THEN 1 ELSE is_est END "
+                    "WHERE kind='prison' AND state='CA'", (per,))
                 for k, r in by_kind_state("prison", "CA"):
                     _metric(conn, ids[k], "cost_per_bed_year", per, f["year"],
                             unit="USD/bed/year", is_est=1,
@@ -1580,6 +1608,26 @@ def run(conn, cfg):
 
     notes.extend(econ_notes)
     notes.append(f"metrics: beds={n_beds} staff={n_staff} budget={n_budget} cost_per_bed={n_cost}")
+
+    conn.commit()
+
+    # 8b. reconcile: rows this domain wrote in an earlier run that no longer exist ---------
+    stale = 0
+    prev = conn.execute(
+        "SELECT run_ts FROM facility_seen WHERE run_ts < ? ORDER BY run_ts DESC LIMIT 1",
+        (run_ts,)).fetchone()
+    if prev:
+        gone = [r[0] for r in conn.execute(
+            "SELECT facility_id FROM facility_seen WHERE run_ts=? AND facility_id NOT IN "
+            "(SELECT facility_id FROM facility_seen WHERE run_ts=?)", (prev[0], run_ts))]
+        for fid in gone:
+            conn.execute("DELETE FROM metric WHERE entity_type='facility' AND entity_id=?",
+                         (str(fid),))
+            conn.execute("DELETE FROM facility WHERE id=?", (fid,))
+            conn.execute("DELETE FROM facility_seen WHERE facility_id=?", (fid,))
+            stale += 1
+        conn.commit()
+    notes.append(f"stale_removed={stale}")
 
     # 9. state coverage snapshot for the research note -----------------------------------
     cov = conn.execute(

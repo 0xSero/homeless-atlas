@@ -69,6 +69,11 @@ make_prompt() {
 
 launch() {
   local dom=$1
+  # never run two workers for the same domain (an orphaned worker from a previous loop can survive)
+  if pgrep -f -- "atlas-$dom" >/dev/null 2>&1; then
+    log "worker for $dom already alive; not launching a second one"
+    return 0
+  fi
   local item=$R/queue/$(ls queue | grep -- "-$dom.md$" | head -1)
   make_prompt "$dom" "$item"
   set_status "$dom" RUNNING

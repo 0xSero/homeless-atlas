@@ -179,8 +179,14 @@ w()
 w("## 3. The money")
 w()
 tot = sum(a.get("amount_obligated") or 0 for a in sf_awards)
-w(f"The atlas holds **{num(len(sf_awards))} federal awards** with a San Francisco place of performance or a "
-  f"San Francisco recipient, worth **{money(tot)} obligated**.")
+if sf_awards:
+    w(f"The atlas holds **{num(len(sf_awards))} federal awards** with a San Francisco place of performance or a "
+      f"San Francisco recipient, worth **{money(tot)} obligated**.")
+else:
+    w("**Not yet computable.** USASpending rows carry a place-of-performance state but the city and county fields are "
+      "empty for the whole table, so an award can be attributed to California but not yet to San Francisco. The queue "
+      "item `award-places` fills those fields from the award-detail endpoint. Until then this section states the gap "
+      "rather than showing a total that would be wrong.")
 w()
 if sf_awards:
     by_cfda = defaultdict(lambda: [0, 0.0])
@@ -197,8 +203,37 @@ if sf_awards:
     w()
 
 # 4. Organizations
-w("## 4. Who receives it")
+w("## 4. The organizations based in the city")
 w()
+sf_by_rev = q("""SELECT id, name, revenue, expenses, employees, ein, website, source_id
+                 FROM org WHERE city LIKE 'San Francisco%' AND state='CA'
+                 ORDER BY COALESCE(revenue,0) DESC LIMIT 30""")
+if sf_by_rev:
+    w(table(["Organization", "Revenue (990)", "Expenses", "Employees", "EIN"],
+            [[(f"[{o['name']}](/org/{o['id']}-{o['name'].lower().replace(' ', '-')}.html)"),
+              money(o.get("revenue")), money(o.get("expenses")), num(o.get("employees")), o.get("ein") or ""]
+             for o in sf_by_rev]))
+    w()
+    covered = sum(o.get("revenue") or 0 for o in sf_by_rev)
+    w(f"The {len(sf_by_rev)} largest San Francisco homelessness organisations by reported revenue account for "
+      f"**{money(covered)}** between them {cite(sf_by_rev[0].get('source_id'))}. Revenue is self-reported on IRS Form 990 "
+      f"and lags the fiscal year it describes by up to eighteen months.")
+    w()
+    w("### The people running them")
+    w()
+    sfppl = q("""SELECT p.person, p.title, p.org_name, p.comp, p.year, p.source_id
+                 FROM org_person p JOIN org o ON o.id=p.org_id
+                 WHERE o.city LIKE 'San Francisco%' AND o.state='CA' AND p.person IS NOT NULL
+                 ORDER BY COALESCE(p.comp,0) DESC LIMIT 30""")
+    if sfppl:
+        w(table(["Person", "Title", "Organization", "Compensation", "Year"],
+                [[p["person"], p.get("title") or "", p.get("org_name") or "", num(p.get("comp")), num(p.get("year"))]
+                 for p in sfppl]))
+        w()
+        w(f"That is {num(len(sfppl))} of the officers, directors and key employees published in Form 990 Part VII for "
+          f"San Francisco homelessness nonprofits {cite(sfppl[0].get('source_id'))}. Professional roles only — no personal "
+          f"contact details are collected.")
+        w()
 if sf_orgs:
     rows = []
     for o in sf_orgs[:30]:

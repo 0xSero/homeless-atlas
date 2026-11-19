@@ -31,6 +31,9 @@ from ingest.common import fetch, fetch_json, fetch_post_json, save_raw, upsert, 
 - **Never fabricate**: if a field is missing write `None`. Set `is_est=1` on modelled/proxy numbers.
 - **Every row carries provenance**: `source_id` = the `source.id` for the URL it came from
   (`fetch` returns bytes and registers the source; use `source_id_for(url)`).
+- **Never set `source_id` on rows you did not create.** A blanket `UPDATE geo_city SET source_id=...`
+  rewrote 32,608 rows' provenance once and made the site cite a boundary shapefile for population
+  figures. Only touch `source_id` on rows your own ingestor inserted.
 - **Name normalisation**: always also write `name_norm` (uppercase, punctuation stripped, org
   suffixes removed: INC, LLC, CORP, CO, ASSOC, FOUNDATION, THE). Matching between sources keys on
   `name_norm` + state.

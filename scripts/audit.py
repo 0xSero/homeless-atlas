@@ -47,6 +47,28 @@ for t in ("org", "award", "pit", "geo_city", "geo_coc", "facility", "law", "medi
             ok(f"{t} provenance", f"{n} rows all sourced")
     except sqlite3.Error:
         pass
+# provenance plausibility: a table must not be citing a source from an unrelated domain
+EXPECTED = {
+    "geo_city": ("places", "hud_pit", "coc_geometry"), "geo_state": ("places", "hud_pit"),
+    "geo_coc": ("hud_pit", "coc_geometry"), "pit": ("hud_pit",), "award": ("usaspending", "sf", "budgets"),
+    "org": ("usaspending", "nonprofit", "org_contacts", "places"), "org_person": ("nonprofit",),
+    "facility": ("facility",), "law": ("laws",), "media": ("media",),
+    # documents and laws can legitimately be collected by any research domain
+    "doc": ("docs", "crime", "health", "budgets", "laws", "media", "sf", "facility"),
+}
+for t, allowed in EXPECTED.items():
+    try:
+        rows = conn.execute(f"""SELECT s.domain, COUNT(*) n FROM {t} x JOIN source s ON s.id=x.source_id
+                                GROUP BY s.domain ORDER BY n DESC""").fetchall()
+    except sqlite3.Error:
+        continue
+    total = sum(r["n"] for r in rows) or 1
+    bad = [(r["domain"], r["n"]) for r in rows if r["domain"] not in allowed and r["n"] > total * 0.2]
+    if bad:
+        problems.append(("PROBLEM", f"{t}: provenance from an unrelated domain",
+                         f"{bad} of {total} rows; expected one of {allowed}. A worker probably UPDATEd source_id "
+                         f"on rows it did not create — the citation on the site is then wrong."))
+
 chk("source rows without a URL", "SELECT id,url FROM source WHERE url IS NULL OR url NOT LIKE 'http%'")
 chk("source rows with a bad retrieval date", "SELECT id,retrieved_at FROM source WHERE retrieved_at IS NULL")
 
