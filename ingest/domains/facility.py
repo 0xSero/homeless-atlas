@@ -963,8 +963,8 @@ def wiki_prison_lists(conn):
 # --------------------------------------------------------------------------------------
 
 FILL_FIELDS = ["opened", "closed", "beds", "beds_year", "staff", "staff_year", "capacity_est",
-               "operator", "owner", "budget", "budget_year", "address", "lat", "lon",
-               "city", "state"]
+               "operator", "owner", "budget", "budget_year", "annual_cost_per_bed", "cpb_year",
+               "cpb_is_est", "address", "lat", "lon", "city", "state"]
 
 
 _NAME_PREFIX_RE = re.compile(
@@ -1063,6 +1063,11 @@ def _merge_into(cur, rec):
     for f in FILL_FIELDS:
         if cur.get(f) in (None, "") and rec.get(f) not in (None, ""):
             cur[f] = rec[f]
+    if (cur.get("annual_cost_per_bed") and rec.get("annual_cost_per_bed")
+            and (rec.get("cpb_is_est") or 0) < (cur.get("cpb_is_est") or 0)):
+        cur["annual_cost_per_bed"] = rec["annual_cost_per_bed"]
+        cur["cpb_year"] = rec.get("cpb_year")
+        cur["cpb_is_est"] = rec.get("cpb_is_est") or 0
     if rec.get("closed") and not cur.get("closed"):
         cur["closed"] = rec["closed"]
     if rec.get("status") == "closed" and cur.get("status") in (None, "unknown"):
@@ -1404,7 +1409,7 @@ def _write_facility(conn, rec):
             cpb = int(round(row["budget"] / row["beds"]))
         except (TypeError, ZeroDivisionError):
             cpb = None
-        if cpb and math.isfinite(cpb) and 15_000 <= cpb <= 1_500_000:
+        if cpb and math.isfinite(cpb) and 15_000 <= cpb <= 600_000:
             row["annual_cost_per_bed"] = cpb
             row["is_est"] = 1
             note = (f"derived: annual budget ${row['budget']:,} / {row['beds']} beds = "

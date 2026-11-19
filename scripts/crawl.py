@@ -5,7 +5,7 @@ search coverage. Exit 0 only when the site is structurally sound.
 Run: python3 scripts/crawl.py [--quiet]
 """
 from __future__ import annotations
-import json, re, sys
+import json, re, sys, time
 from collections import Counter, defaultdict
 from html.parser import HTMLParser
 from pathlib import Path
@@ -67,6 +67,11 @@ def resolve(base: Path, href: str):
 
 
 def main():
+    # the publisher swaps site -> site.prev -> site; wait out that window instead of failing
+    for _ in range(50):
+        if (SITE / "index.html").exists():
+            break
+        time.sleep(0.1)
     pages = sorted(SITE.rglob("*.html"))
     if not pages:
         print("no pages built"); return 1

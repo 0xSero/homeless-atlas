@@ -8,3 +8,4 @@
 {"ts": "2026-11-19T08:04:43+00:00", "skill": "homeless-atlas", "domain": "crime", "verdict": "REJECT", "rows": 0, "evidence": "logs/workers/crime.log", "note": "attempt 2 failed rc=143"}
 {"ts": "2026-11-19T08:16:26+00:00", "skill": "homeless-atlas", "domain": "crime", "verdict": "PARKED", "rows": 0, "evidence": "logs/workers/crime.log", "note": "failed 3 attempts, needs review"}
 {"ts": "2026-11-19T08:16:35+00:00", "skill": "homeless-atlas", "domain": "budgets", "verdict": "REJECT", "rows": 1433, "evidence": "logs/workers/budgets.log", "note": "attempt 1 failed rc=143"}
+{"ts": "2026-11-19T08:16:44+00:00", "skill": "homeless-atlas", "domain": "laws", "verdict": "REJECT", "rows": 0, "evidence": "logs/workers/laws.log", "note": "attempt 1 failed rc=143"}
