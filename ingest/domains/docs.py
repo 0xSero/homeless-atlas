@@ -164,7 +164,7 @@ def _verify(conn, url: str) -> bool:
         _throttle()
         try:
             r = requests.request(method, url, headers={"User-Agent": BUA, "Accept": "*/*"},
-                                 timeout=60, allow_redirects=True, stream=(method == "GET"))
+                                 timeout=25, allow_redirects=True, stream=(method == "GET"))
         except Exception:  # noqa: BLE001
             status = None
             continue
@@ -173,6 +173,8 @@ def _verify(conn, url: str) -> bool:
             r.close()
         if status == 200:
             break
+        if status is None:
+            break        # connection timeout / DNS: a GET would only hang again
         # a 403/405/400 on HEAD is often just "this host does not do HEAD"; try a real GET
         if method == "HEAD" and status in (400, 403, 405, 501):
             continue
@@ -682,17 +684,22 @@ def city_audits(conn) -> int:
                         quote = _sentence(txt, HOMELESS_KW)
                         published = _iso_date(txt[:2000])
                     else:
-                        doc_html = _fetch(url, browser=True, timeout=120).decode(
+                        doc_html = _fetch(url, browser=True, timeout=60).decode(
                             "utf-8", "replace")
                         fetched_ok = len(doc_html) > 1000
                         dsoup = BeautifulSoup(doc_html, "lxml")
                         published = _meta_date(dsoup)
-                        desc = dsoup.find("meta", attrs={"name": "description"})
-                        quote = _sentence(desc["content"] if desc and desc.get("content") else
-                                          BeautifulSoup(doc_html, "lxml").get_text(" "),
-                                          HOMELESS_KW)
+                        meta = (dsoup.find("meta", attrs={"property": "og:description"})
+                                or dsoup.find("meta", attrs={"name": "description"}))
+                        body_txt = dsoup.get_text(" ", strip=True)
+                        quote = (_sentence(meta["content"], HOMELESS_KW)
+                                 if meta and meta.get("content") else None)
+                        if not quote:
+                            quote = _sentence(body_txt, HOMELESS_KW)
                         if not published:
-                            published = _iso_date(url)
+                            # a full printed date near the top of the report page
+                            m = _DATE_LONG.search(body_txt[:3000])
+                            published = _iso_date(m.group(0)) if m else _iso_date(url)
                 except Exception:  # noqa: BLE001
                     pass
                 if not published:
@@ -719,10 +726,12 @@ def _rss_items(xml_bytes: bytes) -> list[dict]:
         root = ET.fromstring(xml_bytes)
     except ET.ParseError:
         return items
+    enc = "{http://purl.org/rss/1.0/modules/content/}encoded"
     for it in root.iter("item"):
         get = lambda tag: (it.findtext(tag) or "").strip()  # noqa: E731
+        desc = get("description") or (it.findtext(enc) or "")
         items.append(dict(title=get("title"), link=get("link"), date=get("pubDate"),
-                          desc=re.sub(r"<[^>]+>", " ", get("description"))))
+                          desc=re.sub(r"<[^>]+>", " ", desc)))
     return items
 
 
@@ -851,7 +860,7 @@ def openalex(conn) -> int:
     for q in OA_QUERIES:
         url = ("https://api.openalex.org/works?search=" + urllib.parse.quote(q)
                + "&per-page=200&select=doi,title,publication_year,publication_date,"
-                 "primary_location,authorships,abstract_inverted_index,type")
+                 "primary_location,authorships,abstract_inverted_index,type,open_access")
         try:
             d = json.loads(_fetch(url, timeout=120))
         except Exception as e:  # noqa: BLE001
@@ -872,9 +881,12 @@ def openalex(conn) -> int:
         n_cand += 1
         if n_cand > OA_CAP * 3:
             break
-        url = f"https://doi.org/{doi}"
+        oa = ((w.get("open_access") or {}).get("oa_url") or "").strip()
+        url = oa if oa.startswith("http") else f"https://doi.org/{doi}"
         if not _verify(conn, url):
-            continue
+            url = f"https://doi.org/{doi}"
+            if not _verify(conn, url):
+                continue
         src = ((w.get("primary_location") or {}).get("source") or {}).get("display_name")
         authors = w.get("authorships") or []
         author = None
@@ -905,7 +917,7 @@ def dc_auditor(conn) -> int:
     for term in ("homeless", "encampment"):
         url = (f"https://dcauditor.org/wp-json/wp/v2/search?search={term}&per_page=50")
         try:
-            hits = json.loads(_fetch(url, browser=True, timeout=120))
+            hits = json.loads(_fetch(url, browser=True, timeout=45))
         except Exception as e:  # noqa: BLE001
             NOTES.append(f"dc_auditor {term}: {repr(e)[:90]}")
             continue
@@ -917,7 +929,7 @@ def dc_auditor(conn) -> int:
             seen.add(u)
             published = None
             try:
-                page = _fetch(u, browser=True, timeout=120).decode("utf-8", "replace")
+                page = _fetch(u, browser=True, timeout=45).decode("utf-8", "replace")
                 published = _meta_date(BeautifulSoup(page, "lxml"))
                 body = BeautifulSoup(page, "lxml").get_text(" ", strip=True)
             except Exception:  # noqa: BLE001

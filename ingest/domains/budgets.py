@@ -226,6 +226,31 @@ def _ensure(conn):
         );
         """
     )
+    # This domain's private tables were created once without the keys these
+    # loaders upsert on (ON CONFLICT needs a matching unique index). Bring them
+    # into the shape this file expects, keeping whatever an earlier run wrote.
+    cols = [r[1] for r in conn.execute("PRAGMA table_info(budgets_city_line)")]
+    if "entity" not in cols:
+        conn.executescript("ALTER TABLE budgets_city_line RENAME TO budgets_city_line_legacy;")
+        conn.executescript(
+            """CREATE TABLE IF NOT EXISTS budgets_city_line (
+                 entity    TEXT NOT NULL, entity_id TEXT, state TEXT NOT NULL,
+                 fy        TEXT NOT NULL, label TEXT NOT NULL, amount REAL,
+                 dataset   TEXT, source_id INTEGER,
+                 PRIMARY KEY (entity, state, fy, label));"""
+        )
+    conn.execute("DELETE FROM budgets_progress WHERE rowid NOT IN "
+                 "(SELECT MIN(rowid) FROM budgets_progress GROUP BY step)")
+    for sql in (
+        "CREATE UNIQUE INDEX IF NOT EXISTS ux_budgets_progress ON budgets_progress(step)",
+        "CREATE UNIQUE INDEX IF NOT EXISTS ux_budgets_state_line ON budgets_state_line(state,fy,label)",
+        "CREATE UNIQUE INDEX IF NOT EXISTS ux_budgets_city_line ON budgets_city_line(entity,state,fy,label)",
+    ):
+        try:
+            conn.execute(sql)
+        except sqlite3.OperationalError as e:
+            print(f"[budgets] index not created ({e}): {sql}")
+    conn.commit()
 
 
 def _mark(conn, step, detail=""):

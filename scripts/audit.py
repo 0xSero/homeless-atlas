@@ -69,6 +69,14 @@ for t, allowed in EXPECTED.items():
                          f"{bad} of {total} rows; expected one of {allowed}. A worker probably UPDATEd source_id "
                          f"on rows it did not create — the citation on the site is then wrong."))
 
+# financials must cite a source that actually contains financials
+BMF = "irs.gov/pub/irs-soi/eo"
+n = conn.execute("""SELECT COUNT(*) FROM org o JOIN source s ON s.id=o.source_id
+                    WHERE o.revenue IS NOT NULL AND s.url LIKE ?""", (f"%{BMF}%",)).fetchone()[0]
+if n:
+    problems.append(("PROBLEM", "org financials citing a registration file (no financial fields)",
+                     f"{n} rows cite the IRS Business Master File; run scripts/repair_org_financials.py"))
+
 chk("source rows without a URL", "SELECT id,url FROM source WHERE url IS NULL OR url NOT LIKE 'http%'")
 chk("source rows with a bad retrieval date", "SELECT id,retrieved_at FROM source WHERE retrieved_at IS NULL")
 

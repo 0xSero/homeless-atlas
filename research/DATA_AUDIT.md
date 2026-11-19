@@ -64,3 +64,9 @@ Flagged `status='unknown'` and the impossible `closed` year removed (not silentl
 ### audit --fix pass
 
 - facility Wyoming State Penitentiary (378): closed 1980 < opened 2001 -> closed NULL, status unknown
+
+### Organisation financials re-sourced (2026-11-19)
+
+- 5 organisations had revenue/expenses citing `eo1.csv` (the IRS Business Master File, which contains no financial fields).
+- 5 were re-sourced from their actual Form 990 filing on Nonprofit Explorer.
+- 0 had no filing with figures and were set to NULL rather than keep an uncitable number.
