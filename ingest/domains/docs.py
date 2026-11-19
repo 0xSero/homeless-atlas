@@ -338,6 +338,26 @@ def _cached_govinfo(conn, task: str, query: str) -> dict | None:
     return None
 
 
+def _brave(q: str, count: int = 20) -> list[dict]:
+    """Brave web search as a *discovery* step only (a server-side index, because several
+    publishers render their own site search client-side). The token travels in a header, so the
+    cached response contains no secret. Every field on a written row still comes from the
+    primary document fetched afterwards."""
+    key = os.environ.get("BRAVE_API_KEY")
+    if not key:
+        return []
+    url = ("https://api.search.brave.com/res/v1/web/search?"
+           + urllib.parse.urlencode({"q": q, "count": count}))
+    try:
+        b = fetch(url, domain=DOMAIN, headers={"Accept": "application/json",
+                                               "X-Subscription-Token": key},
+                  timeout=90, retries=2)
+        return json.loads(b).get("web", {}).get("results", [])
+    except Exception as e:  # noqa: BLE001
+        NOTES.append(f"brave {q[:40]!r} failed {repr(e)[:80]}")
+        return []
+
+
 def _gi_pdf(pid: str, gid: str | None) -> str:
     if gid:
         return f"https://www.govinfo.gov/content/pkg/{pid}/pdf/{gid}.pdf"
@@ -357,42 +377,88 @@ GAO_TEXT_N = int(os.environ.get("DOCS_GAO_TEXT", "90"))
 
 
 def gao(conn) -> int:
-    """GAO homeless reports from the GovInfo GAOREPORTS collection (kind='audit')."""
+    """GAO homeless reports (kind='audit').
+
+    Primary route: the GovInfo GAOREPORTS search API. That API's keyless DEMO_KEY answered
+    HTTP 429 for most of this run (10 requests/hour, shared per host), so the fallback discovers
+    the same GovInfo packages through a server-side index and then reads each package's own
+    HTML from www.govinfo.gov, which is not rate limited.
+    """
     before = COUNTER[0]
+    rows: list[dict] = []
     d = _cached_govinfo(conn, "gao", GAO_QUERY)
     if d is None:
         d = _govinfo(GAO_QUERY, 1000)
-    if not d or not d.get("results"):
-        _mark(conn, "gao", False, "no GovInfo response (quota)")
-        return 0
-    keep = [r for r in d["results"] if GAO_KW.search(r.get("title") or "")]
-    NOTES.append(f"gao: {d.get('count')} full-text hits, {len(keep)} with a homelessness title")
-    for i, r in enumerate(keep[:GAO_CAP]):
-        pid, gid = r.get("packageId"), r.get("granuleId")
+    if d and d.get("results"):
+        NOTES.append(f"gao: GovInfo API returned {d.get('count')} hits")
+        rows = [dict(pid=r.get("packageId"), gid=r.get("granuleId"),
+                     title=r.get("title"), date=r.get("dateIssued"),
+                     author=(r.get("governmentAuthor") or [""])[0]) for r in d["results"]]
+    else:
+        queries = [
+            'site:govinfo.gov GAOREPORTS homeless',
+            'site:govinfo.gov GAOREPORTS homelessness',
+            'site:govinfo.gov GAOREPORTS "homeless veterans"',
+            'site:govinfo.gov GAOREPORTS "continuum of care"',
+            'site:govinfo.gov GAOREPORTS "transitional housing"',
+            'site:govinfo.gov GAOREPORTS "supportive housing"',
+            'site:govinfo.gov GAOREPORTS "encampment"',
+            'site:govinfo.gov GAOREPORTS "HUD" homeless',
+        ]
+        seen_pid: set[str] = set()
+        for q in queries:
+            for res in _brave(q, 20):
+                u = res.get("url") or ""
+                m = re.search(r"(GAOREPORTS-[A-Za-z0-9\-]+?)(?:/|\.html?|\.pdf|$)",
+                              urllib.parse.urlparse(u).path)
+                if not m:
+                    continue
+                pid = m.group(1)
+                if pid in seen_pid:
+                    continue
+                seen_pid.add(pid)
+                rows.append(dict(pid=pid, gid=None, title=None, date=None, author=None))
+        NOTES.append(f"gao: {len(rows)} GAO packages discovered via Brave (GovInfo API 429)")
+
+    written = 0
+    for i, r in enumerate(rows[:GAO_CAP]):
+        pid, gid = r.get("pid"), r.get("gid")
         if not pid:
             continue
-        title = clean(r.get("title")) or pid
-        author = (r.get("governmentAuthor") or ["U.S. Government Accountability Office"])[0]
-        published = _iso_date(r.get("dateIssued"))
         pdf = _gi_pdf(pid, gid)
-        quote = None
-        if i < GAO_TEXT_N:
+        raw = ""
+        if i < GAO_TEXT_N or not r.get("title"):
             try:
-                html = _fetch(_gi_html(pid, gid), timeout=180).decode("utf-8", "replace")
-                body = _flat(html)
-                # the report's own abstract follows the cover title; skip the title block
-                quote = _sentence(body[:6000], GAO_KW)
-            except Exception as e:  # noqa: BLE001
-                NOTES.append(f"gao {pid}: text fetch failed {repr(e)[:60]}")
-        summary = _summ("audit", author, title, published, None, quote,
-                        tail=("The report's findings and recommendations are in the linked PDF; "
-                              "the file is the Government Publishing Office's copy of the GAO "
-                              "product."))
-        _doc(conn, kind="audit", title=title, url=pdf, publisher=author, license=LIC_USGOV,
-             summary=summary, published=published, author=author)
-    n = COUNTER[0] - before
-    _mark(conn, "gao", n > 0, f"{n} rows of {len(keep)} candidates")
-    return n
+                raw = _fetch(_gi_html(pid, gid), timeout=180).decode("utf-8", "replace")
+            except Exception:  # noqa: BLE001
+                raw = ""
+        body = _flat(raw) if raw else ""
+        title = clean(r.get("title"))
+        if not title and raw:
+            hsoup = BeautifulSoup(raw, "lxml")
+            title = clean(hsoup.title.get_text(" ", strip=True) if hsoup.title else None)
+            if not title:
+                h1 = hsoup.find(["h1", "h2"])
+                title = clean(h1.get_text(" ", strip=True)) if h1 else None
+        title = title or pid
+        if not GAO_KW.search(title) and not GAO_KW.search(body[:4000]):
+            continue
+        author = "U.S. Government Accountability Office"
+        published = _iso_date(r.get("date"))
+        m = re.search(r"\((?:Letter Report|Report)[^)]*?(\d{2}/\d{2}/\d{2,4})", body or "")
+        if m and not published:
+            mm, dd, yy = m.group(1).split("/")
+            published = f"20{yy}-{mm}-{dd}" if len(yy) == 2 else f"{yy}-{mm}-{dd}"
+        quote = _sentence(body[:6000], GAO_KW)
+        if _doc(conn, kind="audit", title=title, url=pdf, publisher=author, license=LIC_USGOV,
+                summary=_summ("audit", author, title, published, None, quote,
+                              tail=("The report's findings and recommendations are in the linked "
+                                    "PDF, the Government Publishing Office copy of the GAO "
+                                    "product.")),
+                published=published, author=author):
+            written += 1
+    _mark(conn, "gao", written > 0, f"{written} rows of {len(rows)} candidates")
+    return COUNTER[0] - before
 
 
 # ---------------------------------------------------------------------- 2. Court cases
@@ -456,6 +522,87 @@ def courts(conn, states: dict[str, str]) -> int:
         _doc(conn, kind="court", title=title, url=pdf, publisher=court, license=LIC_COURT,
              summary=summary, published=published,
              state=_court_state(court, states), author=court)
+
+    # --- Brave fallback: GovInfo's USCOURTS search shares the exhausted DEMO_KEY quota, so the
+    # same primary opinions are discovered from the courts' own opinion servers and parsed.
+    if len(got) == 0:
+        queries = [
+            'site:cdn.ca9.uscourts.gov homeless opinion',
+            'site:cdn.ca9.uscourts.gov encampment opinion',
+            'site:cdn.ca9.uscourts.gov "camping ordinance"',
+            'site:cdn.ca9.uscourts.gov "sit-lie"',
+            '"Martin v. Boise" ninth circuit opinion pdf',
+            '"City of Grants Pass v. Johnson" ninth circuit opinion pdf',
+            '"LA Alliance for Human Rights" ninth circuit opinion pdf',
+            'site:supremecourt.gov homeless camping opinion pdf',
+            'site:courts.wa.gov homeless camping opinion',
+            'site:courts.ca.gov homeless encampment opinion',
+        ]
+        cand: list[str] = []
+        for q in queries:
+            for res in _brave(q, 20):
+                u = res.get("url") or ""
+                low = u.lower()
+                if not low.split("?")[0].endswith(".pdf"):
+                    continue
+                if "brief" in low or "uploads" in low:
+                    continue
+                if not re.search(r"(uscourts\.gov|supremecourt\.gov|courts\.[a-z]{2}\.gov|"
+                                 r"courts\.gov|ca\.gov|wa\.gov|or\.gov|co\.gov|mo\.gov|"
+                                 r"tn\.gov|az\.gov|nv\.gov|ut\.gov)", low):
+                    continue
+                if u not in cand:
+                    cand.append(u)
+        NOTES.append(f"courts: {len(cand)} opinion PDFs discovered via Brave")
+        CAPTION = re.compile(r"^\s*([A-Z][A-Za-z0-9.,'\u2019\- ]{2,70}?)\s*,?\s+v\.?\s+"
+                             r"([A-Z][A-Za-z0-9.,'\u2019\- ]{2,70})\s*$", re.M)
+        for u in cand[:COURT_CAP]:
+            try:
+                data = _fetch(u, timeout=120)
+                txt = _pdf_text(data, pages=3)
+            except Exception:  # noqa: BLE001
+                continue
+            if not txt:
+                continue
+            head = txt[:4000]
+            m = CAPTION.search(head)
+            if m:
+                title = clean(f"{m.group(1)} v. {m.group(2)}")
+            else:
+                lines = [ln.strip() for ln in head.splitlines() if len(ln.strip()) > 12]
+                title = clean(lines[0]) if lines else None
+            if not title:
+                continue
+            low = u.lower()
+            if "supremecourt.gov" in low:
+                court = "Supreme Court of the United States"
+            elif "ca9.uscourts.gov" in low:
+                court = "U.S. Court of Appeals for the Ninth Circuit"
+            else:
+                m2 = re.search(r"UNITED STATES DISTRICT COURT[^\n]{0,90}", head)
+                m3 = re.search(r"(?:COURT OF APPEALS|SUPREME COURT)[^\n]{0,80}", head)
+                court = clean(m3.group(0) if m3 else (m2.group(0) if m2 else "state appellate court"))
+            published = None
+            for pat in (r"Filed\s+(?:[A-Z][a-z]+)?\s*(\d{1,2}),?\s*(\d{4})",
+                        r"Decided\s+([A-Z][a-z]+ \d{1,2}, \d{4})",
+                        r"DATED[^\n]{0,60}?([A-Z][a-z]+ \d{1,2}, \d{4})"):
+                mm = re.search(pat, head)
+                if mm:
+                    published = _iso_date(mm.group(0).replace("Filed", "").strip(" ,"))
+                    if published:
+                        break
+            if not published:
+                m = re.search(r"/(\d{4})/(\d{2})/(\d{2})/", u)
+                if m:
+                    published = f"{m.group(1)}-{m.group(2)}-{m.group(3)}"
+            if not HOMELESS_KW.search(head) and not HOMELESS_KW.search(txt[:12000]):
+                continue
+            _doc(conn, kind="court", title=title, url=u, publisher=court, license=LIC_COURT,
+                 summary=_summ("court", court, title, published, None,
+                               _sentence(txt, HOMELESS_KW),
+                               tail=("The opinion's holding is in the linked PDF from the "
+                                     "court's own opinion server.")),
+                 published=published, author=court)
 
     # --- Supreme Court of the United States: the slip opinions index lists docket + PDF
     try:
@@ -948,18 +1095,77 @@ def dc_auditor(conn) -> int:
 
 # ---------------------------------------------------------------- 8. HUD OIG (blocked?)
 def hud_oig(conn) -> int:
-    """HUD OIG audits are published on hudoig.gov, which answers 403 to this host for every
-    path and user agent; the CIGIE aggregator's search is client-side only. Recorded as a
-    blocker rather than worked around: nothing here would be a verified HUD OIG URL."""
-    try:
-        r = requests.get("https://www.hudoig.gov/reports-publications",
-                         headers={"User-Agent": BUA}, timeout=60)
-        NOTES.append(f"hud_oig: hudoig.gov -> HTTP {r.status_code}")
-    except Exception as e:  # noqa: BLE001
-        NOTES.append(f"hud_oig: hudoig.gov unreachable {repr(e)[:80]}")
-    _mark(conn, "hud_oig", False,
-          "hudoig.gov returns 403 to this host (WAF); see BLOCKERS.md ## docs")
-    return 0
+    """HUD Office of Inspector General audits, via Oversight.gov.
+
+    hudoig.gov itself answers HTTP 403 to this host for every path and user agent, and its
+    CIGIE aggregator search is client-side. Oversight.gov hosts each IG's reports (page + PDF)
+    on its own domain, so those are discovered through a server-side index and then read from
+    oversight.gov. The office that signed the report is named in the page.
+    """
+    before = COUNTER[0]
+    queries = [
+        'site:oversight.gov homeless HUD audit report',
+        'site:oversight.gov "homeless" "Department of Housing and Urban Development" audit',
+        'site:oversight.gov "continuum of care" audit HUD',
+        'site:oversight.gov "homeless services" audit report OIG',
+        'site:oversight.gov "homeless" "Office of Inspector General" audit',
+    ]
+    urls: list[str] = []
+    for q in queries:
+        for res in _brave(q, 20):
+            u = res.get("url") or ""
+            if "oversight.gov" not in u:
+                continue
+            if not re.search(r"oversight\.gov/(reports/|sites/default/files/)", u):
+                continue
+            if u not in urls:
+                urls.append(u)
+    NOTES.append(f"hud_oig: {len(urls)} Oversight.gov report URLs discovered via Brave")
+    for u in urls[:40]:
+        if not _verify(conn, u):
+            continue
+        try:
+            if u.lower().endswith(".pdf"):
+                txt = _pdf_text(_fetch(u, timeout=180), pages=3)
+                hsoup = None
+            else:
+                page = _fetch(u, browser=True, timeout=90).decode("utf-8", "replace")
+                hsoup = BeautifulSoup(page, "lxml")
+                txt = hsoup.get_text(" ", strip=True)
+        except Exception:  # noqa: BLE001
+            continue
+        if not HOMELESS_KW.search(txt or ""):
+            continue
+        title = None
+        author = "U.S. Department of Housing and Urban Development, Office of Inspector General"
+        published = None
+        if hsoup is not None:
+            h1 = hsoup.find("h1")
+            if h1:
+                title = clean(h1.get_text(" ", strip=True))
+            t = hsoup.find("title")
+            if not title and t:
+                title = clean(t.get_text(" ", strip=True))
+            published = _meta_date(hsoup)
+            m = re.search(r"U\.S\. Department of Housing and Urban Development[^.]{0,80}"
+                          r"Office of Inspector General", txt)
+            if m:
+                author = clean(m.group(0))
+        else:
+            first = next((ln.strip() for ln in txt.splitlines() if len(ln.strip()) > 20), None)
+            title = clean(first)
+        if not title:
+            continue
+        if not published:
+            published = _iso_date(u)
+        kind = "audit" if "audit" in (title + " " + u).lower() else "report"
+        _doc(conn, kind=kind, title=title, url=u, publisher=author, license=LIC_USGOV,
+             summary=_summ(kind, author, title, published, None,
+                           _sentence(txt, HOMELESS_KW)),
+             published=published, author=author)
+    n = COUNTER[0] - before
+    _mark(conn, "hud_oig", n > 0, f"{n} Oversight.gov rows")
+    return n
 
 
 # ----------------------------------------------------------------------- run / report

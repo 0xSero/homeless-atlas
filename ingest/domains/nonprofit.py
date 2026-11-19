@@ -252,6 +252,7 @@ def _ensure_tables(conn):
           ruling      TEXT,
           bmf_status  TEXT,
           bmf_income  INTEGER,
+          bmf_assets  INTEGER,
           src         TEXT,
           seen_at     TEXT,
           page_done   INTEGER DEFAULT 0,
@@ -272,6 +273,7 @@ def _ensure_tables(conn):
     # A DB repair/recovery pass can recreate domain tables without their
     # PRIMARY KEY; ON CONFLICT(ein)/(phase,key) needs a unique index to exist.
     for stmt in (
+        "ALTER TABLE nonprofit_candidate ADD COLUMN bmf_assets INTEGER",
         "DELETE FROM nonprofit_candidate WHERE rowid NOT IN (SELECT rowid FROM ("
         "  SELECT rowid, ROW_NUMBER() OVER (PARTITION BY ein ORDER BY page_done DESC) rn"
         "  FROM nonprofit_candidate) WHERE rn=1)",
@@ -437,16 +439,19 @@ def phase_bmf(conn, cfg):
             if not ein:
                 continue
             state = clean(r.get("STATE"))
-            try:
-                inc = int(r.get("INCOME_AMT") or 0)
-            except ValueError:
-                inc = 0
+            def _int(v):
+                try:
+                    return int(v or 0)
+                except ValueError:
+                    return 0
+            inc = _int(r.get("INCOME_AMT"))
+            ast = _int(r.get("ASSET_AMT"))
             _cand_upsert(conn, {
                 "ein": ein, "name": name, "city": clean(r.get("CITY")), "state": state,
                 "zip": clean(r.get("ZIP")), "address1": clean(r.get("STREET")),
                 "ntee": ntee, "subsection": clean(r.get("SUBSECTION")),
                 "ruling": clean(r.get("RULING")), "bmf_status": clean(r.get("STATUS")),
-                "bmf_income": inc, "src": "bmf",
+                "bmf_income": inc, "bmf_assets": ast, "src": "bmf",
             })
             n += 1
             if n % 500 == 0:
@@ -802,7 +807,7 @@ def phase_pages(conn, cfg):
     have = _journal_eins()
     rows = conn.execute(
         """SELECT * FROM nonprofit_candidate WHERE page_done=0
-           ORDER BY COALESCE(bmf_income,0) DESC, ein"""
+           ORDER BY (COALESCE(bmf_income,0) + COALESCE(bmf_assets,0)) DESC, ein"""
     ).fetchall()
     fetched = empty = errors = 0
     RAW_DIR.mkdir(parents=True, exist_ok=True)
