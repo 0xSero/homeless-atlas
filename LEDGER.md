@@ -23,3 +23,4 @@
 | 2026-11-19T09:55:18+00:00 | usaspending | DONE | 41554 | scripts/sweep_awards.py | year-by-year sweep; FY2024 14->8460, provenance 100% |
 | 2026-11-19T12:40:46+00:00 | hic-beds | DONE | 0 | research/hic-beds.md + ingest/domains/hic-beds.py | worker exit 0 |
 | 2026-11-19T12:51:49+00:00 | uk | DONE | 6686 | research/uk.md + ingest/domains/uk.py | worker exit 0 |
+| 2026-11-19T13:33:08+00:00 | canada | DONE | 606 | research/canada.md + ingest/domains/canada.py | worker exit 0 |

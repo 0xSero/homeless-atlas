@@ -175,3 +175,50 @@ more** (`statswales.gov.wales/api/v1/...` was retired with the move to `stats.go
 `data.nisra.gov.uk` is a PxStat instance whose REST paths (`/api/v1/...`) all answer 404, so
 neither is usable for a scripted pull; StatsWales CSVs come from a form POST instead (see
 `research/uk.md`).
+
+## canada
+
+**Blocked: per-community Reaching Home funding allocations are not published in bulk.**
+HICC publishes Reaching Home money as *project* grants, not as a per-community allocation table.
+The only public machine-readable route is the government-wide proactive-disclosure register
+(`https://search.open.canada.ca/grants`, dataset `432527ab-7aac-45b5-81d6-7597107a7013`), whose
+bulk CSV (`.../resource/1d15a62f-5656-49ad-8c88-f40ce689d831/download/grants.csv`, 244,809,728 B)
+was fetched and found to contain only departments alphabetically A–C (Canadian Heritage …
+Canada Water Agency, 236,715 rows) — **no HICC / Infrastructure Canada rows**, so it yields
+nothing for this domain; and the per-organization per-fiscal-year files behind the search UI are
+not discoverable through the open.canada.ca CKAN API either (`fq=organization:infc` returns 24
+datasets, none of them grants). The Reaching Home programme page prints no envelope figure; the
+one dollar amount on a public HICC programme page is Budget 2022's $18.1 M over three years for
+Action Research on Chronic Homelessness, which is what `metric(reaching_home_action_research_funding)`
+holds. What unblocks it: an HICC grants-and-contributions extract filtered to `owner_org=infc`
+(drop it in `data/raw/canada/` and point the ingestor at it), or the `grants.csv` bulk file
+re-issued with HICC included.
+
+**Blocked at the publisher: `homelessnesslearninghub.ca` → HTTP 403 (Cloudflare interstitial).**
+The Government of Canada's Homelessness Learning Hub hosts the *only* national per-community PiT
+table ("Everyone Counts 2024: Community Enumeration Results"). Every request from this host gets
+the "Just a moment…" challenge page (5,875 B, JS required); no UA/header combination gets past it.
+Worked around, not lost: the same page is read from its Internet Archive snapshot
+(`web.archive.org/web/2026/https://homelessnesslearninghub.ca/library/resources/everyone-counts-2024-results/`),
+which is what the `source` row records — 39 communities with values. Unblocks a direct read (and
+the 2025 edition, once published) with: an allowlisted egress IP, or the page saved by hand into
+`data/raw/canada/`.
+
+**Blocked at the publisher: `www.homelesshub.ca` → connections aborted.** The Canadian Observatory
+on Homelessness community profiles carry one PiT snapshot per community (total, sheltered,
+unsheltered, with the count year) for ~40 non-BC communities, which would have added a second
+cycle for the big cities. Early in the sweep one profile returned 200 and its table parsed; from
+then on every request died with
+`ConnectionError(ProtocolError('Connection aborted.', RemoteDisconnected(...)))` — an IP-level
+block, not a rate limit (1 req/s was honoured). The code path is kept but disabled
+(`HH_ENABLED = False` in `ingest/domains/canada.py`) so re-runs do not hammer it. Unblocks with:
+an allowlisted egress IP, or the `Everyone Counts` 2025 community table from HICC, which would
+supersede it.
+
+**Not blocked, but not swept: per-community counts outside British Columbia.**
+Alberta, Saskatchewan, Manitoba, Ontario, the Atlantic provinces and the territories publish each
+community's PiT result only inside that community's own PDF report (~40 documents, a different
+layout each). HICC aggregates them and never republishes the table. The ingestor captures what is
+tabular (the 2024 HLH table, 39 communities; BC, 33 count areas over four cycles; the national
+series over five cycles) and leaves the PDF-by-PDF sweep to a worker who can verify each
+transcription.

@@ -235,7 +235,7 @@ class Geo:
         self.seen = {}
         self.rows = 0
 
-    def ensure(self, name: str, prov_abbr: str, url: str) -> str | None:
+    def ensure(self, name: str, prov_abbr: str, sid: int) -> str | None:
         name = clean(name)
         prov_abbr = ABBR_FIX.get(prov_abbr, prov_abbr)
         if not name or prov_abbr not in ABBR_TO_PROV:
@@ -245,7 +245,7 @@ class Geo:
             return geoid
         upsert(self.conn, "geo_city", {
             "geoid": geoid, "kind": "ca_city", "name": name,
-            "state": ABBR_TO_PROV[prov_abbr], "source_id": self.sid_by_url[url],
+            "state": ABBR_TO_PROV[prov_abbr], "source_id": sid,
         }, keys=["geoid"])
         self.seen[geoid] = name
         self.rows += 1
@@ -445,7 +445,7 @@ def hicc_annex_a(conn, geo, sid):
         if not name or len(name) < 3 or name in seen:
             continue
         seen.add(name)
-        if geo.ensure(name, m.group(2), EC2024_PDF):
+        if geo.ensure(name, m.group(2), sid[EC2024_PDF]):
             n += 1
     return n
 
@@ -541,7 +541,7 @@ def bc_counts(conn, geo, sid):
     txt = pdf_text("bc_2020_21_report", _get(BC2021))
     t = bc_table_2021(txt)
     for name, shel, uns, tot, y2018 in t:
-        geoid = geo.ensure(name, "BC", BC2021)
+        geoid = geo.ensure(name, "BC", sid[BC2021])
         if not geoid:
             continue
         note = "2020-21 Everyone Counts cycle in British Columbia (provincial report table 3.1)"
@@ -557,7 +557,7 @@ def bc_counts(conn, geo, sid):
     txt = pdf_text("bc_2023_report", _get(BC2023))
     t = bc_table_2023(txt)
     for name, shel, uns, tot in t:
-        geoid = geo.ensure(name, "BC", BC2023)
+        geoid = geo.ensure(name, "BC", sid[BC2023])
         if not geoid:
             continue
         note = "2023 Everyone Counts cycle in British Columbia (2023 provincial report table 2.2)"
@@ -569,7 +569,7 @@ def bc_counts(conn, geo, sid):
     txt = pdf_text("bc_2024_25_report", _get(BC2025))
     t = bc_table_2025(txt)
     for name, shel, uns, tot in t:
-        geoid = geo.ensure(name, "BC", BC2025)
+        geoid = geo.ensure(name, "BC", sid[BC2025])
         if not geoid:
             continue
         note = ("2024-2025 Everyone Counts cycle in British Columbia (2024-2025 provincial report "
@@ -578,6 +578,60 @@ def bc_counts(conn, geo, sid):
             rows += put_metric(conn, "ca_city", geoid, metric, val, 2025, sid[BC2025], "people", note)
     notes.append(f"BC 2024/25: {len(t)} communities")
     return rows, notes
+
+
+# ============================================ HICC community enumeration results (HLH page)
+# HICC publishes the 2024 community-level enumeration as a table on the Homelessness Learning
+# Hub, not in the PDF reports.  homelessnesslearninghub.ca answers 403 to this host (Cloudflare),
+# so the archived copy of the same page is read from the Internet Archive; the archive URL is
+# what the provenance row records.
+HLH_SNAPSHOT = ("https://web.archive.org/web/2026/https://homelessnesslearninghub.ca/library/"
+                "resources/everyone-counts-2024-results/")
+HLH_TITLE = ("Everyone Counts 2024: Community Enumeration Results - community-level PiT "
+             "enumeration data (archived copy of the Homelessness Learning Hub page)")
+HLH_LIC = ("Government of Canada / Housing, Infrastructure and Communities Canada page on the "
+           "Homelessness Learning Hub; retrieved through the Internet Archive snapshot")
+HLH_YEAR = 2024
+
+
+def hlh_community_results(conn, geo):
+    """40 communities' 2024 enumeration: unsheltered / sheltered / transitional, by community."""
+    blob = fetch(HLH_SNAPSHOT, domain=DOMAIN, headers=BROWSER, timeout=120, retries=3)
+    sid = source_id_for(conn, HLH_SNAPSHOT, DOMAIN, title=HLH_TITLE, publisher=HICC,
+                        license=HLH_LIC)
+    rows, n = 0, 0
+    for t in html_tables(blob):
+        if not t or len(t[0]) < 6:
+            continue
+        head = " ".join(t[0]).lower()
+        if "province" not in head or "unsheltered" not in head:
+            continue
+        for cells in t[1:]:
+            if len(cells) < 5:
+                continue
+            prov, name = cells[0].strip(), clean(cells[1])
+            vals = [num(cells[2]), num(cells[3]), num(cells[4])]
+            if not name or any(v is None for v in vals):
+                continue
+            uns, shel, trans = vals
+            geoid = geo.ensure(name, prov, sid)
+            if not geoid:
+                continue
+            note = (f"{HLH_YEAR} Everyone Counts enumeration as published by HICC in its "
+                    f"community-level results table (page current as of November 4, 2025); "
+                    f"scope is the set of locations common to all participating communities, so "
+                    f"local reports can differ")
+            rows += put_metric(conn, "ca_city", geoid, "pit_total", uns + shel + trans, HLH_YEAR,
+                               sid, "people", note + "; total is the sum of the three published "
+                                                     "components")
+            rows += put_metric(conn, "ca_city", geoid, "pit_unsheltered", uns, HLH_YEAR, sid,
+                               "people", note)
+            rows += put_metric(conn, "ca_city", geoid, "pit_sheltered", shel, HLH_YEAR, sid,
+                               "people", note)
+            rows += put_metric(conn, "ca_city", geoid, "pit_transitional", trans, HLH_YEAR, sid,
+                               "people", note)
+            n += 1
+    return rows, n
 
 
 # ======================================================= Homeless Hub community profiles
@@ -591,6 +645,11 @@ HH_URL = "https://www.homelesshub.ca/community-profile/{}"
 HH_TITLE = "Homeless Hub community profile - {}"
 HH = "Canadian Observatory on Homelessness (Homeless Hub)"
 HH_LIC = "Public community profile page, counts credited on the page to the community's own PiT count"
+
+# www.homelesshub.ca started aborting connections from this host on 2026-11-19 (see
+# BLOCKERS.md), so the per-profile layer is off; the 2024 HLH table above supersedes it for
+# breadth.  Set HH_ENABLED = True to retry from an unblocked host.
+HH_ENABLED = False
 
 HH_SLUGS = [
     ("toronto", "Toronto", "ON"), ("ottawa", "Ottawa", "ON"),
@@ -651,7 +710,7 @@ def homelesshub_profiles(conn, geo):
         if not year or got.get("pit_total") is None:
             miss.append(slug)
             continue
-        geoid = geo.ensure(name, abbr, url)
+        geoid = geo.ensure(name, abbr, sid)
         if not geoid:
             continue
         note = (f"Homeless Hub community profile; the profile prints the community's own PiT count "
@@ -707,6 +766,8 @@ def statcan_shelter_cost(conn, sid):
             # only the cross-tab "Total" cells (income groups, household type, suitability, condition)
             if not all(r[k].startswith("Total") for k in (3, 4, 5, 6)):
                 continue
+            if r[7].strip() != "Number of private households":
+                continue            # skip the confidence-interval rows
             stir = r[i_stir].strip()
             if stir not in want:
                 continue
@@ -792,10 +853,15 @@ def run(conn, cfg):
     total += n
     notes += ns
 
-    n, got_profiles, missed = homelesshub_profiles(conn, geo)
+    n, n_hlh = hlh_community_results(conn, geo)
     total += n
-    notes.append(f"homeless hub profiles stored: {len(got_profiles)}"
-                 + (f" (unavailable: {','.join(missed)})" if missed else ""))
+    notes.append(f"HLH 2024 community results: {n_hlh} communities")
+
+    if HH_ENABLED:
+        n, got_profiles, missed = homelesshub_profiles(conn, geo)
+        total += n
+        notes.append(f"homeless hub profiles stored: {len(got_profiles)}"
+                     + (f" (unavailable: {len(missed)} slugs)" if missed else ""))
 
     n, kept = statcan_shelter_cost(conn, sid)
     total += n
