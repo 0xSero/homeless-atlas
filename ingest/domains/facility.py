@@ -775,6 +775,60 @@ def _similar(a, b):
     return difflib.SequenceMatcher(None, a, b).ratio()
 
 
+def _merge_into(cur, rec):
+    """Fill gaps in `cur` from `rec`; keep the best-sourced status."""
+    for f in FILL_FIELDS:
+        if cur.get(f) in (None, "") and rec.get(f) not in (None, ""):
+            cur[f] = rec[f]
+    if rec.get("closed") and not cur.get("closed"):
+        cur["closed"] = rec["closed"]
+    if rec.get("status") == "closed" and cur.get("status") in (None, "unknown"):
+        cur["status"] = "closed"
+    if rec.get("status") == "closed" and cur.get("status") == "open" and rec.get("closed"):
+        cur["status"] = "partial"
+        cur.setdefault("notes", []).append(
+            "current-inventory source lists the site as open but another source records "
+            f"the institution closing in {rec['closed']} (site possibly repurposed)")
+    for n in rec.get("notes") or []:
+        if n not in cur.setdefault("notes", []):
+            cur["notes"].append(n)
+    cur["is_est"] = max(cur.get("is_est") or 0, rec.get("is_est") or 0)
+    if cur.get("source_id") is None and rec.get("source_id") is not None:
+        cur["source_id"] = rec["source_id"]
+    if rec.get("wiki_title"):
+        cur.setdefault("wiki_titles", []).append(rec["wiki_title"])
+
+
+def consolidate(merger):
+    """Final pass: one row per (name_norm, state). HIFLD records carry the current status,
+    bed count and coordinates, so they are preferred as the base record."""
+    groups = {}
+    for rec in merger.recs.values():
+        if not rec.get("name"):
+            continue
+        groups.setdefault((name_norm(rec["name"]), (rec.get("state") or "")), []).append(rec)
+    out = {}
+    merged = 0
+    for gk, recs in groups.items():
+        if len(recs) == 1:
+            out[gk] = recs[0]
+            continue
+        recs.sort(key=lambda r: (0 if (r.get("provenance") or "").startswith("hifld") else 1,
+                                 r.get("status") not in ("open", "closed", "partial")))
+        base = recs[0]
+        for other in recs[1:]:
+            _merge_into(base, other)
+        if base.get("status") == "unknown":
+            for other in recs[1:]:
+                if other.get("status") in ("open", "closed", "partial"):
+                    base["status"] = other["status"]
+                    break
+        out[gk] = base
+        merged += len(recs) - 1
+    merger.recs = {k: v for k, v in out.items()}
+    return merged
+
+
 class Merger:
     def __init__(self):
         self.recs: dict[tuple, dict] = {}
@@ -835,30 +889,7 @@ class Merger:
             self._register_grid(rec, k)
             return k
         cur = self.recs[k]
-        for f in FILL_FIELDS:
-            if cur.get(f) in (None, "") and rec.get(f) not in (None, ""):
-                cur[f] = rec[f]
-        # status: a sourced closure wins over a stale current-inventory status
-        if rec.get("closed") and not cur.get("closed"):
-            cur["closed"] = rec["closed"]
-        if rec.get("status") == "closed" and cur.get("status") in (None, "unknown"):
-            cur["status"] = "closed"
-        if rec.get("status") == "closed" and cur.get("status") == "open" and rec.get("closed"):
-            cur["status"] = "partial"
-            cur.setdefault("notes", []).append(
-                "current-inventory source lists the site as open but another source records "
-                f"the institution closing in {rec['closed']} (site possibly repurposed)")
-        for n in rec.get("notes") or []:
-            if n not in cur.setdefault("notes", []):
-                cur["notes"].append(n)
-        for f in ("source_id", "is_est"):
-            if rec.get(f) is not None:
-                if f == "is_est":
-                    cur[f] = max(cur.get(f) or 0, rec[f])
-                elif cur.get(f) is None:
-                    cur[f] = rec[f]
-        if rec.get("wiki_title"):
-            cur.setdefault("wiki_titles", []).append(rec["wiki_title"])
+        _merge_into(cur, rec)
         return k
 
 
@@ -977,9 +1008,18 @@ def _write_facility(conn, rec):
     }
     rid = _find_existing(conn, nn, state, city)
     if rid:
-        sets = ", ".join(f"{k}=COALESCE(?, {k})" for k in row if k not in ("name", "name_norm"))
-        conn.execute(f"UPDATE facility SET {sets} WHERE id=?",
-                     [v for k, v in row.items() if k not in ("name", "name_norm")] + [rid])
+        sets = ", ".join(
+            (f"{k}=CASE WHEN ? IN ('open','closed','partial') OR status IS NULL OR status='unknown' "
+             f"THEN ? ELSE status END" if k == "status" else f"{k}=COALESCE(?, {k})")
+            for k in row if k not in ("name", "name_norm"))
+        params = []
+        for k, v in row.items():
+            if k in ("name", "name_norm"):
+                continue
+            params.append(v)
+            if k == "status":
+                params.append(v)
+        conn.execute(f"UPDATE facility SET {sets} WHERE id=?", params + [rid])
         return rid
     cur = conn.execute(
         "INSERT INTO facility(name,name_norm,kind,status,opened,closed,beds,capacity_est,"
@@ -1111,6 +1151,8 @@ def run(conn, cfg):
                     f"{_km(la, lo, best[0], best[1]):.0f} km away)")
                 filled += 1
     notes.append(f"states_backfilled={filled}")
+    collapsed = consolidate(merger)
+    notes.append(f"merged_duplicate_records={collapsed}")
 
     # 5c. scope check: psychiatric facilities with no government operator evidence --------
     for rec in merger.recs.values():
@@ -1133,6 +1175,7 @@ def run(conn, cfg):
         if fid:
             ids[k] = fid
             rows += 1
+    rows = len(set(ids.values()))
     notes.append(f"facilities={rows}")
 
     # 7. metrics -------------------------------------------------------------------------
