@@ -43,3 +43,13 @@ counts and queries by age/sex/race.
 overdose deaths but expose no keyless tabular API (Chicago/Cook County ME case archive, LA County,
 King County, Philadelphia, DC, Boston). San Francisco (DataSF) and Connecticut (data.ct.gov) were
 reachable and are ingested.
+
+## Web search for agents (facility/health/laws discovered this the hard way)
+DuckDuckGo, Bing, Startpage, Mojeek, Ecosia and public SearxNG instances all challenge automated queries;
+`data.cms.gov`, `healthdata.gov`, SAMHSA N-MHSS and asylumprojects.org block automated access. That is why
+per-facility budgets and staffing stay thin.
+
+**Available in this environment and not blocked:** `BRAVE_API_KEY` and `EXA_API_KEY` are present as environment
+variables. Workers should use those APIs (never print the key) for source discovery instead of scraping a search
+engine: Brave `GET https://api.search.brave.com/res/v1/web/search?q=...` with `X-Subscription-Token`,
+Exa `POST https://api.exa.ai/search` with `x-api-key`. Read the keys inside the command only.

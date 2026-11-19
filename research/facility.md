@@ -11,10 +11,10 @@ python3 -m ingest.run facility
 # [facility] OK rows=3426 ... facilities=3426 | metrics: beds=2612 staff=120 budget=14 cost_per_bed=137
 ```
 
-`facility` table: **3,432 rows** (3,426 produced by the current run + 6 rows kept from a run whose
-keys resolved differently), 3,161 with coordinates, 2,609 with a bed/capacity count, 1,127 with an
-opening year, 167 with a closing year, 14 with an annual budget, 119 with a staffing count, 132 with
-an annual cost per bed.
+`facility` table: **3,432 rows**, all touched by the current run (`facility_seen` ledger = 3,432),
+0 duplicate `(name_norm, state)` groups, 3,161 with coordinates, 2,609 with a bed/capacity count,
+1,127 with an opening year, 167 with a closing year, 14 with an annual budget, 119 with a staffing
+count, 132 with an annual cost per bed.
 
 | kind | rows | open | closed | partial | unknown |
 |---|---|---|---|---|---|

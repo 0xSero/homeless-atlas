@@ -420,7 +420,7 @@ def build_exports(d, conn):
                             f'count: <b>{num((s or {}).get("pit"))}</b><br>'
                             f'unsheltered: <b>{num((s or {}).get("unshel"))}</b><br>'
                             f'<a href="/state/{esc(abbr)}.html">state page →</a>') if s else f"<b>{esc(name)}</b>"
-            feats.append({"type": "Feature", "properties": p2, "geometry": f.get("geometry")})
+            feats.append({"type": "Feature", "id": abbr, "properties": p2, "geometry": f.get("geometry")})
     (SITE / "data" / "map-states.geojson").write_text(json.dumps({"type": "FeatureCollection", "features": feats}))
 
     # per-year rates so the map can be scrubbed through time (growth and fall, state by state)
@@ -679,17 +679,16 @@ def page_map(d, manifest_total):
 var m=atlasMap.base('map',{zoom:3.2});
 var loaded={};
 function loadLayer(name){
-  if(loaded[name])return;
-  loaded[name]=1;
-  if(name==='choro') fetch('/data/map-states.geojson').then(r=>r.json()).then(g=>atlasMap.choro(m,g,'st'));
-  if(name==='coc') fetch('/data/map-cocs.geojson').then(r=>r.json()).then(g=>{
+  if(loaded[name]) return loaded[name];
+  if(name==='choro') loaded[name]=fetch('/data/map-states.geojson').then(r=>r.json()).then(g=>{atlasMap.choro(m,g,'st');});
+  if(name==='coc') loaded[name]=fetch('/data/map-cocs.geojson').then(r=>r.json()).then(g=>{
      m.addSource('coc',{type:'geojson',data:g});
-     m.addLayer({id:'coc-l',type:'line',source:'coc',paint:{'line-color':'#5aa9ff','line-width':1,'line-opacity':.55}});
+     m.addLayer({id:'coc-l',type:'line',source:'coc',paint:{'line-color':'#5aa9ff','line-width':1,'line-opacity':.45}});
      var pop=new maplibregl.Popup({maxWidth:'300px'});
      m.on('click','coc-l',e=>{var p=e.features[0].properties;pop.setLngLat(e.lngLat).setHTML(p.__html||p.name).addTo(m);});
   });
-  if(name==='cities') fetch('/data/map-places.geojson').then(r=>r.json()).then(g=>atlasMap.pops(m,g,'cities','rate','name'));
-  if(name==='fac') fetch('/data/map-facilities.geojson').then(r=>r.json()).then(g=>{
+  if(name==='cities') loaded[name]=fetch('/data/map-places.geojson').then(r=>r.json()).then(g=>atlasMap.pops(m,g,'cities','rate','name'));
+  if(name==='fac') loaded[name]=fetch('/data/map-facilities.geojson').then(r=>r.json()).then(g=>{
      m.addSource('fac',{type:'geojson',data:g});
      m.addLayer({id:'fac',type:'circle',source:'fac',paint:{
        'circle-radius':['interpolate',['linear'],['sqrt',['coalesce',['get','beds'],4]],1,3,20,12],
@@ -698,47 +697,48 @@ function loadLayer(name){
      var pop=new maplibregl.Popup({maxWidth:'300px'});
      m.on('click','fac',e=>{var p=e.features[0].properties;pop.setLngLat(e.features[0].geometry.coordinates).setHTML(p.__html||p.name).addTo(m);});
   });
+  return loaded[name];
+}
+function colorExpr(){ return ['interpolate',['linear'],['coalesce',['feature-state','rate'],0],
+    0,'#22303f',3,'#3d2a3f',8,'#6b2f3a',15,'#a83c33',28,'#e2603a',45,'#ff8a4c',70,'#ffc857']; }
+var YR=null, current=null;
+function apply(y){
+  if(!YR || !m.getSource('st')) return;
+  var rates=YR.rates[String(y)]||{};
+  Object.keys(rates).forEach(function(ab){ m.setFeatureState({source:'st',id:ab},{rate:rates[ab]}); });
+  if(m.getLayer('st-fill')){
+    m.setPaintProperty('st-fill','fill-color',colorExpr());
+    m.setPaintProperty('st-fill','fill-opacity',0.8);
+  }
+  current=String(y);
+  var out=document.getElementById('yrout'); if(out) out.textContent=current;
+  var lg=document.getElementById('yrlegend');
+  if(lg) lg.innerHTML='<span class="dim">'+current+' · '+Object.keys(rates).length+' states reporting · dark = under 3 per 10,000, amber = 70+</span>';
 }
 m.on('load',function(){
-  loadLayer('choro');loadLayer('coc');loadLayer('fac');
-  // time scrubber: recolour states from per-year rates
-  var YR=null, STATE_ID='st';
-  fetch('/data/map-years.json').then(r=>r.json()).then(function(d){
+  loadLayer('coc'); loadLayer('fac');
+  loadLayer('choro').then(function(){
+    return fetch('/data/map-years.json').then(r=>r.json());
+  }).then(function(d){
     YR=d;
-    var lo=2007, hi=d.years[d.years.length-1], inp=document.getElementById('yr'), out=document.getElementById('yrout');
-    inp.min=lo; inp.max=hi; inp.value=hi; out.textContent=String(hi);
-    function colorExpr(){ return ['interpolate',['linear'],['coalesce',['feature-state','rate'],0],
-        0,'#22303f',3,'#3d2a3f',8,'#6b2f3a',15,'#a83c33',28,'#e2603a',45,'#ff8a4c',70,'#ffc857']; }
-    function apply(y){
-      var rates=(YR.rates[String(y)]||{});
-      var src=m.getSource(STATE_ID); if(!src) return;
-      var data=src._data;
-      data.features.forEach(function(f){
-        var ab=f.properties.abbr||'';
-        var v=rates[ab]||0;
-        m.setFeatureState({source:STATE_ID,id:f.id!==undefined?f.id:ab}, {rate:v});
-      });
-      m.setPaintProperty('st-fill','fill-color',colorExpr());
-      out.textContent=String(y);
-      var known=Object.keys(rates).length;
-      document.getElementById('yrlegend').innerHTML='<span class="dim">'+y+' · '+known+' states reporting · darker = lower rate, amber = 70+ per 10,000</span>';
-    }
+    var inp=document.getElementById('yr');
+    var ys=d.years.filter(Boolean);
+    inp.min=Math.min.apply(null,ys); inp.max=Math.max.apply(null,ys); inp.value=inp.max;
+    apply(inp.value);
     inp.addEventListener('input',function(){ apply(inp.value); });
-    // feature-state needs stable ids
-    var gj=m.getSource(STATE_ID)._data;
-    gj.features.forEach(function(f,i){ f.id=f.properties.abbr||i; });
-    m.getSource(STATE_ID).setData(gj);
-    apply(hi);
-  }).catch(function(){});
+  });
 });
 document.querySelectorAll('#lt button').forEach(function(b){
   b.addEventListener('click',function(){
     var l=b.dataset.l,on=b.classList.toggle('on');
-    loadLayer(l);
-    var ids={choro:['st-fill','st-line'],coc:['coc-l'],cities:['cities'],fac:['fac']}[l]||[];
-    ids.forEach(function(id){ if(m.getLayer(id)) m.setLayoutProperty(id,'visibility',on?'visible':'none'); });
+    loadLayer(l).then(function(){
+      var ids={choro:['st-fill','st-line'],coc:['coc-l'],cities:['cities'],fac:['fac']}[l]||[];
+      ids.forEach(function(id){ if(m.getLayer(id)) m.setLayoutProperty(id,'visibility',on?'visible':'none'); });
+      if(l==='choro'&&on) apply(current||inp_max());
+    });
   });
 });
+function inp_max(){ return document.getElementById('yr').max; }
 </script>"""
     return shell("", "Map", "map.html", body, manifest_total=manifest_total)
 

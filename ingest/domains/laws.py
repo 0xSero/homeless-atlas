@@ -90,6 +90,7 @@ URL_GRANTS_PASS = "https://www.law.cornell.edu/supremecourt/text/23-175"
 URL_CFR_578_7 = "https://www.law.cornell.edu/cfr/text/24/578.7"
 URL_USC_11302 = "https://www.law.cornell.edu/uscode/text/42/11302"
 URL_NLIHC_HF = "https://nlihc.org/explore-issues/housing-programs/housing-first"
+URL_NLIHC_HTF = "https://nlihc.org/housing-trust-fund-project"
 
 T_HNH2021 = "Housing Not Handcuffs 2021: State Law Supplement"
 P_HNH2021 = "National Homelessness Law Center"
@@ -233,25 +234,64 @@ def _flat(h: str) -> str:
     return _ws(htmllib.unescape(re.sub(r"<[^>]+>", " ", h)))
 
 
-# "ALA. CODE § 22-52-91(a)", "N.Y. MENTAL HYG. LAW § 9.27", "CALIF. WELF. & INST. CODE § 5150.05"
-_CITE_RE = re.compile(r"([A-Z][A-Z0-9.,'\u2019&/\- ]{3,70}?)\s*§+\s*([0-9][0-9A-Za-z.\-:]*)")
+# "ALA. CODE § 22-52-91(a)", "N.Y. MENTAL HYG. LAW § 9.27", "DEL. CODE ANN. tit. 16 § 5001(8)",
+# "MASS. GEN. LAWS ANN. ch. 123 § 12(a)", "405 ILL. COMP. STAT. 5/3-600" (no section sign)
+_CITE_RE = re.compile(r"([A-Za-z0-9][A-Za-z0-9.,'\u2019&/\- ]{3,70}?)\s*§+\s*(\d[0-9A-Za-z.\-:]*)")
+_CITE_NOSIGN = re.compile(r"\b(\d{1,3}\s+[A-Z]{2,5}\.\s*COMP\.\s*STAT\.\s*\d[0-9A-Za-z./\-]*)")
 _CITE_LEAD = re.compile(r"^(?:AND|OR|SEE|SEE ALSO|AMEND|ADD|REPEAL|ENACT|EFFECTIVE|NOTE)\s+", re.I)
 SUD_WORDS = re.compile(r"substance use|substance-use|alcoholi|alcohol abuse|drug depend|"
                        r"intoxicat|chemical depend|substance abuse", re.I)
 
 
+_CODE_WORDS = {"TIT", "CH", "SEC", "SUBSEC", "ANN", "CODE", "STAT", "STATS", "LAWS", "LAW",
+               "COMP", "CONS", "REV", "GEN", "WELF", "CIV", "PROC", "PENAL", "HEALTH", "SAFETY",
+               "HYG", "MENTAL", "INS", "EDUC", "FAM", "GOV", "JUV", "CODIFIED", "CIVIL", "ADMIN"}
+_STAT_WORDS = {"STAT", "STATS", "CODE", "LAWS", "LAW", "ANN", "COMP", "REV", "CONS"}
+_TOKEN_RE = re.compile(r"^(?:[0-9]?[A-Z]{1,4}[A-Za-z]*\.|[A-Z0-9][A-Za-z0-9.\-]{0,20}\.|[0-9]+[A-Za-z]?|"
+                       r"[A-Z]{2,7}|&|tit\.|ch\.|Sec\.)$")
+
+
+def _trim_code(code: str) -> str:
+    """Walk back from the section sign keeping only code-shaped tokens, so a citation starts
+    at the code and not at the prose before it:
+      'Criteria for Inpatient Commitment FLA. STAT.' -> 'FLA. STAT.'
+      'screening ... the person. Alaska Stat.'      -> 'Alaska Stat.'
+      'Amend Miss. Code Ann.'                       -> 'Miss. Code Ann.'
+    """
+    keep: list[str] = []
+    nxt_stat = False
+    for t in reversed(code.split()):
+        base = t.upper().rstrip(".")
+        if _TOKEN_RE.match(t) or base in _CODE_WORDS:
+            keep.append(t)
+            nxt_stat = base in _STAT_WORDS
+        elif re.match(r"^[A-Z][a-z]{2,12}$", t) and nxt_stat:
+            # a Capitalised jurisdiction name glued to a statute word ("Alaska Stat.")
+            keep.append(t)
+            nxt_stat = False
+        else:
+            break
+    return " ".join(reversed(keep[-9:])).strip(" ,;:")
+
+
 def _cites(text: str) -> list[str]:
-    """Statute citations exactly as printed, e.g. 'WYO. STAT. ANN. § 25-10-110'."""
-    out: list[str] = []
+    """Statute citations exactly as printed, in document order, e.g.
+    'WYO. STAT. ANN. § 25-10-110(a)' or '405 ILL. COMP. STAT. 5/3-701(a)'."""
+    res: list[tuple[int, str]] = []
     for m in _CITE_RE.finditer(text or ""):
-        code = _CITE_LEAD.sub("", m.group(1).strip())
-        code = " ".join(code.split()[-7:]).strip(" ,;:")
-        if len(code) < 4:
+        code = _trim_code(_CITE_LEAD.sub("", m.group(1).strip()))
+        if len(code) < 4 or "§" in code:
             continue
-        sub = re.match(r"(\([0-9a-zA-Z]{1,3}\))", text[m.end():m.end() + 6])
-        cite = f"{code} § {m.group(2)}{sub.group(1) if sub else ''}".rstrip(".")
-        if cite not in out:
-            out.append(cite)
+        sub = re.match(r"((?:\([0-9a-zA-Z]{1,4}\))+)", (text or "")[m.end():m.end() + 12])
+        res.append((m.start(), f"{code} § {m.group(2)}{sub.group(1) if sub else ''}"))
+    for m in _CITE_NOSIGN.finditer(text or ""):
+        res.append((m.start(), m.group(1)))
+    res.sort()
+    out: list[str] = []
+    for _, c in res:
+        c = c.rstrip(".,;:")
+        if c and c not in out:
+            out.append(c)
     return out
 
 
@@ -275,12 +315,17 @@ def tac_state(conn, abbr: str, name: str) -> int:
 
     sid = _sid(conn, url, title=title, publisher="Treatment Advocacy Center", license=LIC_TAC)
 
-    # --- statute sections (accordion items)
+    # --- statute sections (accordion items). Everything after the accordion group
+    # (grade sheets, TAC's recommendations, footer) is parsed separately below, so cut
+    # the page at the first 'map__single-laws-list' block to keep section bodies clean.
+    acc_page = page.split('map__single-laws-list')[0]
     found: dict[str, str] = {}
-    for item in re.split(r'<div class="accordion__item">', page)[1:]:
+    for item in re.split(r'<div class="accordion__item">', acc_page)[1:]:
         m = re.search(r"<h2[^>]*>(.*?)</h2>", item, re.S)
         head = _flat(m.group(1)) if m else ""
         body = _flat(item)
+        if head and body.startswith(head):
+            body = body[len(head):].strip()
         hl = head.lower()
         if "emergency evaluation" in hl:
             found.setdefault("emergency", body)
@@ -597,6 +642,11 @@ def hnh2025(conn, states: dict[str, str]) -> int:
         (r"Bills creating “workhouses” for homeless individuals where they are required to work as "
          r"punishment for not being able to afford rent, like in ([^.]+)", None, "other",
          "bill creating “workhouses” as a punishment for being unable to afford rent"),
+        (r"Bills banning homeless services in entire communities or the creation of large homeless "
+         r"exclusion zones around certain facilities, like in ([^.]+)", None, "other",
+         "bill banning homeless services or creating homelessness exclusion zones"),
+        (r"Standalone anti-camping legislation, like in ([^.]+)", None, "camping_ban",
+         "standalone anti-camping bill"),
     ]
     rows = 0
     for pat, status, topic, what in specs:
@@ -868,6 +918,104 @@ def federal(conn) -> int:
     return WROTE[0] - before
 
 
+# --------------------------------- 7. NLIHC Housing Trust Fund Project: funding statutes
+def _html_lines(page: str) -> list[str]:
+    """Readable lines (paragraph-aware) from an HTML page."""
+    s = re.sub(r"<(script|style)[^>]*>.*?</\1>", " ", page or "", flags=re.S | re.I)
+    s = re.sub(r"</(p|li|h[1-6]|div)>|<br\s*/?>", "\n", s, flags=re.I)
+    s = htmllib.unescape(re.sub(r"<[^>]+>", " ", s))
+    out = []
+    for line in s.split("\n"):
+        line = _ws(line)
+        if line:
+            out.append(line)
+    return out
+
+
+_BILL_RE = re.compile(
+    r"\b(?:[A-Z]{2,6}\.?\s?R\.?S\.?|RCW|H\.?B\.?|S\.?B\.?|Act No\.?|Public Law|P\.L\.|Proposition|"
+    r"Section|Art\.|Article)\s*[0-9][0-9A-Za-z.\-]*|\b(?:H|S)\s?\d{3,4}\b|\bAct\s+\d{1,3}\b")
+_ACT_NAME_RE = re.compile(r"(the [A-Z][A-Za-z’' ]{4,70}?Act(?: of \d{4}| in \d{4})?)")
+
+
+def nlihc_htf(conn, states: dict[str, str]) -> int:
+    """NLIHC's Housing Trust Fund Project page -> one `funding` row per state it describes.
+
+    The page walks through the three kinds of state legislation that support local housing
+    trust funds (enabling legislation, an enabled revenue source, direct state funds), state by
+    state, and prints the statutes involved. Only the states the page actually writes a
+    paragraph for get a row.
+    """
+    before = WROTE[0]
+    page = _fetch(URL_NLIHC_HTF, timeout=180).decode("utf-8", "replace")
+    title = "State & Local Housing Trust Fund Project"
+    sid = _sid(conn, URL_NLIHC_HTF, title=title, publisher="National Low Income Housing Coalition",
+               license=LIC_NLIHC)
+    lines = _html_lines(page)
+    name2abbr = {v: k for k, v in states.items()}
+
+    SECTIONS = {
+        "State Enabling Legislation for Local Housing Trust Funds":
+            ("funding", "State legislation enabling local housing trust funds"),
+        "Enabling a Revenue Source Option for Local Housing Trust Funds":
+            ("funding", "State legislation enabling a dedicated revenue source for local housing "
+                         "trust funds"),
+        "State Funds to Support Local Housing Trust Funds":
+            ("funding", "State fund supporting local housing trust funds"),
+    }
+    rows = 0
+    section = None
+    cur_state = None
+    para: list[str] = []
+
+    def flush(st_name, st_abbr, text, sec_label, sec_title):
+        nonlocal rows
+        body = _ws(" ".join(text))
+        if not body:
+            return
+        cites = _BILL_RE.findall(body)
+        names = _ACT_NAME_RE.findall(body)
+        if cites:
+            citation = f"{st_abbr}: {'; '.join(dict.fromkeys(cites))[:160]}"
+        elif names:
+            citation = f"{st_abbr}: {names[0]}"
+        else:
+            citation = f"NLIHC Housing Trust Fund Project — {sec_label}, section '{st_name}'"
+        years = [int(y) for y in re.findall(r"\b(19[5-9]\d|20[0-4]\d)\b", body)]
+        _law(conn, jurisdiction=st_abbr, topic="funding", citation=citation,
+             title=sec_title,
+             summary=(f"{st_name}: “{body[:700]}”"),
+             status="enacted", year=max(years) if years else None, url=URL_NLIHC_HTF, sid=sid)
+        rows += 1
+
+    for line in lines:
+        if line in SECTIONS:
+            if cur_state and section:
+                flush(cur_state[0], cur_state[1], para, section[0], section[1])
+            section = SECTIONS[line]
+            cur_state, para = None, []
+            continue
+        if section is None:
+            continue
+        if line in name2abbr:
+            if cur_state:
+                flush(cur_state[0], cur_state[1], para, section[0], section[1])
+            cur_state, para = (line, name2abbr[line]), []
+        elif line.startswith(("City Housing Trust Funds", "County Housing Trust Funds",
+                              "Regional Housing Trust Funds", "State Housing Trust Funds",
+                              "Best Practice", "Definitions", "State & Local Housing Trust Fund")):
+            if cur_state:
+                flush(cur_state[0], cur_state[1], para, section[0], section[1])
+            section, cur_state, para = None, None, []
+        elif cur_state:
+            para.append(line)
+    if cur_state and section:
+        flush(cur_state[0], cur_state[1], para, section[0], section[1])
+
+    _mark(conn, "nlihc_htf", rows > 0, f"{rows} funding rows")
+    return WROTE[0] - before
+
+
 # ---------------------------------------------------------------------------- run
 def _cleanup_stale(conn) -> None:
     """Drop rows an earlier, rejected build of this same ingestor left behind.
@@ -914,6 +1062,7 @@ def run(conn, cfg=None, *, probe=False) -> dict:
     n2019 = step("hnh2019", hnh2019)
     n2025 = step("hnh2025", hnh2025, states)
     nfight = step("nlihc_fight", nlihc_fight, states)
+    nhtf = step("nlihc_htf", nlihc_htf, states)
     nfed = step("federal", federal)
 
     n_states = 0
@@ -930,11 +1079,12 @@ def run(conn, cfg=None, *, probe=False) -> dict:
     rows = conn.execute("SELECT COUNT(*) FROM law").fetchone()[0]
     jurs = conn.execute("SELECT COUNT(DISTINCT jurisdiction) FROM law").fetchone()[0]
     notes = (f"matrix2021={n2021} city_chart2019={n2019} hnh2025={n2025} nlihc_brief={nfight} "
-             f"federal={nfed} state_pages={n_states} | total law rows={rows} over {jurs} "
-             f"jurisdictions | " + "; ".join(NOTES[-5:]))
+             f"nlihc_htf={nhtf} federal={nfed} state_pages={n_states} | total law rows={rows} "
+             f"over {jurs} jurisdictions | " + "; ".join(NOTES[-5:]))
     return {"rows": rows, "notes": notes,
             "sources": [(URL_HNH2021, LIC_NHLC), (URL_HNH2019, LIC_NHLC), (URL_HNH2025, LIC_NHLC),
-                        (URL_NLIHC_FIGHT, LIC_NLIHC), (URL_GRANTS_PASS, LIC_LII),
+                        (URL_NLIHC_FIGHT, LIC_NLIHC), (URL_NLIHC_HTF, LIC_NLIHC),
+                        (URL_GRANTS_PASS, LIC_LII),
                         (URL_CFR_578_7, LIC_LII), (URL_USC_11302, LIC_LII),
                         (URL_NLIHC_HF, LIC_NLIHC)]}
 

@@ -18,8 +18,40 @@ def now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
+_LOCK_HELD = []
+
+
+def _acquire_write_lock(wait_seconds: int = 900):
+    """Exclusive advisory lock so only one ingestor writes the archive at a time.
+
+    Concurrent writers on one SQLite file corrupted the database once (invalid page numbers in the
+    metric b-tree). Every ingest process now takes this lock; if another holds it we wait a bounded
+    time and then fail loudly rather than writing alongside it.
+    """
+    import fcntl
+    if os.environ.get("ATLAS_NO_LOCK") == "1":
+        return None
+    lock_path = DB.parent / "atlas.lock"
+    fh = open(lock_path, "a+")
+    deadline = time.time() + wait_seconds
+    while True:
+        try:
+            fcntl.flock(fh.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            fh.seek(0); fh.truncate()
+            fh.write(f"pid={os.getpid()} since={now()}\n"); fh.flush()
+            _LOCK_HELD.append(fh)
+            return fh
+        except BlockingIOError:
+            if time.time() > deadline:
+                raise RuntimeError(
+                    "another ingest process holds the write lock (data/atlas.lock); refusing to write "
+                    "concurrently. Wait for it to finish or remove the lock if its pid is gone.")
+            time.sleep(5)
+
+
 def db() -> sqlite3.Connection:
     DB.parent.mkdir(parents=True, exist_ok=True)
+    _acquire_write_lock()
     conn = sqlite3.connect(DB, timeout=300)
     conn.row_factory = sqlite3.Row
     # durability over speed: this is a public-record archive, not a cache

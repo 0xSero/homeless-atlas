@@ -14,3 +14,4 @@
 | 2026-11-19T08:16:35+00:00 | budgets | REJECT | 1433 | logs/workers/budgets.log | attempt 1 failed rc=143 |
 | 2026-11-19T08:16:44+00:00 | laws | REJECT | 0 | logs/workers/laws.log | attempt 1 failed rc=143 |
 | 2026-11-19T08:16:52+00:00 | media | REJECT | 0 | logs/workers/media.log | attempt 1 failed rc=143 |
+| 2026-11-19T08:26:35+00:00 | facility | DONE | 3432 | research/facility.md | 3,432 institutions, 54 states, 132 per-bed cost figures, commit-safe writer |
