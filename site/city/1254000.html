@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Palm Bay, FL · Homeless Atlas</title>
+<meta name="description" content="Public-record atlas of homelessness in the United States: counts, contracts, organizations, institutions, laws, money.">
+<meta property="og:title" content="Palm Bay, FL · Homeless Atlas">
+<meta property="og:type" content="website">
+<link rel="stylesheet" href="../assets/atlas.css">
+<script src="../assets/app.js"></script>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect rx='22' width='100' height='100' fill='%230b0e13'/><circle cx='50' cy='50' r='24' fill='%23ff7a45'/></svg>">
+
+</head><body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="top"><div class="wrap">
+  <div class="topbar">
+    <a class="brand" href="../index.html"><span class="dot"></span>Homeless&nbsp;Atlas</a>
+    <form class="searchbox" role="search" onsubmit="return goSearch(event)">
+      <span class="ico">⌕</span>
+      <input type="search" id="gq" placeholder="Search 100,000+ records — city, CoC, org, person, law…" aria-label="Search" autocomplete="off">
+      <div class="ac" role="listbox"></div>
+    </form>
+    <button class="navbtn" aria-label="Menu">☰ Menu</button>
+  </div>
+  <nav class="main"><a href="../index.html">Overview</a><a href="../map.html">Map</a><a href="../search.html">Search</a><a href="../states.html">States</a><a href="../cities.html">Cities</a><a href="../orgs.html">Organizations</a><a href="../people.html">People</a><a href="../facilities.html">Institutions</a><a href="../budgets.html">Money</a><a href="../costs.html">Costs</a><a href="../laws.html">Laws</a><a href="../media.html">Media</a><a href="../docs.html">Docs</a>
+    <a href="../about.html">About</a>
+    <a href="../method.html">Method</a>
+    <a href="../sources.html">Sources</a>
+  </nav>
+</div></header>
+<main id="main"><section class="banner small"><div class="wrap"><div class="inner">
+  <div class="crumbs"><a href="/index.html">Atlas</a> / <a href="/cities.html">Cities</a> / Palm Bay</div>
+  <div class="kicker">Palm Bay, FL</div>
+  <h1>Population 142,023</h1>
+  <p class="sub">Planned by <a href="/coc/FL-513.html">CoC FL-513 — Palm Bay, Melbourne/Brevard County CoC</a></p>
+</div></div></section>
+<div class="wrap">
+  <div class="kpis">
+    <div class="kpi "><div class="v">142,023</div><div class="l">population</div></div>
+    <div class="kpi b"><div class="v">1,062</div><div class="l">CoC homeless count</div><div class="n">2025</div></div>
+    <div class="kpi c"><div class="v">2</div><div class="l">organizations based here</div></div>
+    <div class="kpi d"><div class="v">0</div><div class="l">institutions here</div></div>
+  </div>
+  <div class="panel" style="margin:16px 0"><h3>Trend for the CoC that plans this city
+    <span class="mono" style="color:var(--teal)">▼ -44.1%</span> <span class="dim" style="font-size:.8em">2007→2025</span></h3>
+    <svg viewBox="0 0 100 34" preserveAspectRatio="none" style="width:100%;height:50px" role="img" aria-label="trend 2007 to 2025"><polyline points="0.0,4.4 5.6,4.4 11.1,14.2 16.7,14.2 22.2,4.3 27.8,2.0 33.3,9.2 38.9,10.5 44.4,16.4 50.0,20.0 55.6,19.7 61.1,21.3 66.7,20.1 72.2,18.3 77.8,25.7 83.3,18.7 88.9,16.7 94.4,15.8 100.0,16.5" fill="none" stroke="var(--ember)" stroke-width="1.8" vector-effect="non-scaling-stroke"/></svg>
+    <div class="legend"><span class="dim">1,899 in 2007
+    → 1,062 in 2025</span></div>
+  </div>
+  <p class="dim" style="font-size:.84rem">HUD counts homelessness by Continuum of Care, not by city boundary. The city figure above is
+  the CoC figure and includes surrounding areas. That limitation is in the source, not in this page.</p>
+  <h2>Organizations based in Palm Bay</h2>
+  <div class="tablewrap"><table class="sortable"><thead><tr><th class="">Organization</th><th class="r">Federal $</th><th class="r">Revenue</th></tr></thead><tbody><tr><td class="" data-v="Florida Coalition For The Homeless Inc"><a href="/org/9920-florida-coalition-for-the-homeless-inc.html">Florida Coalition For The Homeless Inc</a></td><td class="r" data-v="0">—</td><td class="r" data-v="0">—</td></tr><tr><td class="" data-v="House Of Love Homeless International Ministry Corp"><a href="/org/13773-house-of-love-homeless-international-ministry-corp.html">House Of Love Homeless International Ministry Corp</a></td><td class="r" data-v="0">—</td><td class="r" data-v="0">—</td></tr></tbody></table></div>
+  <h2>Institutions</h2>
+  <div class="tablewrap"><table class="sortable"><thead><tr><th class="">Institution</th><th class="">Status</th><th class="r">Beds</th></tr></thead><tbody></tbody></table></div>
+</div></main>
+<footer class="site"><div class="wrap">
+  <div class="row">
+    <div><strong>Homeless Atlas</strong> · public-record research · generated 2026-11-19 · 45,000 indexed records</div>
+    <div><a href="../method.html">Method &amp; caveats</a> · <a href="../sources.html">Sources &amp; licences</a> · <a href="../about.html">About</a></div>
+  </div>
+  <p class="dim" style="margin-top:14px">Every figure links to a public source. Anything marked † is derived, not published.
+  Crime and health figures are area-level context — no dataset attributes an offence to a homeless person, and we never claim otherwise.</p>
+</div></footer>
+<script>
+function goSearch(e){e.preventDefault();var v=document.getElementById('gq').value.trim();if(v)location.href='../search.html?q='+encodeURIComponent(v);return false;}
+</script>
+
+</body></html>

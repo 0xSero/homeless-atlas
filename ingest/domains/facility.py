@@ -656,7 +656,8 @@ _BUDGET_NEG_RE = re.compile(
     r"(reduc\w*|cut|boost\w*|increase\w*|shortfall|deficit|sav\w*|surplus|request\w*|"
     r"propos\w*|los[ti]|spent|short of)\s+(?:its|the|a|an)?\s*(?:annual |operating |total )?"
     r"budget|health ?care budget|medical budget|capital budget|construction budget|"
-    r"budget (?:shortfall|gap|deficit)", re.I)
+    r"budget (?:shortfall|gap|deficit)|renovation|retrofit|upgrade|expansion|"
+    r"construction of|new building|would need", re.I)
 
 
 def _article_econ(wt, name, beds):
@@ -1259,7 +1260,9 @@ class Merger:
                     d = _km(rec["lat"], rec["lon"], other["lat"], other["lon"])
                     if d > 1.2:
                         continue
-                    if d <= 0.6 or _similar(k[0], kk[0]) >= 0.5:
+                    # require name evidence as well as proximity: distinct institutions share
+                    # campuses and towns (e.g. two prisons in Lake City, FL)
+                    if _similar(k[0], kk[0]) >= 0.5:
                         return kk
         return None
 

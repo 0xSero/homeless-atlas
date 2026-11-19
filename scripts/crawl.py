@@ -91,7 +91,9 @@ def main():
 
     internal = 0
     for p in pages:
-        pr = parsed[p]
+        pr = parsed.get(p)
+        if pr is None:      # a concurrent atomic publish swapped the tree under us
+            continue
         for href in pr.links:
             r = resolve(p, href)
             if r is None:

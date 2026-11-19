@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Map · Homeless Atlas</title>
+<meta name="description" content="Public-record atlas of homelessness in the United States: counts, contracts, organizations, institutions, laws, money.">
+<meta property="og:title" content="Map · Homeless Atlas">
+<meta property="og:type" content="website">
+<link rel="stylesheet" href="assets/atlas.css">
+<script src="assets/app.js"></script>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect rx='22' width='100' height='100' fill='%230b0e13'/><circle cx='50' cy='50' r='24' fill='%23ff7a45'/></svg>">
+
+</head><body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="top"><div class="wrap">
+  <div class="topbar">
+    <a class="brand" href="index.html"><span class="dot"></span>Homeless&nbsp;Atlas</a>
+    <form class="searchbox" role="search" onsubmit="return goSearch(event)">
+      <span class="ico">⌕</span>
+      <input type="search" id="gq" placeholder="Search 100,000+ records — city, CoC, org, person, law…" aria-label="Search" autocomplete="off">
+      <div class="ac" role="listbox"></div>
+    </form>
+    <button class="navbtn" aria-label="Menu">☰ Menu</button>
+  </div>
+  <nav class="main"><a href="index.html">Overview</a><a href="map.html">Map</a><a href="search.html">Search</a><a href="states.html">States</a><a href="cities.html">Cities</a><a href="orgs.html">Organizations</a><a href="people.html">People</a><a href="facilities.html">Institutions</a><a href="budgets.html">Money</a><a href="costs.html">Costs</a><a href="laws.html">Laws</a><a href="media.html">Media</a><a href="docs.html">Docs</a>
+    <a href="about.html">About</a>
+    <a href="method.html">Method</a>
+    <a href="sources.html">Sources</a>
+  </nav>
+</div></header>
+<main id="main"><section class="banner"><div class="wrap"><div class="inner">
+  
+  <div class="kicker">Map</div>
+  <h1>One map, every layer</h1>
+  <p class="sub">State heat map by homeless rate, Continuum of Care boundaries, city populations and institutions. Toggle layers; click anything for the record.</p>
+</div></div></section>
+<div class="wrap">
+  <div class="panel" style="margin:16px 0;padding:12px 14px">
+    <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+      <label for="yr" style="font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;color:var(--fg2)">Year</label>
+      <input id="yr" type="range" min="2007" max="2025" step="1" value="2025" style="flex:1;min-width:220px;accent-color:var(--ember)">
+      <output id="yrout" class="mono" style="font-size:1.05rem;color:var(--amber)">2025</output>
+    </div>
+    <div class="legend" id="yrlegend" style="margin-top:8px"><span class="dim">Scrub through the HUD counts: the colour of each state is its homeless rate that January.</span></div>
+  </div>
+  <div class="layertoggle" id="lt">
+    <button data-l="choro" class="on">State heat</button>
+    <button data-l="coc" class="on">CoC areas</button>
+    <button data-l="cities">Cities</button>
+    <button data-l="fac" class="on">Institutions</button>
+  </div>
+  <div class="map tall" id="map"></div>
+  <div class="legend">
+    <span><i style="background:#22303f"></i>low</span><span><i style="background:#a83c33"></i>high</span>
+    <span><i style="background:#2ee6c5"></i>institution open</span><span><i style="background:#ff5d5d"></i>closed</span>
+    <span class="dim">Data: HUD PIT/AHAR, Census, Wikidata. Click a feature.</span>
+  </div>
+</div>
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+<script>
+var m=atlasMap.base('map',{zoom:3.2});
+var loaded={};
+function loadLayer(name){
+  if(loaded[name])return;
+  loaded[name]=1;
+  if(name==='choro') fetch('/data/map-states.geojson').then(r=>r.json()).then(g=>atlasMap.choro(m,g,'st'));
+  if(name==='coc') fetch('/data/map-cocs.geojson').then(r=>r.json()).then(g=>{
+     m.addSource('coc',{type:'geojson',data:g});
+     m.addLayer({id:'coc-l',type:'line',source:'coc',paint:{'line-color':'#5aa9ff','line-width':1,'line-opacity':.55}});
+     var pop=new maplibregl.Popup({maxWidth:'300px'});
+     m.on('click','coc-l',e=>{var p=e.features[0].properties;pop.setLngLat(e.lngLat).setHTML(p.__html||p.name).addTo(m);});
+  });
+  if(name==='cities') fetch('/data/map-places.geojson').then(r=>r.json()).then(g=>atlasMap.pops(m,g,'cities','rate','name'));
+  if(name==='fac') fetch('/data/map-facilities.geojson').then(r=>r.json()).then(g=>{
+     m.addSource('fac',{type:'geojson',data:g});
+     m.addLayer({id:'fac',type:'circle',source:'fac',paint:{
+       'circle-radius':['interpolate',['linear'],['sqrt',['coalesce',['get','beds'],4]],1,3,20,12],
+       'circle-color':['match',['get','status'],'closed','#ff5d5d','open','#2ee6c5','#ffc857'],
+       'circle-opacity':.85,'circle-stroke-color':'#0b0e13','circle-stroke-width':.6}});
+     var pop=new maplibregl.Popup({maxWidth:'300px'});
+     m.on('click','fac',e=>{var p=e.features[0].properties;pop.setLngLat(e.features[0].geometry.coordinates).setHTML(p.__html||p.name).addTo(m);});
+  });
+}
+m.on('load',function(){
+  loadLayer('choro');loadLayer('coc');loadLayer('fac');
+  // time scrubber: recolour states from per-year rates
+  var YR=null, STATE_ID='st';
+  fetch('/data/map-years.json').then(r=>r.json()).then(function(d){
+    YR=d;
+    var lo=2007, hi=d.years[d.years.length-1], inp=document.getElementById('yr'), out=document.getElementById('yrout');
+    inp.min=lo; inp.max=hi; inp.value=hi; out.textContent=String(hi);
+    function colorExpr(){ return ['interpolate',['linear'],['coalesce',['feature-state','rate'],0],
+        0,'#22303f',3,'#3d2a3f',8,'#6b2f3a',15,'#a83c33',28,'#e2603a',45,'#ff8a4c',70,'#ffc857']; }
+    function apply(y){
+      var rates=(YR.rates[String(y)]||{});
+      var src=m.getSource(STATE_ID); if(!src) return;
+      var data=src._data;
+      data.features.forEach(function(f){
+        var ab=f.properties.abbr||'';
+        var v=rates[ab]||0;
+        m.setFeatureState({source:STATE_ID,id:f.id!==undefined?f.id:ab}, {rate:v});
+      });
+      m.setPaintProperty('st-fill','fill-color',colorExpr());
+      out.textContent=String(y);
+      var known=Object.keys(rates).length;
+      document.getElementById('yrlegend').innerHTML='<span class="dim">'+y+' · '+known+' states reporting · darker = lower rate, amber = 70+ per 10,000</span>';
+    }
+    inp.addEventListener('input',function(){ apply(inp.value); });
+    // feature-state needs stable ids
+    var gj=m.getSource(STATE_ID)._data;
+    gj.features.forEach(function(f,i){ f.id=f.properties.abbr||i; });
+    m.getSource(STATE_ID).setData(gj);
+    apply(hi);
+  }).catch(function(){});
+});
+document.querySelectorAll('#lt button').forEach(function(b){
+  b.addEventListener('click',function(){
+    var l=b.dataset.l,on=b.classList.toggle('on');
+    loadLayer(l);
+    var ids={choro:['st-fill','st-line'],coc:['coc-l'],cities:['cities'],fac:['fac']}[l]||[];
+    ids.forEach(function(id){ if(m.getLayer(id)) m.setLayoutProperty(id,'visibility',on?'visible':'none'); });
+  });
+});
+</script></main>
+<footer class="site"><div class="wrap">
+  <div class="row">
+    <div><strong>Homeless Atlas</strong> · public-record research · generated 2026-11-19 · 45,000 indexed records</div>
+    <div><a href="method.html">Method &amp; caveats</a> · <a href="sources.html">Sources &amp; licences</a> · <a href="about.html">About</a></div>
+  </div>
+  <p class="dim" style="margin-top:14px">Every figure links to a public source. Anything marked † is derived, not published.
+  Crime and health figures are area-level context — no dataset attributes an offence to a homeless person, and we never claim otherwise.</p>
+</div></footer>
+<script>
+function goSearch(e){e.preventDefault();var v=document.getElementById('gq').value.trim();if(v)location.href='search.html?q='+encodeURIComponent(v);return false;}
+</script>
+
+</body></html>
