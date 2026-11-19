@@ -87,7 +87,11 @@ function countryBox(code){
     m.flyTo({center:[c.lon,c.lat],zoom:3});
     return;
   }
-  box.innerHTML='<b>'+c.name+'</b> — '+(c.value||0).toLocaleString()+' people ('+c.label+', '+c.year+')';
+  box.innerHTML='<b>'+c.name+'</b> — '+(c.value||0).toLocaleString()+' people ('+c.label+', '+c.year+')'+
+    (c.code==='GB'&&COUNTRIES.uk_wales&&COUNTRIES.uk_wales.value
+      ? ' · <span class="dim">Wales monthly rough sleeping: '+(COUNTRIES.uk_wales.value||0).toLocaleString()+
+        ' ('+COUNTRIES.uk_wales.year+'). England and Wales publish different measures and are never added together here.</span>'
+      : '');
   m.flyTo({center:[c.lon,c.lat],zoom:3.2});
 }
 var loaded={};

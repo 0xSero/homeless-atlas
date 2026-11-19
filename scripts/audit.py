@@ -79,6 +79,16 @@ if n:
     problems.append(("PROBLEM", "org financials citing a registration file (no financial fields)",
                      f"{n} rows cite the IRS Business Master File; run scripts/repair_org_financials.py"))
 
+# one entity/metric/year must not carry two different numbers: that means two geographies or two
+# measures were written to the same key and anything reading "the latest value" would be wrong
+amb = conn.execute("""SELECT entity_type, entity_id, metric, year, COUNT(DISTINCT value) n
+                      FROM metric WHERE value IS NOT NULL
+                      GROUP BY entity_type, entity_id, metric, year HAVING n > 1""").fetchall()
+if amb:
+    problems.append(("PROBLEM", "metric rows with two values for one key",
+                     f"{len(amb)} keys, e.g. " + ", ".join(f"{r['entity_type']}/{r['entity_id']}/{r['metric']}/{r['year']}"
+                                                           for r in amb[:3])))
+
 chk("source rows without a URL", "SELECT id,url FROM source WHERE url IS NULL OR url NOT LIKE 'http%'")
 chk("source rows with a bad retrieval date", "SELECT id,retrieved_at FROM source WHERE retrieved_at IS NULL")
 

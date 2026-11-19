@@ -467,7 +467,9 @@ def build_exports(d, conn):
     us_row = one(CONN, """SELECT value, year FROM metric WHERE entity_type='us' AND metric='pit_total'
                           ORDER BY year DESC LIMIT 1""", (), {}) or {}
     uk_row = one(CONN, """SELECT value, year FROM metric WHERE entity_type='uk' AND metric='rough_sleeping'
-                          ORDER BY year DESC LIMIT 1""", (), {}) or {}
+                          AND note LIKE '%England%' ORDER BY year DESC LIMIT 1""", (), {}) or {}
+    uk_wales = one(CONN, """SELECT value, year FROM metric WHERE entity_type='uk' AND metric='rough_sleeping'
+                            AND note LIKE '%Wales%' ORDER BY year DESC LIMIT 1""", (), {}) or {}
     ca_row = one(CONN, """SELECT value, year FROM metric WHERE entity_type='canada' AND metric='pit_total'
                           ORDER BY year DESC LIMIT 1""", (), {}) or {}
     au_row = one(CONN, """SELECT value, year FROM metric WHERE entity_type='australia'
@@ -475,12 +477,13 @@ def build_exports(d, conn):
     for code, name, lat, lon, row, label in (
             ("US", "United States", 39.5, -98.35, us_row, "point-in-time count"),
             ("CA", "Canada", 56.1, -106.3, ca_row, "point-in-time count"),
-            ("GB", "United Kingdom", 54.2, -2.9, uk_row, "rough sleeping snapshot"),
+            ("GB", "United Kingdom", 54.2, -2.9, uk_row, "England rough sleeping snapshot"),
             ("AU", "Australia", -25.3, 133.8, au_row, "census estimate")):
         countries.append({"code": code, "name": name, "lat": lat, "lon": lon,
                           "value": row.get("value"), "year": row.get("year"), "label": label,
                           "pending": row.get("value") is None})
-    (SITE / "data" / "map-countries.json").write_text(json.dumps({"countries": countries}))
+    (SITE / "data" / "map-countries.json").write_text(json.dumps(
+        {"countries": countries, "uk_wales": uk_wales}))
 
     (SITE / "data" / "map-years.json").write_text(json.dumps(
         {"years": yrs, "rates": by_year, "unit": "homeless per 10,000 residents (HUD PIT / Census)"}))
@@ -765,7 +768,11 @@ function countryBox(code){
     m.flyTo({center:[c.lon,c.lat],zoom:3});
     return;
   }
-  box.innerHTML='<b>'+c.name+'</b> — '+(c.value||0).toLocaleString()+' people ('+c.label+', '+c.year+')';
+  box.innerHTML='<b>'+c.name+'</b> — '+(c.value||0).toLocaleString()+' people ('+c.label+', '+c.year+')'+
+    (c.code==='GB'&&COUNTRIES.uk_wales&&COUNTRIES.uk_wales.value
+      ? ' · <span class="dim">Wales monthly rough sleeping: '+(COUNTRIES.uk_wales.value||0).toLocaleString()+
+        ' ('+COUNTRIES.uk_wales.year+'). England and Wales publish different measures and are never added together here.</span>'
+      : '');
   m.flyTo({center:[c.lon,c.lat],zoom:3.2});
 }
 var loaded={};
@@ -1138,8 +1145,8 @@ COUNTRIES = [("us", "United States", "US", "point-in-time count"),
 def page_country(country, manifest_total):
     """A country page driven entirely by whatever metrics that country's ingestor produced."""
     etype, name, code, label = country
-    nation = q(CONN, """SELECT metric, value, unit, year, is_est, note, source_id FROM metric
-                        WHERE entity_type=? ORDER BY year DESC, metric""", (etype,))
+    nation = q(CONN, """SELECT entity_id, metric, value, unit, year, is_est, note, source_id FROM metric
+                        WHERE entity_type=? ORDER BY entity_id, year DESC, metric""", (etype,))
     sub_types = {"uk": ("uk_la",), "canada": ("ca_city",), "australia": ("au_state", "au_lga")}.get(etype, ())
     subs = []
     for st in (etype,):
@@ -1167,11 +1174,18 @@ def page_country(country, manifest_total):
                ("census_homeless_estimate", "people estimated homeless"),
                ("statutory_homeless_households", "households owed a duty"),
                ("shs_clients", "specialist homelessness clients")]
+        if etype == "uk":
+            # England snapshot and the Wales monthly count are different measures; never mix them
+            eng = one(CONN, """SELECT value, year FROM metric WHERE entity_type='uk' AND metric='rough_sleeping'
+                               AND note LIKE '%England%' ORDER BY year DESC LIMIT 1""", (), {}) or {}
+            if eng.get("value"):
+                kpis += kpi(num(eng["value"]), "people rough sleeping (England snapshot)", f"{eng['year']}", "")
         for key, lbl in top:
-            if key in latest:
+            if key in latest and not (etype == "uk" and key == "rough_sleeping"):
                 kpis += kpi(num(latest[key]["value"]) + ("†" if latest[key]["is_est"] else ""), lbl,
                             f"{latest[key]['year']} · {label}", "")
-    nrow = [[esc((r["metric"] or "").replace("_", " ")), "", r["metric"] or "",
+    nrow = [[esc(str(r.get("entity_id") or "")), "", str(r.get("entity_id") or ""),
+             esc((r["metric"] or "").replace("_", " ")), "", r["metric"] or "",
              num(r["value"]) + ("†" if r["is_est"] else ""), "r", r["value"] or 0,
              esc(r.get("unit") or ""), "", r["unit"] or "", yr(r["year"]), "", r["year"] or 0,
              cite(r.get("source_id"), "—"), "", ""] for r in nation[:120]]
@@ -1188,7 +1202,7 @@ def page_country(country, manifest_total):
 <div class="wrap">
   <div class="kpis">{kpis or '<div class="kpi"><div class="v">—</div><div class="l">no national figure yet</div></div>'}</div>
   <h2>National series</h2>
-  {table([("Measure",""),("Value","r"),("Unit",""),("Year",""),("Source","")], nrow,
+  {table([("Nation / geography",""),("Measure",""),("Value","r"),("Unit",""),("Year",""),("Source","")], nrow,
          note="† derived. National series are as published by the country's statistics agency or funding department.")}
   <h2>Subnational detail</h2>
   {table([("Geography level",""),("Area",""),("Measure",""),("Value","r"),("Year","r")], srow,
