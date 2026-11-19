@@ -126,6 +126,22 @@ Territories other than PR (GU, VI, AS, MP) exist in `geo_state` from the gazette
    existed). Nothing is interpolated anywhere in `pit`; the only `is_est=1` rows in this domain are
    `metric` rows of `entity_type='city'` (see below).
 
+### Impossible cells in HUD's own file (NULLed, not republished)
+
+HUD publishes a few cells where a subpopulation exceeds the whole. These are HUD's own values, re-read
+at cell level to rule out a column-mapping error; the ingestor drops them to `NULL` (never estimates)
+and lists them in the run notes. All five are `chronic`:
+
+| CoC | Year | `total` | published `chronic` | cells |
+|---|---|---|---|---|
+| PR-502 | 2008 | 707 | 1,488 | `Overall Homeless` r326c3 = 707, `Overall Chronically Homeless Individuals` r326c23 = 1488 |
+| TN-500 | 2008 | 87 | 679 | r334c3 = 87, r334c23 = 679 |
+| PR-502 | 2011 | 1,362 | 1,717 | `Overall Chronically Homeless` = 1,717 while `… Individuals` = 792 and `… People in Families` = 925 (792 + 925 = 1,717) |
+| PR-503 | 2011 | 1,538 | 1,847 | `Overall Chronically Homeless` = 1,847 while `… Individuals` = 855 and `… People in Families` = 992 |
+| PR-503 | 2012 | 1,527 | 1,684 | `Overall Chronically Homeless` = 1,684, components 845 + 839 |
+
+(`total = sheltered + unsheltered` still holds for those rows; only the subpopulation disagrees.)
+
 ## Column mapping (only what the workbook really contains)
 
 | `pit` column | Workbook header used | Years present |

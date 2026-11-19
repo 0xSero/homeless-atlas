@@ -178,7 +178,7 @@ SUB_VS_TOTAL = ("chronic", "veterans", "youth", "children", "families")
 
 def write_pit(conn, rows, src):
     n = m = 0
-    impossible = []
+    impossible, blank = [], []
     for (coc, year), rec in rows.items():
         tot = rec.get("total")
         if tot is not None:
@@ -186,6 +186,7 @@ def write_pit(conn, rows, src):
                 v = rec.get(k)
                 if v is not None and v > tot:
                     impossible.append(f"{coc} {year} {k}={v}>total={tot}")
+                    blank.append((coc, year, k))
                     rec[k] = None
         row = {"coc_num": coc, "year": year, "is_est": 0, "source_id": src}
         for k in ("total", "sheltered", "unsheltered", "chronic", "veterans",
@@ -205,10 +206,11 @@ def write_pit(conn, rows, src):
             }, ["entity_type", "entity_id", "metric", "year"])
             m += 1
         n += 1
+    for coc, year, col in blank:      # upsert never overwrites with NULL -> do it here
+        conn.execute(f"UPDATE pit SET {col}=NULL WHERE coc_num=? AND year=?", (coc, year))
     if impossible:
-        rec_note = (f"{len(impossible)} impossible subpopulation cell(s) NULLed "
-                    f"(sub > total): " + "; ".join(impossible[:5]))
-        write_pit.notes = rec_note
+        write_pit.notes = (f"{len(impossible)} impossible subpopulation cell(s) NULLed "
+                           f"(sub > total): " + "; ".join(impossible[:5]))
     return n, m
 
 

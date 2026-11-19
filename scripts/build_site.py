@@ -220,8 +220,9 @@ def md(text: str) -> str:
         s = re.sub(r"`([^`]+)`", r"<code>\1</code>", s)
         s = re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", s)
         s = re.sub(r"(?<![\w*])\*([^*\n]+)\*", r"<em>\1</em>", s)
+        # order matters: bare URLs first, and never inside an attribute we already produced
+        s = re.sub(r'(?<!["\'=>])(https?://[^\s<)\]]+)', r'<a href="\1" rel="noopener">\1</a>', s)
         s = re.sub(r"\[([^\]]+)\]\((https?://[^)\s]+)\)", r'<a href="\2" rel="noopener">\1</a>', s)
-        s = re.sub(r"(?<!\()(https?://[^\s<)]+)", r'<a href="\1" rel="noopener">\1</a>', s)
         return s
     for ln in lines:
         if ln.strip().startswith("```"):

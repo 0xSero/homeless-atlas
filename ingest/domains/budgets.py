@@ -24,12 +24,14 @@ Interface: `def run(conn, cfg) -> dict`
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import sys
 import urllib.parse
 
 from ingest.common import (
+    RAW,
     clean,
     fetch_json,
     fetch_post_json,
@@ -69,14 +71,14 @@ CITY_BUDGETS = [
         city="San Francisco", state="CA", host="data.sfgov.org", ds="xdgd-c79v",
         where="fiscal_year='2025' AND revenue_or_spending='Spending' "
               "AND lower(department) like '%homelessness%'",
-        amount_col="budget", group_cols=["department"],
+        amount_col="budget", group_cols=["department"], fy="2025",
         basis="adopted budget, all funds, department line (sum of object-level rows)",
         page="https://data.sfgov.org/d/xdgd-c79v",
     ),
     dict(
         city="New York", state="NY", host="data.cityofnewyork.us", ds="mwzb-yiwb",
         where="fiscal_year='2025' AND agency_name='DEPARTMENT OF HOMELESS SERVICES'",
-        amount_col="adopted_budget_amount", group_cols=["publication_date"],
+        amount_col="adopted_budget_amount", group_cols=["publication_date"], fy="2025",
         dedupe_newest="publication_date",
         basis="adopted expense budget for the Department of Homeless Services (latest publication for the FY)",
         page="https://data.cityofnewyork.us/d/mwzb-yiwb",
@@ -84,7 +86,7 @@ CITY_BUDGETS = [
     dict(
         city="Los Angeles", state="CA", host="data.lacity.org", ds="98ve-cuf5",
         where="fiscal_year='2025'",
-        amount_col="pstng_am", group_cols=[],
+        amount_col="pstng_am", group_cols=[], fy="2025",
         basis="actual payments recorded in the city's Homelessness Expense Tracker (expenditure, not appropriation)",
         metric="city_homelessness_expenditure",
         page="https://data.lacity.org/d/98ve-cuf5",
@@ -92,13 +94,13 @@ CITY_BUDGETS = [
     dict(
         city="Seattle", state="WA", host="data.seattle.gov", ds="8u2j-imqx",
         where="fiscal_year='2025' AND lower(program) like '%homeless%'",
-        amount_col="approved_amount", group_cols=["program"],
+        amount_col="approved_amount", group_cols=["program"], fy="2025",
         basis="approved operating budget of Human Services Department programs whose name contains 'homeless'",
         page="https://data.seattle.gov/d/8u2j-imqx",
     ),
     dict(
         city="Chicago", state="IL", host="data.cityofchicago.org", ds="x394-e874",
-        where="lower(appropriation_account_description) like '%homeless%'",
+        where="lower(appropriation_account_description) like '%homeless%'", fy="2024",
         amount_col="_ordinance_amount_", group_cols=["department_description", "appropriation_account_description"],
         basis="2024 budget ordinance appropriations whose account description contains 'homeless' (Department of Family and Support Services)",
         page="https://data.cityofchicago.org/d/x394-e874",
@@ -106,14 +108,14 @@ CITY_BUDGETS = [
     dict(
         city="Austin", state="TX", host="data.austintexas.gov", ds="yeeq-kk6v",
         where="fy='2025' AND lower(dept_nm) like '%homeless%'",
-        amount_col="bud", group_cols=["dept_nm", "div_nm"],
+        amount_col="bud", group_cols=["dept_nm", "div_nm"], fy="2025",
         basis="FY2025 budget for the Homeless Strategies and Operations department",
         page="https://data.austintexas.gov/d/yeeq-kk6v",
     ),
     dict(
         city="Honolulu", state="HI", host="data.honolulu.gov", ds="4mj2-5un8",
         where="lower(department_name) like '%homeless%' OR lower(division_name) like '%homeless%'",
-        amount_col="fy_2025_adopted_budget", group_cols=["department_name", "division_name"],
+        amount_col="fy_2025_adopted_budget", group_cols=["department_name", "division_name"], fy="2025",
         basis="FY2025 adopted budget lines whose department or division name contains 'homeless'",
         page="https://data.honolulu.gov/d/4mj2-5un8",
     ),
@@ -175,10 +177,26 @@ def _mark(conn, step, detail=""):
     conn.commit()
 
 
+def _source(conn, url, *, title, publisher, license, method="GET", payload=None):
+    """Register the source row and fill in bytes/sha256 from the fetch cache."""
+    sid = source_id_for(conn, url, DOMAIN, title=title, publisher=publisher, license=license)
+    key = hashlib.sha1((method + url + json.dumps(payload or {}, sort_keys=True, default=str)).encode()).hexdigest()
+    p = RAW / DOMAIN / f"{key}.bin"
+    if p.exists():
+        b = p.read_bytes()
+        conn.execute("UPDATE source SET bytes=?, sha256=?, retrieved_at=? WHERE id=?",
+                     (len(b), hashlib.sha256(b).hexdigest(), now(), sid))
+    return sid
+
+
+WROTE = [0]  # metric rows written by this process (for the run report)
+
+
 def _metric(conn, entity_type, entity_id, metric, value, unit, year, source_id,
-            is_est=0, note=None):
+            is_est=0, note=None, counter=None):
     if value is None or entity_id is None:
         return
+    WROTE[0] += 1
     upsert(conn, "metric", {
         "entity_type": entity_type, "entity_id": str(entity_id), "metric": metric,
         "value": float(value), "unit": unit, "year": int(year) if year else None,
@@ -190,11 +208,11 @@ def _metric(conn, entity_type, entity_id, metric, value, unit, year, source_id,
 # 1. federal per-state obligations
 # ---------------------------------------------------------------------------
 def _state_federal(conn, stats):
-    sid = source_id_for(
-        conn, USASPENDING_GEO, DOMAIN,
+    sid = _source(
+        conn, USASPENDING_GEO,
         title="USASpending.gov API v2 spending_by_geography (HUD homeless assistance programs, CFDA 14.231/14.267/14.276/14.241)",
         publisher="U.S. Department of the Treasury, Bureau of the Fiscal Service",
-        license="US Government work, public domain")
+        license="US Government work, public domain", method="POST")
 
     per_state = {}   # (fy, abbr) -> {metric: value}
     pops = {}
@@ -321,11 +339,11 @@ def _coc_from_county(conn, stats):
             agg.setdefault(coc, {}).setdefault(cfda, 0.0)
             agg[coc][cfda] += float(amt)
 
-    sid = source_id_for(
-        conn, USASPENDING_GEO, DOMAIN,
+    sid = _source(
+        conn, USASPENDING_GEO,
         title="USASpending.gov API v2 spending_by_geography, county layer (HUD CoC + ESG, FY2024)",
         publisher="U.S. Department of the Treasury, Bureau of the Fiscal Service",
-        license="US Government work, public domain")
+        license="US Government work, public domain", method="POST")
 
     pit = {}
     for r in conn.execute("SELECT coc_num, year, total FROM pit WHERE total IS NOT NULL AND total > 0"):
@@ -382,13 +400,12 @@ def _city_budgets(conn, stats):
             stats["notes"].append(f"city {city}: query returned 0 rows ({spec['ds']})")
             continue
         amt_key = [k for k in rows[0] if k.startswith("sum_")][0]
-        sid = source_id_for(
-            conn, url, DOMAIN,
+        sid = _source(
+            conn, url,
             title=f"{city} homelessness budget lines ({spec['page']})",
             publisher=f"City of {city} open data portal",
             license="City open data portal (public record); see portal terms")
-        fy = re.search(r"(fiscal_year|fy)='?(\d{4})", spec["where"])
-        fy_label = fy.group(2) if fy else "latest"
+        fy_label = spec.get("fy") or "latest"
 
         total = 0.0
         kept = 0
@@ -437,7 +454,7 @@ def _city_budgets(conn, stats):
         else:
             note_extra = ""
 
-        year = int(fy_label) if fy_label.isdigit() else None
+        year = int(fy_label) if str(fy_label).isdigit() else None
         _metric(conn, "city", city, metric, total, "USD", year, sid,
                 note=f"{spec['basis']}; filter [{spec['where']}]; {kept} published line(s) summed{note_extra}")
 
@@ -479,10 +496,7 @@ def run(conn, cfg=None):
     _mark(conn, "city_budgets", f"{stats['city_rows']} cities: {', '.join(stats['cities'])}")
 
     conn.commit()
-    n_metric = conn.execute(
-        "SELECT COUNT(*) FROM metric WHERE metric LIKE 'hud\\_%' ESCAPE '\\' OR metric LIKE 'city\\_homelessness%' ESCAPE '\\'"
-    ).fetchone()[0]
-    rows = n_metric
+    rows = WROTE[0]
     notes = ("state=federal obligations per state/FY (HUD ESG/CoC/YHDP/HOPWA via USASpending), "
              f"coc={stats['coc_rows']} (county-attributed, matched {stats['coc_county_match'][0]}/"
              f"{stats['coc_county_match'][1]} county rows), city={stats['city_rows']} "
