@@ -52,7 +52,9 @@ EXPECTED = {
     "geo_city": ("places", "hud_pit", "coc_geometry"), "geo_state": ("places", "hud_pit"),
     "geo_coc": ("hud_pit", "coc_geometry"), "pit": ("hud_pit",), "award": ("usaspending", "sf", "budgets"),
     "org": ("usaspending", "nonprofit", "org_contacts", "places"), "org_person": ("nonprofit",),
-    "facility": ("facility",), "law": ("laws",), "media": ("media",),
+    "facility": ("facility",), "law": ("laws",),
+    # video/photo records are collected by whichever domain found them
+    "media": ("media", "health", "crime", "laws", "budgets", "sf", "facility", "docs"),
     # documents and laws can legitimately be collected by any research domain
     "doc": ("docs", "crime", "health", "budgets", "laws", "media", "sf", "facility"),
 }
