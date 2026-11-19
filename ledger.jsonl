@@ -11,3 +11,9 @@
 {"ts": "2026-11-19T08:16:44+00:00", "skill": "homeless-atlas", "domain": "laws", "verdict": "REJECT", "rows": 0, "evidence": "logs/workers/laws.log", "note": "attempt 1 failed rc=143"}
 {"ts": "2026-11-19T08:16:52+00:00", "skill": "homeless-atlas", "domain": "media", "verdict": "REJECT", "rows": 0, "evidence": "logs/workers/media.log", "note": "attempt 1 failed rc=143"}
 {"ts": "2026-11-19T08:26:35+00:00", "skill": "homeless-atlas", "domain": "facility", "verdict": "DONE", "rows": 3432, "evidence": "research/facility.md", "note": "3,432 institutions, 54 states, 132 per-bed cost figures, commit-safe writer"}
+{"ts": "2026-11-19T09:55:18+00:00", "skill": "homeless-atlas", "domain": "laws", "verdict": "DONE", "rows": 0, "evidence": "research/laws.md", "note": "gate passing at final verify"}
+{"ts": "2026-11-19T09:55:18+00:00", "skill": "homeless-atlas", "domain": "media", "verdict": "DONE", "rows": 0, "evidence": "research/media.md", "note": "gate passing at final verify"}
+{"ts": "2026-11-19T09:55:18+00:00", "skill": "homeless-atlas", "domain": "docs", "verdict": "DONE", "rows": 0, "evidence": "research/docs.md", "note": "gate passing at final verify"}
+{"ts": "2026-11-19T09:55:18+00:00", "skill": "homeless-atlas", "domain": "budgets", "verdict": "DONE", "rows": 0, "evidence": "research/budgets.md", "note": "gate passing at final verify"}
+{"ts": "2026-11-19T09:55:18+00:00", "skill": "homeless-atlas", "domain": "docs_collect", "verdict": "DONE", "rows": 375, "evidence": "scripts/collect_docs.py", "note": "audits/court/studies via search API, URL-verified"}
+{"ts": "2026-11-19T09:55:18+00:00", "skill": "homeless-atlas", "domain": "usaspending", "verdict": "DONE", "rows": 41554, "evidence": "scripts/sweep_awards.py", "note": "year-by-year sweep; FY2024 14->8460, provenance 100%"}

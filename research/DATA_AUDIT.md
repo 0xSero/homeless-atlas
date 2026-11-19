@@ -70,3 +70,9 @@ Flagged `status='unknown'` and the impossible `closed` year removed (not silentl
 - 5 organisations had revenue/expenses citing `eo1.csv` (the IRS Business Master File, which contains no financial fields).
 - 5 were re-sourced from their actual Form 990 filing on Nonprofit Explorer.
 - 0 had no filing with figures and were set to NULL rather than keep an uncitable number.
+
+### Organisation financials re-sourced (2026-11-19)
+
+- 0 organisations had revenue/expenses citing `eo1.csv` (the IRS Business Master File, which contains no financial fields).
+- 0 were re-sourced from their actual Form 990 filing on Nonprofit Explorer.
+- 0 had no filing with figures and were set to NULL rather than keep an uncitable number.

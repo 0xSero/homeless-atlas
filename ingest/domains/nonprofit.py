@@ -273,7 +273,9 @@ def _ensure_tables(conn):
     # A DB repair/recovery pass can recreate domain tables without their
     # PRIMARY KEY; ON CONFLICT(ein)/(phase,key) needs a unique index to exist.
     for stmt in (
-        "ALTER TABLE nonprofit_candidate ADD COLUMN bmf_assets INTEGER",
+        "ALTER TABLE nonprofit_candidate ADD COLUMN bmf_assets INTEGER"
+        if "bmf_assets" not in {r[1] for r in conn.execute("PRAGMA table_info(nonprofit_candidate)")}
+        else "SELECT 1",
         "DELETE FROM nonprofit_candidate WHERE rowid NOT IN (SELECT rowid FROM ("
         "  SELECT rowid, ROW_NUMBER() OVER (PARTITION BY ein ORDER BY page_done DESC) rn"
         "  FROM nonprofit_candidate) WHERE rn=1)",
@@ -367,8 +369,9 @@ def _merge_org(conn, row: dict) -> tuple[int, bool]:
     newfy = row.get("fiscal_year")
     oldfy = cur["fiscal_year"]
     sets, vals = [], []
+    fin_written = False
     for c, v in row.items():
-        if c == "id" or v is None:
+        if c in ("id", "source_id") or v is None:
             continue
         old = cur[c] if c in cur.keys() else None
         if c in FIN_COLS:
@@ -377,11 +380,17 @@ def _merge_org(conn, row: dict) -> tuple[int, bool]:
                 if c == "fiscal_year" and old is not None and int(v) < int(old):
                     continue
                 sets.append(f"{c}=?"); vals.append(v)
+                fin_written = True
         elif c in IDENTITY_COLS:
             if old is None:  # never rename / re-key another domain's row
                 sets.append(f"{c}=?"); vals.append(v)
         elif old is None:
             sets.append(f"{c}=?"); vals.append(v)
+    # provenance: a revenue figure we just wrote came from this row's source
+    # (the filing page), so the row must cite it rather than the BMF registry file
+    src = row.get("source_id")
+    if src is not None and (fin_written or cur["source_id"] is None):
+        sets.append("source_id=?"); vals.append(src)
     if sets:
         sets.append("updated_at=?")
         vals.append(now())

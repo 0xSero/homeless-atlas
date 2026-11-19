@@ -15,3 +15,9 @@
 | 2026-11-19T08:16:44+00:00 | laws | REJECT | 0 | logs/workers/laws.log | attempt 1 failed rc=143 |
 | 2026-11-19T08:16:52+00:00 | media | REJECT | 0 | logs/workers/media.log | attempt 1 failed rc=143 |
 | 2026-11-19T08:26:35+00:00 | facility | DONE | 3432 | research/facility.md | 3,432 institutions, 54 states, 132 per-bed cost figures, commit-safe writer |
+| 2026-11-19T09:55:18+00:00 | laws | DONE | 0 | research/laws.md | gate passing at final verify |
+| 2026-11-19T09:55:18+00:00 | media | DONE | 0 | research/media.md | gate passing at final verify |
+| 2026-11-19T09:55:18+00:00 | docs | DONE | 0 | research/docs.md | gate passing at final verify |
+| 2026-11-19T09:55:18+00:00 | budgets | DONE | 0 | research/budgets.md | gate passing at final verify |
+| 2026-11-19T09:55:18+00:00 | docs_collect | DONE | 375 | scripts/collect_docs.py | audits/court/studies via search API, URL-verified |
+| 2026-11-19T09:55:18+00:00 | usaspending | DONE | 41554 | scripts/sweep_awards.py | year-by-year sweep; FY2024 14->8460, provenance 100% |

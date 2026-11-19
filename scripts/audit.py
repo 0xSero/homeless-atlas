@@ -50,7 +50,7 @@ for t in ("org", "award", "pit", "geo_city", "geo_coc", "facility", "law", "medi
 # provenance plausibility: a table must not be citing a source from an unrelated domain
 EXPECTED = {
     "geo_city": ("places", "hud_pit", "coc_geometry"), "geo_state": ("places", "hud_pit"),
-    "geo_coc": ("hud_pit", "coc_geometry"), "pit": ("hud_pit",), "award": ("usaspending", "sf", "budgets"),
+    "geo_coc": ("hud_pit", "coc_geometry"), "pit": ("hud_pit",), "award": ("usaspending", "usaspending_sweep", "sf", "budgets"),
     "org": ("usaspending", "nonprofit", "org_contacts", "places"), "org_person": ("nonprofit",),
     "facility": ("facility",), "law": ("laws",),
     # video/photo records are collected by whichever domain found them
@@ -177,7 +177,17 @@ if FIX:
                              (pop[0],))
                 fixed.append(f"{t}: repointed {n} population rows to the population source")
 
-    # 4) placeholder recipient names are real source values but must not rank as organisations
+    # 4) officers filed more than once for the same year
+    for row in conn.execute("""SELECT person_norm, org_name, year, title, MIN(id) keep FROM org_person
+                               GROUP BY 1,2,3,4 HAVING COUNT(*) > 1""").fetchall():
+        ids = [x[0] for x in conn.execute("""SELECT id FROM org_person WHERE person_norm=? AND org_name IS ?
+                                             AND year IS ? AND title IS ? ORDER BY id""",
+                                          (row["person_norm"], row["org_name"], row["year"], row["title"])).fetchall()]
+        for i in ids[1:]:
+            conn.execute("DELETE FROM org_person WHERE id=?", (i,))
+            fixed.append(f"org_person: removed duplicate officer row {i}")
+
+    # 5) placeholder recipient names are real source values but must not rank as organisations
     for r in conn.execute("""SELECT id, name FROM facility WHERE 0""").fetchall():
         pass
     for r in conn.execute("""SELECT id, name FROM org

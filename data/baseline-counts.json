@@ -1,15 +1,15 @@
 {
- "award": 19769,
- "doc": 188,
+ "award": 41831,
+ "doc": 386,
  "facility": 4505,
  "geo_city": 56819,
  "geo_coc": 414,
  "geo_state": 56,
  "law": 1164,
  "media": 1999,
- "metric": 31948,
- "org": 14919,
- "org_person": 82838,
+ "metric": 32424,
+ "org": 17391,
+ "org_person": 99469,
  "pit": 12192,
- "source": 4125
+ "source": 5405
 }
