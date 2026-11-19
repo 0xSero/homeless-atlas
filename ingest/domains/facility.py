@@ -1690,19 +1690,22 @@ def run(conn, cfg):
     notes.append(f"facilities={rows}")
 
     # 7. metrics -------------------------------------------------------------------------
+    ids_by_rec = {id(rec): fid for rec, fid in zip(records, [ids.get(_key(r)) for r in records])}
+
     def by_kind_state(kind=None, state=None):
-        for k, rec in merger.recs.items():
+        for rec in records:
             if kind and rec.get("kind") != kind:
                 continue
             if state and rec.get("state") != state:
                 continue
-            if k in ids:
-                yield k, rec
+            fid = ids_by_rec.get(id(rec))
+            if fid:
+                yield rec, fid
 
     n_beds = n_staff = n_budget = n_cost = 0
     emitted = set()
-    for k, rec in list(merger.recs.items()):
-        fid = ids.get(k)
+    for rec in records:
+        fid = ids_by_rec.get(id(rec))
         if not fid:
             continue
         if rec.get("beds"):
@@ -1756,10 +1759,10 @@ def run(conn, cfg):
     econ_notes = []
     for f in facts:
         if f["metric"] == "_dsh_total":
-            ca = [(k, r) for k, r in by_kind_state("state_psychiatric", "CA")
+            ca = [(r, fid) for r, fid in by_kind_state("state_psychiatric", "CA")
                   if r.get("status") == "open" and re.search(r"state hospital", r.get("name") or "",
                                                              re.I)]
-            beds = sum(r["beds"] or 0 for _k, r in ca)
+            beds = sum(r["beds"] or 0 for r, _fid in ca)
             if beds:
                 per = int(round(f["value"] / beds))
                 sid = source_id_for(conn, f["source_url"], DOMAIN,
@@ -1784,7 +1787,7 @@ def run(conn, cfg):
                 econ_notes.append(f"CA state hospital system: ${per:,}/bed-year (derived, {beds} beds)")
 
         elif f["metric"] == "_cdcr":
-            ca_prisons = [r for k, r in by_kind_state("prison", "CA")]
+            ca_prisons = [r for r, _fid in by_kind_state("prison", "CA")]
             beds = sum(r["beds"] or 0 for r in ca_prisons)
             denom = f.get("inmates") or beds
             if denom:
@@ -1798,8 +1801,8 @@ def run(conn, cfg):
                     "UPDATE facility SET annual_cost_per_bed=COALESCE(annual_cost_per_bed,?), "
                     "is_est=CASE WHEN annual_cost_per_bed IS NULL THEN 1 ELSE is_est END "
                     "WHERE kind='prison' AND state='CA'", (per,))
-                for k, r in by_kind_state("prison", "CA"):
-                    _metric(conn, ids[k], "cost_per_bed_year", per, f["year"],
+                for r, fid in by_kind_state("prison", "CA"):
+                    _metric(conn, fid, "cost_per_bed_year", per, f["year"],
                             unit="USD/bed/year", is_est=1,
                             note=(f"derived: CDCR expenditures ${f['value']:,.0f} FY2019-20 divided "
                                   f"by {denom:,} inmates (June 2019) = ${per:,} per inmate-year, "
