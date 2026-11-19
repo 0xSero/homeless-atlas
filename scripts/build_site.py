@@ -1216,13 +1216,62 @@ def page_facility(d, f, manifest_total):
     return shell("../", f["name"], "", body, manifest_total=manifest_total)
 
 # ---------------------------------------------------------------- main
+BASELINE = ROOT / "data" / "baseline-counts.json"
+
+
+def previous_counts() -> dict:
+    """High-water mark per table: the largest count ever published.
+
+    A table can legitimately shrink (a re-ingest that removes duplicates), but dropping below half
+    of its high-water mark almost always means an ingestor is mid-transaction with its rows invisible.
+    Publishing that would silently delete a whole section of the site, so we refuse instead.
+    """
+    out = {}
+    mf = SITE / "data" / "manifest.json"
+    if mf.exists():
+        try:
+            out = dict(json.loads(mf.read_text()).get("rows", {}))
+        except Exception:
+            out = {}
+    if BASELINE.exists():
+        try:
+            for k, v in json.loads(BASELINE.read_text()).items():
+                out[k] = max(out.get(k, 0), v)
+        except Exception:
+            pass
+    return out
+
+
+def save_baseline(counts: dict):
+    cur = {}
+    if BASELINE.exists():
+        try:
+            cur = json.loads(BASELINE.read_text())
+        except Exception:
+            cur = {}
+    for k, v in counts.items():
+        cur[k] = max(cur.get(k, 0), v)
+    BASELINE.write_text(json.dumps(cur, indent=1, sort_keys=True))
+
+
 def main():
     global CONN
     if not DB.exists():
         print("no database"); return 1
-    CONN = sqlite3.connect(f"file:{DB}?mode=ro", uri=True)
+    # read-write handle: a read-only connection cannot see rows still in the WAL
+    CONN = sqlite3.connect(DB, timeout=180)
     CONN.row_factory = sqlite3.Row
+    prev = previous_counts()
     d = load(CONN)
+    counts = d["meta"]["counts"]
+    shrunk = {t: (prev[t], counts.get(t, 0)) for t in prev
+              if prev[t] >= 100 and counts.get(t, 0) < prev[t] * 0.5}
+    if shrunk and "--force" not in sys.argv:
+        print("REFUSING TO BUILD — these tables are less than half their last published size:")
+        for t, (a, b) in shrunk.items():
+            print(f"  {t:12} {a:,} -> {b:,}")
+        print("That usually means an ingestor is mid-transaction. Re-run with --force if the drop is real.")
+        return 2
     if SITE.exists():
         shutil.rmtree(SITE)
     SITE.mkdir(parents=True, exist_ok=True)
@@ -1230,9 +1279,10 @@ def main():
     for f in ("atlas.css", "app.js"):
         shutil.copy(SRC / f, SITE / "assets" / f)
 
-    counts = build_exports(d, CONN)
+    geo_counts = build_exports(d, CONN)
     total, manifest = build_index(d)
-    (SITE / "data" / "manifest.json").write_text(json.dumps({"total": total, "at": NOW}))
+    (SITE / "data" / "manifest.json").write_text(json.dumps({"total": total, "at": NOW, "rows": counts}))
+    save_baseline(counts)
 
     write("index.html", page_index(d, total))
     write("map.html", page_map(d, total))
@@ -1270,7 +1320,7 @@ def main():
             write(f"facility/{f['id']}.html", page_facility(d, f, total)); n += 1
     # favicon + robots
     write("robots.txt", "User-agent: *\nAllow: /\n")
-    print(json.dumps({"pages": n + 16, "search_index": total, "geo": counts,
+    print(json.dumps({"pages": n + 16, "search_index": total, "geo": geo_counts,
                       "rows": d["meta"]["counts"]}, indent=1))
     return 0
 

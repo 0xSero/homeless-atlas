@@ -1085,6 +1085,46 @@ def run(conn, cfg):
                 continue
         seen_names[nk] = k
 
+    # 5b. backfill missing states from nearby facilities with a known state ---------------
+    refs = [(r["lat"], r["lon"], r["state"]) for r in merger.recs.values()
+            if r.get("state") and r.get("lat") is not None and r.get("lon") is not None]
+    filled = 0
+    if refs:
+        rg = {}
+        for la, lo, st in refs:
+            rg.setdefault((round(math.floor(la / 0.5)), round(math.floor(lo / 0.5))), []).append(
+                (la, lo, st))
+        for rec in merger.recs.values():
+            if rec.get("state") or rec.get("lat") is None or rec.get("lon") is None:
+                continue
+            la, lo = rec["lat"], rec["lon"]
+            cands = []
+            for dla in (-1, 0, 1):
+                for dlo in (-1, 0, 1):
+                    cands.extend(rg.get((round(math.floor(la / 0.5)) + dla,
+                                         round(math.floor(lo / 0.5)) + dlo), []))
+            best = min(cands, key=lambda x: _km(la, lo, x[0], x[1]), default=None)
+            if best and _km(la, lo, best[0], best[1]) <= 80:
+                rec["state"] = best[2]
+                rec.setdefault("notes", []).append(
+                    f"state inferred from coordinates (nearest mapped facility is in {best[2]}, "
+                    f"{_km(la, lo, best[0], best[1]):.0f} km away)")
+                filled += 1
+    notes.append(f"states_backfilled={filled}")
+
+    # 5c. scope check: psychiatric facilities with no government operator evidence --------
+    for rec in merger.recs.values():
+        if rec.get("kind") != "state_psychiatric":
+            continue
+        op = f"{rec.get('operator') or ''} {rec.get('owner') or ''}".lower()
+        gov = bool(re.search(r"state|county|city|federal|govern|department|commonwealth|"
+                             r"district|authority|university|veterans", op))
+        if not gov and rec.get("status") != "closed" and not rec.get("closed"):
+            rec["kind"] = "other"
+            rec.setdefault("notes", []).append(
+                "no government operator identified in the sources and not recorded as closed: "
+                "classified 'other' (not a state psychiatric hospital)")
+
     # 6. write facilities ----------------------------------------------------------------
     ids = {}
     rows = 0
