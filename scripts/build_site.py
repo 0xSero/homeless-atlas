@@ -117,8 +117,8 @@ def one(conn, sql, args=(), default=None):
 
 NAV = [
     ("/index.html", "Overview"), ("/map.html", "Map"), ("/search.html", "Search"),
-    ("/states.html", "States"), ("/cities.html", "Cities"), ("/orgs.html", "Organizations"),
-    ("/people.html", "People"), ("/facilities.html", "Institutions"), ("/budgets.html", "Money"),
+    ("/states.html", "States"), ("/cities.html", "Cities"), ("/orgs.html", "Orgs"),
+    ("/people.html", "Officers"), ("/facilities.html", "Facilities"), ("/budgets.html", "Money"),
     ("/country/us.html", "Countries"), ("/rankings.html", "Rankings"), ("/costs.html", "Costs"), ("/laws.html", "Laws"), ("/media.html", "Media"), ("/docs.html", "Docs"),
 ]
 
@@ -1182,8 +1182,9 @@ def page_country(country, manifest_total):
                 kpis += kpi(num(eng["value"]), "people rough sleeping (England snapshot)", f"{eng['year']}", "")
         for key, lbl in top:
             if key in latest and not (etype == "uk" and key == "rough_sleeping"):
-                kpis += kpi(num(latest[key]["value"]) + ("†" if latest[key]["is_est"] else ""), lbl,
-                            f"{latest[key]['year']} · {label}", "")
+                note = (latest[key].get("note") or "").split("(")[0].strip()
+                cap = note[:60] if note else f"{latest[key]['year']}"
+                kpis += kpi(num(latest[key]["value"]) + ("†" if latest[key]["is_est"] else ""), lbl, cap, "")
     nrow = [[esc(str(r.get("entity_id") or "")), "", str(r.get("entity_id") or ""),
              esc((r["metric"] or "").replace("_", " ")), "", r["metric"] or "",
              num(r["value"]) + ("†" if r["is_est"] else ""), "r", r["value"] or 0,

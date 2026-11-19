@@ -115,6 +115,7 @@ PROVINCES = {
     "Northwest Territories": "NT", "Nunavut": "NU",
 }
 ABBR_TO_PROV = {v: k for k, v in PROVINCES.items()}
+ABBR_FIX = {"NWT": "NT", "PEI": "PE", "YK": "YT", "PQ": "QC"}
 # HICC prints provinces as "British Columbia"; the census CSV uses the same names.
 
 BROWSER = {"User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -236,6 +237,7 @@ class Geo:
 
     def ensure(self, name: str, prov_abbr: str, url: str) -> str | None:
         name = clean(name)
+        prov_abbr = ABBR_FIX.get(prov_abbr, prov_abbr)
         if not name or prov_abbr not in ABBR_TO_PROV:
             return None
         geoid = city_geoid(name, prov_abbr)
@@ -431,17 +433,18 @@ def hicc_annex_a(conn, geo, sid):
     """Annex A of the 2024 report: the 74 participating communities, as published."""
     blob = _get(EC2024_PDF)
     txt = pdf_text("ec2024_annex_a", blob)
-    i = txt.find("Annex A")
+    i = txt.rfind("Annex A")
     if i < 0:
         return 0
-    seg = txt[i:i + 6000]
+    seg = txt[i:i + 9000]
     n = 0
-    for m in re.finditer(r"([A-Z][A-Za-z .'\-()/]+?),\s*(BC|AB|SK|MB|ON|QC|NB|NS|PE|NL|YT|NT|NU)\b",
-                         seg):
-        name = clean(m.group(1))
-        name = re.sub(r"^(?:The following \d+ communities.*?|.*?based:\s*)", "", name or "")
-        if not name or len(name) < 3:
+    seen = set()
+    for m in re.finditer(r"([A-Za-z\u00c0-\u017f][^,\u2022\n]{1,60}?),\s*"
+                         r"(BC|AB|SK|MB|ON|QC|NB|NS|PEI|PE|NL|YT|NT|NWT|NU)\b", seg):
+        name = clean(re.sub(r"\s+", " ", m.group(1)))
+        if not name or len(name) < 3 or name in seen:
             continue
+        seen.add(name)
         if geo.ensure(name, m.group(2), EC2024_PDF):
             n += 1
     return n
@@ -577,6 +580,101 @@ def bc_counts(conn, geo, sid):
     return rows, notes
 
 
+# ======================================================= Homeless Hub community profiles
+# HICC publishes PIT results community-by-community, never as a national table.  The
+# Homeless Hub (Canadian Observatory on Homelessness) republishes each community's count in a
+# fixed "Homelessness in <community>" profile block: total people, sheltered, unsheltered,
+# each with the count year in parentheses.  That is the only reachable machine-readable
+# per-community layer outside British Columbia, so it is used for the largest communities and
+# every row's note names the count year printed on the page.
+HH_URL = "https://www.homelesshub.ca/community-profile/{}"
+HH_TITLE = "Homeless Hub community profile - {}"
+HH = "Canadian Observatory on Homelessness (Homeless Hub)"
+HH_LIC = "Public community profile page, counts credited on the page to the community's own PiT count"
+
+HH_SLUGS = [
+    ("toronto", "Toronto", "ON"), ("ottawa", "Ottawa", "ON"),
+    ("hamilton", "Hamilton", "ON"), ("waterloo", "Waterloo / Kitchener", "ON"),
+    ("peel", "Peel Region", "ON"), ("york", "York Region", "ON"),
+    ("durham", "Durham (Oshawa)", "ON"), ("kingston", "Kingston", "ON"),
+    ("guelph", "Guelph / Wellington County", "ON"), ("sudbury", "Sudbury", "ON"),
+    ("thunder-bay", "Thunder Bay", "ON"), ("windsor", "Windsor", "ON"),
+    ("london", "London", "ON"), ("brantford", "Brantford", "ON"),
+    ("nipissing", "Nipissing / North Bay", "ON"), ("sault-ste-marie", "Sault Ste. Marie", "ON"),
+    ("calgary", "Calgary", "AB"), ("edmonton", "Edmonton", "AB"),
+    ("lethbridge", "Lethbridge", "AB"), ("red-deer", "Red Deer", "AB"),
+    ("grande-prairie", "Grande Prairie", "AB"), ("medicine-hat", "Medicine Hat", "AB"),
+    ("winnipeg", "Winnipeg", "MB"), ("brandon", "Brandon", "MB"),
+    ("regina", "Regina", "SK"), ("saskatoon", "Saskatoon", "SK"),
+    ("prince-albert", "Prince Albert", "SK"), ("moose-jaw", "Moose Jaw", "SK"),
+    ("halifax", "Halifax", "NS"), ("sydney", "Sydney / Cape Breton", "NS"),
+    ("moncton", "Moncton", "NB"), ("saint-john", "Saint John", "NB"),
+    ("fredericton", "Fredericton", "NB"), ("st-johns", "St. John's", "NL"),
+    ("charlottetown", "Charlottetown", "PE"), ("summerside", "Summerside", "PE"),
+    ("whitehorse", "Whitehorse", "YT"), ("yellowknife", "Yellowknife", "NT"),
+    ("iqaluit", "Iqaluit", "NU"), ("montreal", "Montreal", "QC"),
+]
+HH_ROWS = {
+    "total number of people experiencing homelessness": "pit_total",
+    "individuals experiencing sheltered homelessness": "pit_sheltered",
+    "individuals staying in emergency shelters": "_shelters",
+    "individuals in transitional housing": "_transitional",
+    "individuals in provisional accommodations": "_provisional",
+    "individuals experiencing unsheltered homelessness": "pit_unsheltered",
+}
+
+
+def homelesshub_profiles(conn, geo):
+    """Per-community PIT counts from the Homeless Hub community profiles."""
+    rows, ok, miss = 0, [], []
+    for slug, name, abbr in HH_SLUGS:
+        url = HH_URL.format(slug)
+        try:
+            blob = fetch(url, domain=DOMAIN, headers=BROWSER, timeout=45, retries=2)
+        except Exception:                                # noqa: BLE001  (404 / timeout)
+            miss.append(slug)
+            continue
+        sid = source_id_for(conn, url, DOMAIN, title=HH_TITLE.format(name), publisher=HH,
+                            license=HH_LIC)
+        tables = html_tables(blob)
+        got = {}
+        for t in tables:
+            for cells in t:
+                if len(cells) < 2:
+                    continue
+                k = cells[0].lower().rstrip(":").strip()
+                m = re.match(r"^([\d,]+)\s*\((\d{4})\)", cells[1])
+                if k in HH_ROWS and m:
+                    got[HH_ROWS[k]] = num(m.group(1))
+                    got["_year"] = int(m.group(2))
+        year = got.pop("_year", None)
+        if not year or got.get("pit_total") is None:
+            miss.append(slug)
+            continue
+        geoid = geo.ensure(name, abbr, url)
+        if not geoid:
+            continue
+        note = (f"Homeless Hub community profile; the profile prints the community's own PiT count "
+                f"of {year}")
+        rows += put_metric(conn, "ca_city", geoid, "pit_total", got.get("pit_total"), year, sid,
+                           "people", note)
+        shel = got.get("pit_sheltered")
+        if shel is None and got.get("_shelters") is not None:
+            parts = [got.get("_shelters") or 0, got.get("_transitional") or 0,
+                     got.get("_provisional") or 0]
+            if sum(parts) + (got.get("pit_unsheltered") or 0) == got["pit_total"]:
+                shel = sum(parts)          # components printed on the page add up to the total
+        if shel is not None:
+            rows += put_metric(conn, "ca_city", geoid, "pit_sheltered", shel, year, sid, "people",
+                               note + "; sheltered = shelters + transitional + provisional "
+                                      "accommodation as printed on the profile")
+        if got.get("pit_unsheltered") is not None:
+            rows += put_metric(conn, "ca_city", geoid, "pit_unsheltered",
+                               got.get("pit_unsheltered"), year, sid, "people", note)
+        ok.append(name)
+    return rows, ok, miss
+
+
 # =================================================================== Statistics Canada
 def statcan_shelter_cost(conn, sid):
     """Table 98-10-0252: households by shelter-cost-to-income ratio, Canada + provinces."""
@@ -693,6 +791,11 @@ def run(conn, cfg):
     n, ns = bc_counts(conn, geo, sid)
     total += n
     notes += ns
+
+    n, got_profiles, missed = homelesshub_profiles(conn, geo)
+    total += n
+    notes.append(f"homeless hub profiles stored: {len(got_profiles)}"
+                 + (f" (unavailable: {','.join(missed)})" if missed else ""))
 
     n, kept = statcan_shelter_cost(conn, sid)
     total += n

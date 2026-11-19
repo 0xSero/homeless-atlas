@@ -50,7 +50,7 @@ header.top{position:sticky;top:0;z-index:40;background:rgba(11,14,19,.93);backdr
 .navbtn{display:none;background:var(--bg2);border:1px solid var(--line2);color:var(--fg);border-radius:10px;height:36px;padding:0 11px;font:inherit;font-size:.9rem;cursor:pointer}
 nav.main{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--line);background:var(--bg)}
 nav.main::-webkit-scrollbar{display:none}
-nav.main a{padding:9px 11px;color:var(--fg2);font-size:.88rem;white-space:nowrap;border-bottom:2px solid transparent}
+nav.main a{padding:9px 9px;color:var(--fg2);font-size:.86rem;white-space:nowrap;border-bottom:2px solid transparent}
 nav.main a:hover{color:var(--fg);text-decoration:none}
 nav.main a.on{color:var(--fg);border-bottom-color:var(--ember)}
 
