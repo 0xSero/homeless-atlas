@@ -117,6 +117,38 @@ for k, sql in cov.items():
     except sqlite3.Error:
         pass
 
+# ---------------------------------------------------------------- repairs (only with --fix)
+if FIX:
+    fixed = []
+    # 1) a subpopulation cannot exceed the whole: null it, never estimate
+    for r in conn.execute("SELECT coc_num, year, total, chronic FROM pit WHERE chronic > total").fetchall():
+        conn.execute("UPDATE pit SET chronic=NULL WHERE coc_num=? AND year=?", (r["coc_num"], r["year"]))
+        fixed.append(f"pit {r['coc_num']} {r['year']}: chronic {r['chronic']} > total {r['total']} -> NULL")
+    # 2) institution that closed before it opened: keep the record, drop the impossible year
+    for r in conn.execute("""SELECT id, name, opened, closed FROM facility
+                             WHERE closed IS NOT NULL AND opened IS NOT NULL AND closed < opened""").fetchall():
+        conn.execute("""UPDATE facility SET closed=NULL, status='unknown',
+                        population_note=COALESCE(population_note,'')||?
+                        WHERE id=?""",
+                     (f" Source dates conflict (opened {r['opened']}, closed {r['closed']}): "
+                      f"verify before use.", r["id"]))
+        fixed.append(f"facility {r['name']} ({r['id']}): closed {r['closed']} < opened {r['opened']} -> closed NULL, status unknown")
+    # 3) placeholder recipient names are real source values but must not rank as organisations
+    for r in conn.execute("""SELECT id, name FROM facility WHERE 0""").fetchall():
+        pass
+    for r in conn.execute("""SELECT id, name FROM org
+                             WHERE TRIM(name) IN ('TBD','Unknown','N/A','NA','None','')
+                               AND COALESCE(status,'') <> 'placeholder_name'""").fetchall():
+        conn.execute("UPDATE org SET status='placeholder_name' WHERE id=?", (r["id"],))
+        fixed.append(f"org {r['name']!r} ({r['id']}) -> status placeholder_name")
+    if fixed:
+        conn.commit()
+        with open(ROOT / "research" / "DATA_AUDIT.md", "a") as f:
+            f.write("\n### audit --fix pass\n\n" + "\n".join(f"- {x}" for x in fixed) + "\n")
+    fixed_list = fixed
+else:
+    fixed_list = []
+
 # ---------------------------------------------------------------- report
 print("=== coverage ===")
 for _, k, v in notes:
@@ -125,8 +157,9 @@ hard = [p for p in problems if p[0] == "PROBLEM"]
 print(f"\n=== problems: {len(hard)} ===")
 for sev, name, detail in hard:
     print(f"  {sev:8} {name}\n           {detail[:400]}")
-fixed = [n for n in notes if n[0] == "fixed"]
-for _, k, v in fixed:
-    print(f"  FIXED    {k} {v}")
+for x in fixed_list:
+    print(f"  FIXED    {x}")
+if FIX and fixed_list:
+    print(f"\n{len(fixed_list)} repair(s) applied — re-run without --fix to confirm clean")
 print("\nAUDIT CLEAN" if not hard else f"\n{len(hard)} PROBLEM(S)")
 sys.exit(0 if not hard else 1)

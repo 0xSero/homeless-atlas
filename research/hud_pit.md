@@ -106,13 +106,15 @@ Territories other than PR (GU, VI, AS, MP) exist in `geo_state` from the gazette
    homeless households. Writing family households into `households` would conflate ~71k with ~563k,
    so the published series lives in `metric` `pit_family_households` (per CoC sum, `is_est=0`) and
    the national all-household total is `metric` `pit_households` (from the PDFs, 2007–2025).
-3. **`geo_coc.pop` is NULL for 56 of the 387 current CoCs.** HUD publishes no CoC population, so
-   population is the sum of **county** populations whose Census internal point falls inside the CoC
-   polygon. That is exact for CoCs that are whole counties or whole states, but a CoC that splits a
-   county with a sibling CoC (Chicago vs Cook County, Atlanta vs Fulton/DeKalb, Detroit, Indianapolis,
-   Albuquerque, Raleigh/Wake, Madison/Dane, every Puerto Rico and territory CoC …) gets `NULL`
-   instead of a modelled share. 331 CoCs do have a population and they sum to 340,110,988, i.e. the
-   whole US population is accounted for exactly once.
+3. **`geo_coc.pop` is NULL for 29 of the 387 current CoCs** (plus all 27 historical CoCs, which
+   have no geometry either). HUD publishes no CoC population, so population is the sum of **county**
+   populations whose Census internal point falls inside the CoC polygon. That is exact for CoCs that
+   are whole counties or whole states, but a CoC that splits a county with a sibling CoC (Chicago vs
+   Cook County `IL-511`, Atlanta vs `GA-502/506/508`, Detroit `MI-501`, Indianapolis `IN-503`,
+   Albuquerque `NM-500`, Raleigh/Wake `NC-507`, Madison/Dane `WI-503`, and every Puerto Rico /
+   territory CoC — Census sub-county estimates do not cover the territories) gets `NULL` instead of
+   a modelled share. 358 CoCs do carry a population and they sum to 340,110,988 — the whole US
+   population accounted for exactly once.
 4. **No sub-county (tract) allocation.** The obvious fix — allocate county population to CoCs by
    tract — needs tract population, and `api.census.gov` now rejects keyless requests
    (`/data/missing_key.html`); the remaining keyless options (per-state PL 94-171 files, TIGER_DP

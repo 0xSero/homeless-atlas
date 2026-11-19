@@ -125,6 +125,7 @@ checkpoint() {
   if ! git diff --cached --quiet; then
     git commit -q -m "data: loop checkpoint $(date -u +%Y-%m-%dT%H:%MZ)" && log "committed"
   fi
+  python3 scripts/audit.py --fix >> logs/audit.log 2>&1 || log "AUDIT: problems remain (see logs/audit.log)"
   python3 scripts/verify.py >> logs/verify.log 2>&1 && log "VERIFY: ALL GATES PASS"
   if [ -f scripts/build_site.py ]; then
     python3 scripts/build_site.py >> logs/build.log 2>&1 && log "site rebuilt" || log "site build FAILED (see logs/build.log)"
