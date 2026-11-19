@@ -136,9 +136,15 @@ while :; do
 
   # reap finished workers
   for d in $(domains); do
-    if [ "$(status_of "$d")" = RUNNING ] && [ -f "$W/$d.exit" ]; then
-      finish "$d" "$(cat "$W/$d.exit")"
-      checkpoint
+    if [ "$(status_of "$d")" = RUNNING ]; then
+      if [ -f "$W/$d.exit" ]; then
+        finish "$d" "$(cat "$W/$d.exit")"
+        checkpoint
+      elif ! tmux list-windows -t "$SESSION" -F '#{window_name}' 2>/dev/null | grep -qx "$d"; then
+        log "worker $d vanished without exit marker (interrupted); requeueing"
+        finish "$d" 1
+        checkpoint
+      fi
     fi
   done
 
