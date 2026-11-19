@@ -222,3 +222,66 @@ layout each). HICC aggregates them and never republishes the table. The ingestor
 tabular (the 2024 HLH table, 39 communities; BC, 33 count areas over four cycles; the national
 series over five cycles) and leaves the PDF-by-PDF sweep to a worker who can verify each
 transcription.
+
+## australia
+
+Five hosts were tried and failed during this sweep. None of them needs a *key* — three are
+unreachable from this machine at the network level, one is behind a bot challenge, and one is a
+hostname that only resolves inside a partner network. Nothing below is an API-key blocker, so
+there is no signup URL to send; each entry says what would actually unblock it.
+
+**1. `www.aihw.gov.au` → Cloudflare JS challenge on every path (this is the big one).**
+The Australian Institute of Health and Welfare is the custodian of the Specialist Homelessness
+Services Collection (SHSC) and publishes the *Specialist Homelessness Services annual report* data
+tables (clients by LGA/SA4/PHN, agency and outlet counts, beds, demographics, unmet need,
+housing outcomes). Every request from this host — plain UA, full browser UA, `Accept: */*`,
+`Accept-Encoding: gzip, deflate`, `fetch()` and raw `curl` — returns the "Just a moment…" page
+(5,572–5,875 B, JS required), including the direct binary paths:
+
+| URL | response |
+|---|---|
+| `https://www.aihw.gov.au/reports/homelessness-services/shs-annual-report` | 403 + Cloudflare challenge |
+| `https://www.aihw.gov.au/reports/homelessness-services/shs-annual-report/contents/data-tables` | 403 + Cloudflare challenge |
+| `https://www.aihw.gov.au/getmedia/…/<file>.xlsx` (any direct file path) | 403 + Cloudflare challenge |
+
+*Worked around, not lost*: the Productivity Commission's **Report on Government Services 2026,
+Part G section 19 "Homelessness services"** republishes the SHSC-derived per-jurisdiction numbers
+and the expenditure series as one keyless CSV, which is where every `shs_*` row in this domain
+comes from (tables 19A.1, 19A.11, 19A.21). What that does **not** give is anything below state
+level. *Unblocks*: an allowlisted egress IP, a hand-saved copy of one SHS annual report data
+workbook in `data/raw/australia/`, or AIHW's own bulk-data platform replacing the public site —
+then the LGA/SA4 client counts and agency-level tables become writable with no schema change.
+
+**2. AURIN's AIHW SHSC geography datasets → the WFS host does not resolve.**
+`data.gov.au` lists 13 AIHW SHSC datasets aggregated to 2018 LGA / SA4 / SA3 / SA2 / PHN / GCCSA
+(class "Total Clients 2014-2019", CC BY 3.0 AU), each with a single resource whose URL is
+`https://adp-access.aurin.org.au/public/download/?uri=https://adp-gatekeeper.prod.aurin-prod.cloud.edu.au/geoserver/wfs?...`.
+The inner hostname is internal to AURIN:
+`curl: (6) Could not resolve host: adp-gatekeeper.prod.aurin-prod.cloud.edu.au` (NXDOMAIN from this
+machine, IPv4 and IPv6). The download-manager URL itself answers 200 but only serves an HTML
+landing page. *Unblocks*: a resolvable AURIN endpoint (or an AURIN account whose download manager
+mints a signed URL), or the same tables from AIHW per (1). These would add `shs_clients` per LGA
+for 2014-15 … 2018-19, i.e. a second SHS cycle at LGA level.
+
+**3. `databyregion.abs.gov.au` → no DNS.** ABS "Data by Region" is where LGA/SA-level ERP
+population lives; without it the 555 `geo_city` rows here keep `pop = NULL` (nothing is estimated).
+`ConnectionError: MaxRetryError … Name or service not known`. *Unblocks*: the ASGS/ERP CSV by hand
+(`32180` regional population tables) or a working host.
+
+**4. `www.housing.gov.au` → no DNS**, and **`www.dss.gov.au` → Akamai resets.**
+These are the two publishers of the **National Agreement on Social Housing and Homelessness
+(NASHH, from 1 July 2024)** and its predecessor the National Housing and Homelessness Agreement —
+i.e. the per-state bilateral funding schedules. `www.housing.gov.au` is NXDOMAIN from here
+(`curl: (6) Could not resolve host`); `www.dss.gov.au` either fails TLS/HTTP2 mid-stream
+(`curl: (92) HTTP/2 stream 0 was not closed cleanly: INTERNAL_ERROR`) or times out with zero bytes
+on HTTP/1.1. *Consequence*: `shs_funding` holds RoGS's recurrent government expenditure series
+(state/territory governments' own expenditure, real 2024-25 dollars), which RoGS explicitly frames
+as the NASHH homelessness component and which matches the "$1.8 billion / $64.05 per person" figure
+its chapter text states — but it is **not** the bilateral allocation per state. *Unblocks*: either
+host reachable, or the NASHH bilateral schedules as CSV in `data/raw/australia/`.
+
+**Not blocked, deliberately unswept**: ABS cube 5 (SA2/SA3/SA4 homeless counts) and cube 7
+(Indigenous status) are fetched and parse cleanly but are not written, because the store interface
+for this domain defines only `au_state` and `au_lga` entities; parking SA4 rows in `kind='au_lga'`
+would mislabel geography. ABS also publishes no LGA-level estimate for 2006/2011 in this release,
+so the LGA layer is two Census years, not four.

@@ -1784,8 +1784,22 @@ def save_baseline(counts: dict):
     BASELINE.write_text(json.dumps(cur, indent=1, sort_keys=True))
 
 
+def _build_lock():
+    """Only one build may run at a time: two builds share site.staging and interleave into garbage."""
+    import fcntl
+    fh = open(ROOT / "logs" / "build.lock", "a+")
+    for _ in range(600):
+        try:
+            fcntl.flock(fh.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            return fh
+        except BlockingIOError:
+            time.sleep(2)
+    raise SystemExit("another build holds the lock; refusing to interleave")
+
+
 def main():
     global CONN, SITE, PERSON_OK, ORG_URL
+    _lock = _build_lock()
     if "--out" in sys.argv:
         SITE = Path(sys.argv[sys.argv.index("--out") + 1]).resolve()
         print(f"building into {SITE}")

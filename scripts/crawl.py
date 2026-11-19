@@ -66,7 +66,7 @@ def resolve(base: Path, href: str):
     return ("file", target, None)
 
 
-def main():
+def main(attempt=1):
     # the publisher swaps site -> site.prev -> site; wait out that window instead of failing
     for _ in range(50):
         if (SITE / "index.html").exists():
@@ -172,6 +172,12 @@ def main():
         for o in orphans[:10]:
             print("  ORPHAN", o.relative_to(SITE))
     ok = not dead and not missing_asset and idx_ok and not no_viewport and not no_search and not orphans
+    # a publish can swap the tree under the crawl; if almost everything looks orphaned, that is what
+    # happened, so try again against the new generation instead of reporting a phantom disaster
+    if not ok and attempt < 4 and (len(orphans) > max(50, len(pages) // 2) or not pages):
+        print(f"  (publish detected mid-crawl — retrying, attempt {attempt})")
+        time.sleep(3)
+        return main(attempt + 1)
     print("SITE OK" if ok else "SITE HAS PROBLEMS")
     return 0 if ok else 1
 
