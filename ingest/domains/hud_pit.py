@@ -171,16 +171,27 @@ def read_pit_workbook(path: Path):
 
 
 def write_pit(conn, rows, src):
-    n = 0
+    n = m = 0
     for (coc, year), rec in rows.items():
         row = {"coc_num": coc, "year": year, "is_est": 0, "source_id": src}
         for k in ("total", "sheltered", "unsheltered", "chronic", "veterans",
                   "youth", "children", "families"):
             row[k] = rec.get(k)
-        # households / smi / sud / hiv / dv are never published per CoC -> NULL
+        # households / smi / sud / hiv / dv are never published per CoC -> NULL.
+        # What *is* published per CoC (family households only) is kept in metric so it
+        # is not lost and cannot be mistaken for the all-household total.
         upsert(conn, "pit", row, ["coc_num", "year"])
+        fh = rec.get("family_households")
+        if fh is not None:
+            upsert(conn, "metric", {
+                "entity_type": "coc", "entity_id": coc, "metric": "pit_family_households",
+                "value": float(fh), "unit": "households", "year": year, "is_est": 0,
+                "note": "family households only (HUD CoC workbook has no all-household count)",
+                "source_id": src,
+            }, ["entity_type", "entity_id", "metric", "year"])
+            m += 1
         n += 1
-    return n
+    return n, m
 
 
 # ------------------------------------------------------------------- geometry
@@ -485,7 +496,7 @@ def _run(conn, cfg):
     sources.append((URL_PIT_XLSB, HUD_LICENSE))
     pit_rows, coc_names, pnotes = read_pit_workbook(xlsb)
     notes.extend(pnotes)
-    written["pit"] = write_pit(conn, pit_rows, src_pit)
+    written["pit"], written["metric_coc"] = write_pit(conn, pit_rows, src_pit)
 
     # 2. CoC universe + boundaries ----------------------------------------------
     coc_geo = read_coc_geometry(conn, force=force)

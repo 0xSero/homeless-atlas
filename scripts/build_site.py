@@ -147,6 +147,41 @@ function goSearch(e){{e.preventDefault();var v=document.getElementById('gq').val
 {head and ''}
 </body></html>"""
 
+def spark(series, key="total", w=100, h=34, color="var(--ember)"):
+    """SVG sparkline from [{year,total},...]; returns '' when there is nothing to draw."""
+    pts = [(r.get(key) or 0) for r in series]
+    if len(pts) < 3 or max(pts) <= 0:
+        return ""
+    mx = max(pts) or 1
+    xy = " ".join(f"{i/(len(pts)-1)*w:.1f},{h-2-(p/mx*(h-4)):.1f}" for i, p in enumerate(pts))
+    return (f'<svg viewBox="0 0 {w} {h}" preserveAspectRatio="none" style="width:100%;height:{h+16}px" role="img" '
+            f'aria-label="trend {series[0].get("year")} to {series[-1].get("year")}">'
+            f'<polyline points="{xy}" fill="none" stroke="{color}" stroke-width="1.8" '
+            f'vector-effect="non-scaling-stroke"/></svg>')
+
+
+def trend(series, key="total"):
+    """(first, latest, absolute change, percent change, years) or Nones."""
+    vals = [(r.get("year"), r.get(key)) for r in series if r.get(key) is not None]
+    if len(vals) < 2:
+        return None
+    (y0, v0), (y1, v1) = vals[0], vals[-1]
+    if not v0:
+        return None
+    return {"y0": y0, "v0": v0, "y1": y1, "v1": v1, "abs": v1 - v0, "pct": (v1 - v0) / v0 * 100}
+
+
+def trend_badge(t):
+    if not t:
+        return '<span class="dim">no series</span>'
+    up = t["pct"] > 0.5
+    down = t["pct"] < -0.5
+    arrow = "▲" if up else ("▼" if down else "■")
+    colour = "var(--red)" if up else ("var(--teal)" if down else "var(--fg2)")
+    return (f'<span class="mono" style="color:{colour}">{arrow} {t["pct"]:+.1f}%</span> '
+            f'<span class="dim" style="font-size:.8em">{t["y0"]}→{t["y1"]}</span>')
+
+
 def banner(kicker, h1, sub, rel="", small=False, crumbs=""):
     return f"""<section class="banner{' small' if small else ''}"><div class="wrap"><div class="inner">
   {f'<div class="crumbs">{crumbs}</div>' if crumbs else ''}
@@ -1073,6 +1108,14 @@ def page_coc(d, c, manifest_total):
     {kpi(num(cur.get('smi')), "severely mentally ill", "", "")}
     {kpi(num(cur.get('sud')), "substance use disorder", "", "")}
   </div>
+  <div class="grid two" style="margin-top:16px">
+    <div class="panel"><h3>Total homeless, {series[0]["year"] if series else ""}–{series[-1]["year"] if series else ""}</h3>
+      {spark(series)}<div class="legend">{trend_badge(trend(series))}
+      <span class="dim">{num(series[0]["total"]) if series else "—"} → {num(series[-1]["total"]) if series else "—"}</span></div></div>
+    <div class="panel"><h3>Unsheltered share over time</h3>
+      {spark([{"year": r["year"], "total": (r["unsheltered"] or 0)} for r in series], color="var(--teal)")}
+      <div class="legend"><span class="dim">latest unsheltered: {num((series[-1]["unsheltered"] if series else None))}</span></div></div>
+  </div>
   <h2>Every reported year</h2>
   {table([("Year",""),("Total","r"),("Sheltered","r"),("Unsheltered","r"),("Chronic","r"),("SMI","r"),("SUD","r"),("Veterans","r")], srow,
          note="Blank cells are years or subpopulations HUD did not publish for this CoC. We never interpolate inside this table.")}
@@ -1089,6 +1132,8 @@ def page_city(d, c, manifest_total):
                       FROM org o WHERE o.city=? AND o.state=? ORDER BY COALESCE(amt,0)+COALESCE(o.revenue,0) DESC LIMIT 80""",
               (c["name"], c.get("state")))
     facs = q(CONN, "SELECT * FROM facility WHERE city=? AND state=? LIMIT 80", (c["name"], c.get("state")))
+    cseries = q(CONN, """SELECT year, total, sheltered, unsheltered FROM pit
+                         WHERE coc_num=? ORDER BY year""", (c.get("coc_num"),)) if c.get("coc_num") else []
     orow = [[f'<a href="/org/{o["id"]}-{slug(o["name"])}.html">{esc(o["name"])}</a>', "", o["name"],
              money(o.get("amt")), "r", o.get("amt") or 0, money(o.get("revenue")), "r", o.get("revenue") or 0] for o in orgs]
     frow = [[f'<a href="/facility/{f["id"]}.html">{esc(f["name"])}</a>', "", f["name"],
@@ -1104,6 +1149,12 @@ def page_city(d, c, manifest_total):
     {kpi(num((coc or {}).get('pit_total')), "CoC homeless count", f"{(coc or {}).get('pit_year') or '—'}", "b")}
     {kpi(num(len(orgs)), "organizations based here", "", "c")}
     {kpi(num(len(facs)), "institutions here", "", "d")}
+  </div>
+  <div class="panel" style="margin:16px 0"><h3>Trend for the CoC that plans this city
+    {trend_badge(trend(cseries))}</h3>
+    {spark(cseries)}
+    <div class="legend"><span class="dim">{num(cseries[0]["total"]) if cseries else "no series"} in {cseries[0]["year"] if cseries else "—"}
+    → {num(cseries[-1]["total"]) if cseries else "—"} in {cseries[-1]["year"] if cseries else "—"}</span></div>
   </div>
   <p class="dim" style="font-size:.84rem">HUD counts homelessness by Continuum of Care, not by city boundary. The city figure above is
   the CoC figure and includes surrounding areas. That limitation is in the source, not in this page.</p>
@@ -1255,7 +1306,10 @@ def save_baseline(counts: dict):
 
 
 def main():
-    global CONN
+    global CONN, SITE
+    if "--out" in sys.argv:
+        SITE = Path(sys.argv[sys.argv.index("--out") + 1]).resolve()
+        print(f"building into {SITE}")
     if not DB.exists():
         print("no database"); return 1
     # read-write handle: a read-only connection cannot see rows still in the WAL

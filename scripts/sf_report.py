@@ -18,7 +18,8 @@ DB = ROOT / "data" / "atlas.db"
 OUT = ROOT / "reports" / "san-francisco.md"
 TODAY = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
-SF_COCS = ("CA-501", "CA-502", "CA-503")
+SF_CITY_COC = "CA-501"           # San Francisco Continuum of Care
+SF_COCS = ("CA-501", "CA-502", "CA-503")   # the region
 
 conn = sqlite3.connect(f"file:{DB}?mode=ro", uri=True)
 conn.row_factory = sqlite3.Row
@@ -90,9 +91,10 @@ def w(s=""):
 
 
 # ------------------------------------------------------------------ data pulls
-years = q("""SELECT year, SUM(total) total, SUM(sheltered) shel, SUM(unsheltered) unshel,
-                    SUM(chronic) chronic, SUM(smi) smi, SUM(sud) sud, SUM(veterans) vet
-             FROM pit WHERE coc_num IN (?,?,?) GROUP BY year ORDER BY year""", SF_COCS)
+years = q("""SELECT year, total, sheltered shel, unsheltered unshel, chronic, smi, sud, veterans vet,
+                    source_id
+             FROM pit WHERE coc_num=? AND total IS NOT NULL ORDER BY year""", (SF_CITY_COC,))
+region_years = q("""SELECT year, SUM(total) total FROM pit WHERE coc_num IN (?,?,?) GROUP BY year ORDER BY year""", SF_COCS)
 cocs = q("SELECT * FROM geo_coc WHERE coc_num IN (?,?,?)", SF_COCS)
 latest = years[-1] if years else {}
 first = years[0] if years else {}
@@ -130,12 +132,18 @@ w()
 if years:
     trend = years[-1]["total"] - years[0]["total"] if years[0]["total"] and years[-1]["total"] else None
     pctchg = (trend / years[0]["total"] * 100) if trend is not None and years[0]["total"] else None
-    w(f"In the January {latest['year']} point-in-time count, the San Francisco Continuum of Care counted "
-      f"**{num(latest['total'])} people homeless** {cite(one('SELECT source_id FROM pit WHERE coc_num=? AND year=?', (SF_COCS[0], latest['year'])).get('source_id'))}. "
-      f"Of those, **{num(latest['unsheltered'])} were unsheltered** and {num(latest['sheltered'])} were in shelter. "
-      f"The same count said {num(latest['chronic'])} people met the federal definition of chronic homelessness, "
-      f"{num(latest['smi'])} adults reported a serious mental illness, {num(latest['sud'])} a substance use disorder, "
-      f"and {num(latest['vet'])} were veterans.")
+    w(f"San Francisco County (CoC {SF_CITY_COC}) is the case study. In the January {latest['year']} point-in-time count the "
+      f"San Francisco Continuum of Care counted "
+      f"**{num(latest['total'])} people homeless** {cite(latest.get('source_id'))}. "
+      f"Of those, **{num(latest['unshel'])} were unsheltered** and {num(latest['shel'])} were in shelter. "
+      "The same count reported that " + " and ".join(
+          [f"{num(v)} {label}" for v, label in (
+              (latest.get("chronic"), "people met the federal definition of chronic homelessness"),
+              (latest.get("smi"), "adults had a serious mental illness"),
+              (latest.get("sud"), "adults had a substance use disorder"),
+              (latest.get("vet"), "were veterans"),
+          ) if v is not None] or ["no subpopulation detail"])
+      + ". Subpopulation columns HUD does not publish for this CoC and year are omitted here rather than estimated.")
     w()
     if pctchg is not None:
         w(f"Between {years[0]['year']} and {years[-1]['year']} the count moved from {num(years[0]['total'])} to "
