@@ -361,9 +361,12 @@ def load(conn):
                                LEFT JOIN org_person p ON p.org_id=o.id
                                GROUP BY o.id
                                ORDER BY COALESCE(amt,0)+COALESCE(o.revenue,0) DESC LIMIT 40000""")
-    d["people_top"] = q(conn, """SELECT p.*, o.state, o.website FROM org_person p LEFT JOIN org o ON o.id=p.org_id
+    d["people_all"] = q(conn, """SELECT p.id, p.org_id, p.org_name, p.person, p.person_norm, p.title, p.comp, p.year,
+                                        o.state, o.website
+                                 FROM org_person p LEFT JOIN org o ON o.id=p.org_id
                                  WHERE p.person IS NOT NULL
-                                 ORDER BY COALESCE(p.comp,0) DESC, p.person LIMIT ?""", (PERSON_PAGE_MAX,))
+                                 ORDER BY COALESCE(p.comp,0) DESC, p.person LIMIT 200000""")
+    d["people_top"] = d["people_all"][:PERSON_PAGE_MAX]
     d["facilities"] = q(conn, """SELECT * FROM facility ORDER BY (status='open') DESC, beds DESC NULLS LAST""")
     d["laws"] = q(conn, "SELECT * FROM law ORDER BY jurisdiction, topic")
     d["media"] = q(conn, "SELECT * FROM media ORDER BY COALESCE(published,'') DESC LIMIT 5000")
@@ -497,7 +500,15 @@ def build_exports(d, conn):
 # ---------------------------------------------------------------- search index
 def build_index(d):
     idx = []
+    seen = set()
+
     def add(t, title, sub, url):
+        # the same person can appear several times (one row per tax year); keep the first, which is
+        # the highest-compensation row because people_all is ordered by compensation
+        key = (t, url)
+        if key in seen:
+            return
+        seen.add(key)
         idx.append([t, title or "", sub or "", url])
 
     for s in d["states"]:
@@ -509,8 +520,11 @@ def build_index(d):
     for o in d["top_orgs"]:
         add("org", o["name"], f"{o.get('city') or ''} {o.get('state') or ''} · {money(o.get('amt'))} federal · rev {money(o.get('revenue'))}",
             f"/org/{o['id']}-{slug(o['name'])}.html")
-    for p in d["people_top"]:
-        add("person", p["person"], f"{(p.get('title') or '').strip()} — {p.get('org_name') or ''}", f"/person/{person_slug(p)}.html")
+    for p in d["people_all"]:
+        sl = person_slug(p)
+        url = f"/person/{sl}.html" if sl in PERSON_OK else (
+            f"/org/{p['org_id']}-{slug(p.get('org_name') or '')}.html" if p.get("org_id") else "/people.html")
+        add("person", p["person"], f"{(p.get('title') or '').strip()} — {p.get('org_name') or ''}", url)
     for f in d["facilities"]:
         add("facility", f["name"], f"{(f.get('kind') or '').replace('_',' ')} · {f.get('status') or '?'} · {f.get('city') or ''} {f.get('state') or ''}",
             f"/facility/{f['id']}.html")
@@ -538,7 +552,8 @@ def build_index(d):
         if not keys:
             keys.add("_")
         for k in keys:
-            shards[k].append(row)
+            bucket = int(hashlib.md5((row[1] or "").encode()).hexdigest(), 16) % 10
+            shards[f"{k}-{bucket}"].append(row)
     out = SITE / "data" / "idx"
     if out.exists():
         shutil.rmtree(out)

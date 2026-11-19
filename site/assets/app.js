@@ -11,12 +11,21 @@
     var m = lc(q).match(/[a-z0-9]/);
     return m ? m[0] : "_";
   }
+  /* a letter is split into ten buckets so a phone fetches ~10 small files instead of one big one */
   function loadShard(k, cb) {
     if (cache[k]) return cb(cache[k]);
-    fetch("/data/idx/" + k + ".json").then(function (r) {
-      if (!r.ok) throw 0;
-      return r.json();
-    }).then(function (j) { cache[k] = j; cb(j); }).catch(function () { cache[k] = []; cb([]); });
+    var want = [];
+    for (var i = 0; i < 10; i++) want.push(k + "-" + i);
+    Promise.all(want.map(function (name) {
+      return fetch("/data/idx/" + name + ".json")
+        .then(function (r) { return r.ok ? r.json() : []; })
+        .catch(function () { return []; });
+    })).then(function (parts) {
+      var all = [];
+      parts.forEach(function (p) { for (var i = 0; i < p.length; i++) all.push(p[i]); });
+      cache[k] = all;
+      cb(all);
+    });
   }
   function score(item, q) {
     /* every whitespace-separated token of the query must appear somewhere in the record */

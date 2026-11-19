@@ -53,3 +53,65 @@ per-facility budgets and staffing stay thin.
 variables. Workers should use those APIs (never print the key) for source discovery instead of scraping a search
 engine: Brave `GET https://api.search.brave.com/res/v1/web/search?q=...` with `X-Subscription-Token`,
 Exa `POST https://api.exa.ai/search` with `x-api-key`. Read the keys inside the command only.
+
+## laws
+
+Not a key problem: this domain needs no API key. What is recorded here is what a *complete*
+legal-landscape sweep would still need, and why each route was closed at the time of writing
+(2026-11-19). The [laws ingestor](../ingest/domains/laws.py) ships 1,164 rows on the sources
+that do work; details in `research/laws.md` § Coverage.
+
+**1. Statute numbers for statewide camping / sit-lie / panhandling bans.**
+NHLC's appendix matrix prints only an "x" per state/category, never a section number, so
+those rows carry an appendix pinpoint rather than a statute section. To close this you would
+have to read 50 state codes. Blocked without a key:
+Tested 2026-11-19 with this project's user agent:
+
+| URL tested | Status | Note |
+|---|---|---|
+| `https://law.justia.com/codes/alabama/` | 403 | state codes, best single index |
+| `https://codes.findlaw.com/al/` | 403 | state codes |
+| `https://casetext.com/` | 403 | |
+| `https://www.ncsl.org/` | 403 | NCSL state-law database |
+| `https://www.lawserver.com/law/state/alabama/al-code` | 307 (redirect not followed) | |
+| `https://leginfo.legislature.ca.gov/faces/codes.xhtml` | 403 | California |
+| `https://lis.virginia.gov/` | 200 (2.5 kB shell) | reachable, but no stable per-section URL scheme to cite |
+| 48 other legislature sites | not attempted | each is a bespoke system; out of scope for a 1 req/s sweep |
+
+What unblocks it: a state-code bulk download or an allowlisted egress IP for Justia/FindLaw,
+or hand-curated section numbers per state with a reviewer who reads the code.
+
+**2. NLIHC's State & Local Housing Trust Fund *database*** (would give the enabling statute and
+year for every state fund): https://nlihc.org/housing-trust-fund-project/database renders a JS
+application; the HTML contains no table and the page's own copy defers to the app
+("You can get the most up-to-date counts ... from the State and Local Housing Trust Fund
+Database"). Only the 14 states described in prose on `/housing-trust-fund-project` could be
+ingested (`funding` rows). Unblocks with: NLIHC publishing the database as CSV/JSON, or a
+browser session against the app.
+
+**3. Housing Not Handcuffs "Emergent Threats Map"** (per-state bill tracker, would add 2024-26
+status for all 50 states): https://housingnothandcuffs.org/map/ embeds the map client-side; the
+data lives in a WordPress custom post type `igmap` which the public REST API returns with empty
+`content` (`/wp-json/wp/v2/igmap` lists 3 maps — "Criminalizing Legislation by State",
+"Defeated Bills", "Positive Policies" — all `content.rendered == ""`, and their own permalinks
+404). Unblocks with: `context=edit` credentials for the site, or the site exposing the map data
+as JSON.
+
+**4. Housing First mandates per state.** Neither NLIHC's Housing First page nor 24 CFR Part 578
+names state statutes (Part 578 does not contain the phrase "Housing First" at all — checked via
+the eCFR API). Only California's mandate is documented (NHLC 2025). Unblocks with: a state-by-state
+Housing First statute table, or HUD's CoC NOFO (which does impose the requirement for CoC-funded
+projects) as a fetchable document.
+
+**5. Property storage / belongings seizure.** No reachable source tabulates state or city rules on
+storage of personal property taken during an encampment sweep. The NHLC publications index lists
+report-length PDFs that touch it (`Tent_City_USA_2017.pdf`, `Eviction_Without_Notice.pdf`,
+`Public-Property-Public-Need.pdf`) but they were not parsed for a jurisdiction table — they are
+advocacy reports, not surveys. The `property` topic in this domain is vehicle habitation only.
+
+**6. Federal court dockets.** `https://www.courtlistener.com/api/rest/v4/search/` answers HTTP 401
+without a token (`COURTLISTENER_API_TOKEN`, free signup at https://www.courtlistener.com/sign-in/ ), and
+`https://www.pacer.uscourts.gov/cgi-bin/login.pl` returned 404 (docs host is 200; the search
+endpoints are paywalled per page). The Grants Pass holding and the Martin v. Boise rule
+were therefore taken from the Supreme Court opinion text on Cornell LII (which quotes both),
+not from the dockets. Unblocks injunction rows (status=enjoined) per city with a token.

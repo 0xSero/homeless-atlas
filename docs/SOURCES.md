@@ -132,3 +132,21 @@ Sources attempted and rejected for the facility domain (recorded so nobody re-tr
 `asylumprojects.org` (HTTP 403 to non-browser clients), SAMHSA N-MHSS/N-SUMHSS public-use files
 (HTTP 403), `data.cms.gov` HCRIS (HTTP 403, Akamai), `catalog.data.gov` CKAN (404),
 `nri-inc.org` (robots.txt asserts `ai-input`/`ai-train` content-signal reservations).
+
+## laws — exact endpoints used (verified live 2026-11-19, HTTP 200)
+
+Appended by the `laws` worker. The three rows in the Law table above are the generic
+description; these are the specific documents whose text the `law` rows are built from
+(every response cached under `data/raw/laws/`, 1 req/s).
+
+| Source | Gives | Licence / terms | Endpoint | Ingestor |
+|---|---|---|---|---|
+| Treatment Advocacy Center state pages (50 states + DC) | each state's emergency-evaluation, inpatient-commitment and outpatient/AOT statute text with section numbers, plus TAC's recommended amendments | statutory text is public record; pages cited and linked, not reproduced in bulk | https://www.tac.org/map_directory/<state>/ (e.g. `/alabama/`, `/district-of-columbia/`) | `laws` |
+| National Homelessness Law Center, *Housing Not Handcuffs 2021: State Law Supplement* | 51 jurisdictions x 12 statewide restriction categories (sleeping/camping, sit-lie, vehicle lodging, loitering/vagrancy, roadway, panhandling) | public advocacy report, cited and linked | https://homelesslaw.org/wp-content/uploads/2022/02/2021-HNH-State-Crim-Supplement.pdf | `laws` |
+| National Homelessness Law Center, *Housing Not Handcuffs* (2019), Appendix A | 187 surveyed cities x 11 municipal ordinance categories (2016 chart) | public advocacy report, cited and linked | https://homelesslaw.org/wp-content/uploads/2018/10/Housing-Not-Handcuffs.pdf | `laws` |
+| National Homelessness Law Center / Housing Not Handcuffs, *One year since Grants Pass* (May 2025) | 2024-25 statewide bill status, CA Housing First mandate + AB 20, federal Housing Not Handcuffs Act | public advocacy report, quoted with attribution | https://housingnothandcuffs.org/wp-content/uploads/2025/06/Cicero-Homeless-Criminalization-Summary-May-2025.pdf | `laws` |
+| NLIHC, *Successfully Fighting Against State and Local Homelessness Criminalization Bills* | named state bills with numbers (GA SB 62, KS HB 2430, MO HB 1606, MO SB 1336, IN/IA bills) and the states where criminalization bills failed | public advocacy report, quoted with attribution | https://nlihc.org/sites/default/files/Successfully-Fighting-Against-State-and-Local-Homelessness-Criminalization-Bills.pdf | `laws` |
+| NLIHC Housing Trust Fund Project page | the state legislation that enables local housing trust funds, with statutes (A.R.S. 11-381, RCW 84.52.105, Act 137, SB1533, H3509, P.L. 2009 ch. 123, ...) | public research page, quoted with attribution | https://nlihc.org/housing-trust-fund-project | `laws` |
+| Cornell LII — U.S. Supreme Court + CFR + U.S. Code | *City of Grants Pass v. Johnson* (No. 23-175) opinion text; 24 CFR 578.7 (CoC written standards); 42 U.S.C. § 11302 (definition of homeless individual) | public record; LII terms permit linking | https://www.law.cornell.edu/supremecourt/text/23-175, /cfr/text/24/578.7, /uscode/text/42/11302 | `laws` |
+| NLIHC "Housing First" issue page | the adoption of Housing First by federal agencies and by state/local officials (context row; names no state statutes) | public advocacy page, quoted with attribution | https://nlihc.org/explore-issues/housing-programs/housing-first | `laws` |
+| eCFR versioner API | used as a *check*, not a source of rows: verifies that 24 CFR Part 578 contains no "Housing First" language | US Government work, public domain | https://www.ecfr.gov/api/versioner/v1/full/<date>/title-24.xml?part=578 | `laws` |
