@@ -108,6 +108,27 @@ def _upsert(conn, table, row, keys):
     _retry(lambda: upsert(conn, table, row, keys))
 
 
+def _own_sids(conn):
+    """source ids registered by this domain (rows carrying them are ours to re-point)."""
+    return {r[0] for r in conn.execute("SELECT id FROM source WHERE domain=?", (DOMAIN,))}
+
+
+def _put(conn, table, row, keys, own):
+    """upsert a shared-table row without stealing provenance from another domain.
+
+    `geo_coc` / `geo_state` / `geo_city` are written by several domains; the contract
+    (docs/INGEST_CONTRACT.md) forbids setting `source_id` on a row we did not create,
+    so the column is dropped when an existing foreign row already carries one.
+    """
+    row = dict(row)
+    if row.get("source_id") is not None:
+        cur = conn.execute(
+            f"SELECT source_id FROM {table} WHERE {keys[0]}=?", (row[keys[0]],)).fetchone()
+        if cur is not None and cur[0] is not None and cur[0] not in own:
+            row.pop("source_id")
+    _upsert(conn, table, row, keys)
+
+
 def _commit(conn):
     _retry(lambda: conn.commit())
 
@@ -648,6 +669,7 @@ def _census_states(conn, tol):
                               publisher=CENSUS_PUB, license=CENSUS_LIC)
 
     pop = _pep_population(conn)
+    own = _own_sids(conn)
     rows = []
     feats = []
     for a, rings in zip(attrs, shapes):
@@ -661,12 +683,15 @@ def _census_states(conn, tol):
         lat, lon = _center_largest(geom) if geom else (None, None)
         aland = a.get("ALAND")
         land_sqmi = round(aland / SQ_M_PER_SQ_MI, 1) if isinstance(aland, (int, float)) else None
-        _upsert(conn, "geo_state", {
+        st_pop = pop["state"].get(fips)
+        _put(conn, "geo_state", {
             "fips": fips, "abbr": abbr, "name": name,
-            "pop": pop["state"].get(fips),
+            "pop": st_pop,
             "lat": lat, "lon": lon, "land_sqmi": land_sqmi,
-            "source_id": src_state,
-        }, keys=["fips"])
+            # provenance points at the source behind the published number (PEP) when
+            # there is one, otherwise at the boundary file the row's identity comes from
+            "source_id": pop["source_id"] if st_pop is not None else src_state,
+        }, keys=["fips"], own=own)
         rows.append((fips, abbr, name))
         if sg:
             feats.append({"type": "Feature", "properties": {
@@ -758,6 +783,7 @@ def _census_places(conn, coc_geoms):
                               publisher=CENSUS_PUB, license=CENSUS_LIC)
     gaz, _src_gaz = _gazetteer_points(conn)
     pop = _pep_population(conn)
+    own = _own_sids(conn)
 
     fips2abbr = {r["fips"]: r["abbr"] for r in conn.execute(
         "SELECT fips, abbr FROM geo_state WHERE abbr IS NOT NULL")}
@@ -814,11 +840,11 @@ def _census_places(conn, coc_geoms):
         lon = g[1] if g else None
         p = pop["place"].get(geoid)
         coc_num = match_coc(lon, lat) if lat is not None else None
-        _upsert(conn, "geo_city", {
+        _put(conn, "geo_city", {
             "geoid": geoid, "kind": "place", "name": name, "state": st,
             "pop": p, "lat": lat, "lon": lon, "coc_num": coc_num,
-            "source_id": src_place,
-        }, keys=["geoid"])
+            "source_id": pop["source_id"] if p is not None else src_place,
+        }, keys=["geoid"], own=own)
         n += 1
         n_pop += 1 if p is not None else 0
         n_pt += 1 if lat is not None else 0
@@ -902,7 +928,7 @@ def run(conn, cfg):
             "state": state,
             "done_at": now(),
         }, keys=["coc_num"])
-        _upsert(conn, "geo_coc", {
+        _put(conn, "geo_coc", {
             "coc_num": coc_num,
             "name": clean(props.get("COCNAME")),
             "state": state,
@@ -910,7 +936,7 @@ def run(conn, cfg):
             "lat": lat,
             "lon": lon,
             "source_id": src_by_url[url],
-        }, keys=["coc_num"])
+        }, keys=["coc_num"], own=_own_sids(conn))
         coc_geoms[coc_num] = geom
         coc_rows += 1
     _commit(conn)

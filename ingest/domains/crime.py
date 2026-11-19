@@ -82,8 +82,10 @@ RULES = [
     ("violent", r"\b(SHOOTING|SHOTS FIRED|GUNSHOT|DISCHARGE.{0,10}FIREARM)\b"),
     ("violent", r"\b(ASSAULT|BATTERY)\b"),
     ("violent", r"\b(INTIMIDATION|STALKING)\b"),
+    ("property", r"\b(MOTOR VEHICLE THEFT|AUTO THEFT|VEHICLE THEFT|STOLEN VEHICLE|MVTHEFT|MVT)\b"),
     ("theft", r"\b(LARCEN|THEFT|SHOPLIFT|PURSE ?SNATCH|PICKPOCKET)"),
     ("property", r"\b(BURGLAR|BREAKING ?& ?ENTERING|BREAKING AND ENTERING)"),
+    ("property", r"\b(MOTOR VEHICLE THEFT|AUTO THEFT|VEHICLE THEFT|STOLEN VEHICLE|MVTHEFT|MVT)\b"),
     ("property", r"\b(MOTOR VEHICLE THEFT|AUTO THEFT|VEHICLE THEFT|STOLEN VEHICLE|MVTHEFT|MVT)\b"),
     ("property", r"\b(ARSON)"),
     ("property", r"\b(VANDAL|CRIMINAL MISCHIEF|DAMAGE.{0,12}PROPERTY|DESTRUCTION.{0,12}PROPERTY)"),
@@ -93,6 +95,9 @@ RULES = [
     ("other", r"\b(DRUG|NARCOTIC|LIQUOR|ALCOHOL|WEAPON|TRESPASS|DISORDERLY|VAGRAN|LOITER|"
               "PROSTITUT|GAMBL|OBSCEN|CURFEW|RUNAWAY|TRAFFIC|DUI|FAMILY OFFENSE|JUVENILE|"
               "ANIMAL|FIREWORK|PUBLIC ORDER|OTHER|UNKNOWN|ALL OTHER|SIMPLE)\b"),
+    # NIBRS 'crime against' style columns: Person / Property / Society
+    ("property", r"^PROPERTY$"),
+    ("violent", r"^PERSON$"),
 ]
 RULES = [(b, re.compile(p)) for b, p in RULES]
 
@@ -114,11 +119,12 @@ def bucket_for(label: str | None) -> tuple[str | None, str | None]:
 # --------------------------------------------------------------------------------------
 # registry. Every url here was fetched at least once and is cached under data/raw/crime/.
 # --------------------------------------------------------------------------------------
-def S(city, state, host, dsid, title, publisher, note=""):
+def S(city, state, host, dsid, title, publisher, note="", homeless_flag=None):
     return dict(key=f"socrata:{host}/{dsid}", city=city, state=state, kind="socrata",
                 host=host, dsid=dsid, title=title, publisher=publisher,
                 license="public data (city open-data portal terms; see portal)",
-                url=f"https://{host}/resource/{dsid}.json", note=note)
+                url=f"https://{host}/resource/{dsid}.json", note=note,
+                homeless_flag=homeless_flag)
 
 
 def A(city, state, base, layer, title, publisher, year=None, note=""):
@@ -135,10 +141,11 @@ SOURCES = [
     S("New York", "NY", "data.cityofnewyork.us", "qgea-i56i",
       "NYPD Complaint Data Historic", "NYC Police Department (via NYC OpenData)",
       "felony/misdemeanour complaint records, 2006-present"),
-    S("Los Angeles", "CA", "data.lacity.org", "2nrs-mtv8",
-      "Crime Data from 2020 to 2024", "Los Angeles Police Department (via LA Open Data)"),
     S("Los Angeles", "CA", "data.lacity.org", "k7nn-b2ep",
-      "LAPD NIBRS Offenses Dataset", "Los Angeles Police Department (via LA Open Data)"),
+      "LAPD NIBRS Offenses Dataset", "Los Angeles Police Department (via LA Open Data)",
+      "LAPD's own NIBRS extract carries homeless_victim_crime / homeless_suspect_crime / "
+      "homeless_arrestee_crime flags -- the only agency-flagged homeless measure in this sweep",
+      homeless_flag=True),
     S("Chicago", "IL", "data.cityofchicago.org", "ijzp-q8t2",
       "Crimes - 2001 to Present", "Chicago Police Department (via Chicago Data Portal)"),
     S("Dallas", "TX", "www.dallasopendata.com", "qv6i-rri7",
@@ -263,6 +270,8 @@ DATE_HINTS = [
     "reported_date", "reportdate", "reported_datetime", "date_reported", "dispatch_date_time",
     "reporteddate", "occurreddatetime", "occurrence_date_utc", "first_occurrence_date",
     "incident_occurred", "start_date", "cmplnt_fr_dt", "from_date", "reported_on",
+    "date_occ", "date_rptd", "incident_date", "incident_datetime", "occur_date",
+    "occurrence_date", "occurred_date", "offence_date", "reportdatetime", "reporteddatetime",
     "offenseyear", "reported_year", "occurred_year", "occurred_yr", "incident_year", "year",
 ]
 CAT_HINTS = [
@@ -333,6 +342,57 @@ def _pick(fields, hints, types, prefer_type=None):
     return None
 
 
+CAT_STEMS = ["nibrs", "nibr", "ucr", "offense_category", "offense_description",
+             "offense_desc", "offense", "offence", "primary_type", "crime_type",
+             "crime_category", "incident_category", "incident_description", "statute",
+             "general_subject", "crime", "category", "description", "type"]
+CAT_BLACKLIST = ("clearance", "location", "premise", "weapon", "district", "zone",
+                 "status", "date", "time", "year", "month", "hour", "day", "race",
+                 "sex", "gender", "age", "address", "flag", "mapped", "latitude",
+                 "longitude", "total", "count", "report_type", "reporttype",
+                 "number", "neighborhood", "beat", "sector", "division", "ward",
+                 "objectid", "globalid", "grid", "charge")
+
+
+def _cat_candidates(fields, allowed_types):
+    """Rank possible classification columns; a column that looks like an offence
+    label ranks above a code, and a label column beats a report-type column."""
+    out = []
+    for name, typ in fields:
+        if typ not in allowed_types:
+            continue
+        low = name.lower()
+        if any(b in low for b in CAT_BLACKLIST) or low.endswith("id"):
+            continue
+        score = None
+        for i, stem in enumerate(CAT_STEMS):
+            if stem in low:
+                score = i
+                break
+        if score is None:
+            continue
+        if "descrip" in low:
+            score -= 0.5
+        if low in ("type", "description"):
+            score += 3
+        out.append((score, name))
+    out.sort()
+    return [n for _, n in out][:8]
+
+
+def _score_counts(counts):
+    """(distinct values, share of incidents mapped to a real bucket)"""
+    total = sum(counts.values())
+    if not total:
+        return 0, 0.0
+    mapped = 0
+    for val, n in counts.items():
+        bk, _ = bucket_for(val)
+        if bk in ("violent", "property", "theft"):
+            mapped += n
+    return len(counts), mapped / total
+
+
 # ---------------------------- Socrata ----------------------------
 def _socrata_meta(host, dsid):
     url = f"https://{host}/api/views/{dsid}.json"
@@ -370,15 +430,27 @@ def _socrata_counts(src):
     fields, title, lic = _socrata_meta(host, dsid)
     if not fields:
         raise RuntimeError("no columns in metadata")
-    date_f = _pick(fields, DATE_HINTS, {"calendar_date", "text", "number", "date"})
-    cat_f = _pick(fields, CAT_HINTS, {"text", "number", "checkbox"})
+    date_f = _pick(fields, DATE_HINTS, {"calendar_date", "text", "number", "date"},
+                   prefer_type="calendar_date")
+    # choose the classification column empirically: distinct values + crosswalk coverage
+    cat_f, probe, best = None, None, (-1, -1.0)
+    tried = []
+    for cand in _cat_candidates(fields, {"text", "number", "checkbox"}):
+        try:
+            rows = _soql_rows(host, dsid, f"{cand} AS c, count(*) AS n",
+                              group=cand, order="n DESC", limit=400)
+        except Exception:
+            continue
+        counts = {r.get("c"): to_int(r.get("n")) or 0 for r in rows}
+        distinct, share = _score_counts(counts)
+        tried.append(f"{cand}:d{distinct}/s{share:.2f}")
+        if distinct >= 5 and (share, distinct) > best:
+            best = (share, distinct)
+            cat_f, probe = cand, [{"c": k, "n": v} for k, v in counts.items()]
+        if share >= 0.6 and distinct >= 5:
+            break
     if not cat_f:
-        raise RuntimeError("no category field")
-    # sanity: category must have >1 distinct value
-    probe = _soql_rows(host, dsid, f"{cat_f} AS c, count(*) AS n",
-                       group=cat_f, order="n DESC", limit=400)
-    if len(probe) < 2:
-        raise RuntimeError(f"category field {cat_f} has <2 values")
+        raise RuntimeError("no usable classification column (tried " + ", ".join(tried) + ")")
     is_cal = any(f[0] == date_f and f[1] == "calendar_date" for f in fields)
     iso_year = any(f[0] == date_f and f[1] == "number" and "year" in f[0].lower() for f in fields)
     out = {}
@@ -439,37 +511,41 @@ def _agol_query(base, layer, params):
 def _agol_counts(src):
     base = src["base"]
     fields, layer, svcname = _agol_meta(base, src["layer"])
-    types = {t for _, t in fields}
     oid = next((n for n, t in fields if t == "esriFieldTypeOID"), None)
     date_f = _pick(fields, DATE_HINTS,
                    {"esriFieldTypeDate", "esriFieldTypeString", "esriFieldTypeInteger"},
                    prefer_type="esriFieldTypeDate")
     year_f = _pick(fields, YEAR_HINTS, {"esriFieldTypeInteger", "esriFieldTypeSmallInteger",
                                         "esriFieldTypeDouble", "esriFieldTypeString"})
-    cat_f = _pick(fields, CAT_HINTS, {"esriFieldTypeString", "esriFieldTypeInteger"})
-    if not cat_f:
-        raise RuntimeError("no category field")
-    stat = json.dumps([{"statisticType": "count", "onStatisticField": oid or cat_f,
-                        "outStatisticFieldName": "n"}])
-    base_params = {"groupByFieldsForStatistics": cat_f, "outStatistics": stat,
-                   "orderByFields": "n DESC"}
 
-    def one(where=None):
-        p = dict(base_params)
+    def one(where=None, cat_f=None):
+        stat = json.dumps([{"statisticType": "count", "onStatisticField": oid or cat_f,
+                            "outStatisticFieldName": "n"}])
+        p = {"groupByFieldsForStatistics": cat_f, "outStatistics": stat,
+             "orderByFields": "n DESC"}
         if where:
             p["where"] = where
         d = _agol_query(base, layer, p)
-        feats = d.get("features") or []
         out = {}
-        for f in feats:
+        for f in d.get("features") or []:
             a = f.get("attributes") or {}
             out[a.get(cat_f)] = to_int(a.get("n")) or 0
         return out
 
-    # dry-run / probe on the whole service
-    probe = one("1=1" if not date_f else None) if False else one()
-    if len(probe) < 2:
-        raise RuntimeError(f"category field {cat_f} has <2 values")
+    cat_f, probe, best, tried = None, None, (-1, -1.0), []
+    for cand in _cat_candidates(fields, {"esriFieldTypeString", "esriFieldTypeInteger"}):
+        try:
+            counts = one(cat_f=cand)
+        except Exception:
+            continue
+        distinct, share = _score_counts(counts)
+        tried.append(f"{cand}:d{distinct}/s{share:.2f}")
+        if distinct >= 5 and (share, distinct) > best:
+            best, cat_f, probe = (share, distinct), cand, counts
+        if share >= 0.6 and distinct >= 5:
+            break
+    if not cat_f:
+        raise RuntimeError("no usable classification column (tried " + ", ".join(tried) + ")")
 
     out = {}
     fixed = src.get("year_fixed")
@@ -483,7 +559,7 @@ def _agol_counts(src):
         got = {}
         if year_f and not any(k in year_f.lower() for k in ("date",)):
             try:
-                got = one(f"{year_f} = {y}")
+                got = one(f"{year_f} = {y}", cat_f)
             except Exception:
                 got = {}
         if not got:
@@ -493,7 +569,7 @@ def _agol_counts(src):
                           f"{date_f} >= {int(datetime(y, 1, 1, tzinfo=timezone.utc).timestamp()*1000)} "
                           f"AND {date_f} < {int(datetime(y+1, 1, 1, tzinfo=timezone.utc).timestamp()*1000)}"):
                 try:
-                    got = one(where)
+                    got = one(where, cat_f)
                 except Exception:
                     got = {}
                 if got:
@@ -507,10 +583,19 @@ def _agol_counts(src):
 # metric writing
 # --------------------------------------------------------------------------------------
 def _write_city(conn, conn_meta, geoid, pop, buckets, src_id, src):
-    """buckets: {year: {violent: n, property: n, theft: n, other: n}}"""
+    """buckets: {year: {violent: n, property: n, theft: n, other: n}}
+
+    One source owns a given (city, year): when a second dataset for the same city also
+    covers that year we keep the first and skip, so two portals are never summed.
+    """
     rows_metric = 0
+    existing = {r[0]: r[1] for r in
+                conn.execute("SELECT year, source_id FROM crime_city_year WHERE geoid=?",
+                             (geoid,))}
     for year in sorted(buckets):
         if year < MIN_YEAR - 6:
+            continue
+        if year in existing and existing[year] != src_id:
             continue
         b = buckets[year]
         tot = sum(b.values())
@@ -539,6 +624,61 @@ def _write_city(conn, conn_meta, geoid, pop, buckets, src_id, src):
                    keys=["entity_type", "entity_id", "metric", "year"])
             rows_metric += 1
     return rows_metric
+
+
+def _agency_homeless_flags(conn, src, geoid, pop, sid):
+    """LAPD is the one portal in this sweep that ships agency-recorded homeless flags on
+    the incident record. Store those counts separately, with their own caveat -- they are
+    an officer-entered classification, not a validated measure of who committed an offence."""
+    host, dsid = src["host"], src["dsid"]
+    if not geoid:
+        return 0
+    n = 0
+    for flag, metric, label in (
+            ("homeless_suspect_crime", "homeless_suspect_incidents",
+             "incidents LAPD flagged as having a homeless suspect"),
+            ("homeless_victim_crime", "homeless_victim_incidents",
+             "incidents LAPD flagged as having a homeless victim")):
+        try:
+            rows = _soql_rows(host, dsid,
+                              f"date_trunc_y(date_occ) AS y, {flag} AS v, count(*) AS n",
+                              group=f"y,v", limit=5000)
+        except Exception:
+            continue
+        agg = {}
+        for r in rows:
+            y = str(r.get("y") or "")[:4]
+            if y.isdigit() and MIN_YEAR <= int(y) <= datetime.now(timezone.utc).year \
+                    and str(r.get("v")) == "Yes":
+                agg[int(y)] = to_int(r.get("n")) or 0
+        for y, cnt in agg.items():
+            note = (f"Agency-recorded flag, NOT a homelessness-adjusted crime statistic: "
+                    f"LAPD's NIBRS extract has a field {flag}='Yes' on {cnt:,} {y} offence "
+                    f"records ({label}). It is entered by the reporting officer, uses LAPD's "
+                    f"own definition, and is not comparable across agencies or years; no other "
+                    f"portal in this sweep publishes such a flag. Do not read it as a count of "
+                    f"crimes committed by homeless people.")
+            upsert(conn, "metric",
+                   {"entity_type": "city", "entity_id": geoid, "metric": metric,
+                    "value": float(cnt), "unit": "flagged_incidents", "year": y,
+                    "is_est": 0, "note": note, "source_id": sid},
+                   keys=["entity_type", "entity_id", "metric", "year"])
+            n += 1
+    try:
+        upsert(conn, "doc",
+               {"kind": "dataset",
+                "title": "LAPD NIBRS Offenses Dataset (incl. homeless victim / suspect / "
+                         "arrestee flags)",
+                "url": src["url"], "publisher": src["publisher"],
+                "published": None,
+                "summary": "Agency dataset that records a homeless-suspect, homeless-victim and "
+                           "homeless-arrestee flag on each NIBRS offence record; the only "
+                           "agency-measured homeless-attributable series found in this sweep.",
+                "source_id": sid}, keys=["url"])
+        n += 1
+    except Exception:
+        pass
+    return n
 
 
 # --------------------------------------------------------------------------------------
@@ -676,6 +816,8 @@ def run(conn, cfg):
                                 license=lic or src["license"])
             nrows = _write_city(conn, {"title": title or src["title"]}, geoid, pop,
                                 buckets, sid, src)
+            if src.get("homeless_flag"):
+                nrows += _agency_homeless_flags(conn, src, geoid, pop, sid)
             upsert(conn, "crime_source",
                    {"key": src["key"], "city": src["city"], "state": src["state"],
                     "kind": src["kind"], "url": src["url"], "title": title or src["title"],

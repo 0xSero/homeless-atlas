@@ -17,6 +17,7 @@ from urllib.parse import quote
 ROOT = Path(__file__).resolve().parent.parent
 DB = ROOT / "data" / "atlas.db"
 SITE = ROOT / "site"
+STAGING = ROOT / "site.staging"
 SRC = ROOT / "site_src"
 GEO = ROOT / "data" / "geo"
 FAST = "--fast" in sys.argv
@@ -531,7 +532,12 @@ def build_index(d):
 
 
 def person_slug(p):
-    h = hashlib.md5(((p.get("person_norm") or "") + (p.get("org_name") or "") + str(p.get("year") or "")).encode()).hexdigest()[:7]
+    """One page per person *per organisation*.
+
+    Including the tax year produced three near-identical pages for one officer; including only the
+    name would merge different people who share a name. Person + organisation is the right key.
+    """
+    h = hashlib.md5(((p.get("person_norm") or "") + "|" + (p.get("org_name") or "")).encode()).hexdigest()[:7]
     return f"{slug(p.get('person') or 'person', 40)}-{h}"
 
 # ---------------------------------------------------------------- pages
@@ -1461,6 +1467,12 @@ def main():
     if SITE.exists():
         shutil.rmtree(SITE)
     SITE.mkdir(parents=True, exist_ok=True)
+    if "--out" not in sys.argv:
+        # write into STAGING and swap at the end (see the end of main)
+        if STAGING.exists():
+            shutil.rmtree(STAGING)
+        SITE = STAGING
+        SITE.mkdir(parents=True, exist_ok=True)
     (SITE / "assets").mkdir(exist_ok=True)
     for f in ("atlas.css", "app.js"):
         shutil.copy(SRC / f, SITE / "assets" / f)
@@ -1469,7 +1481,6 @@ def main():
     total, manifest = build_index(d)
     (SITE / "data" / "manifest.json").write_text(json.dumps({"total": total, "at": NOW, "rows": counts}))
     save_baseline(counts)
-
     write("index.html", page_index(d, total))
     write("map.html", page_map(d, total))
     write("states.html", page_states(d, total))
@@ -1507,6 +1518,18 @@ def main():
             write(f"facility/{f['id']}.html", page_facility(d, f, total)); n += 1
     # favicon + robots
     write("robots.txt", "User-agent: *\nAllow: /\n")
+    if "--out" not in sys.argv:
+        # atomic swap: a reader never sees a half-written site
+        final = ROOT / "site"
+        prev = ROOT / "site.prev"
+        if prev.exists():
+            shutil.rmtree(prev)
+        if final.exists():
+            final.rename(prev)
+        STAGING.rename(final)
+        if prev.exists():
+            shutil.rmtree(prev)
+        print(f"published {final} atomically ({n + 16} pages)")
     print(json.dumps({"pages": n + 16, "search_index": total, "geo": geo_counts,
                       "rows": d["meta"]["counts"]}, indent=1))
     return 0

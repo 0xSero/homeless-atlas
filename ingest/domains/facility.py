@@ -652,6 +652,146 @@ def _first(ib, keys):
     return None
 
 
+_BUDGET_NEG_RE = re.compile(
+    r"(reduc\w*|cut|boost\w*|increase\w*|shortfall|deficit|sav\w*|surplus|request\w*|"
+    r"propos\w*|los[ti]|spent|short of)\s+(?:its|the|a|an)?\s*(?:annual |operating |total )?"
+    r"budget|health ?care budget|medical budget|capital budget|construction budget|"
+    r"budget (?:shortfall|gap|deficit)", re.I)
+
+
+def _article_econ(wt, name, beds):
+    """Facility-level budget / staffing / per-patient cost figures stated in article text.
+
+    Only sentences that describe *this institution* are accepted; every accepted figure keeps
+    the quoted sentence in the row's population_note so it can be re-checked at the source.
+    """
+    txt = re.sub(r"\s+", " ", _strip_refs(wt or ""))
+    out = {"budget": None, "budget_year": None, "staff": None, "cpb": None, "cpb_year": None,
+           "cpb_is_est": 0, "beds": None, "notes": []}
+    toks = [t for t in name_norm(name).split() if len(t) >= 5][:4]
+
+    # capacity stated in prose ("1,175-bed prison", "capacity of 800 patients")
+    if not beds:
+        m = re.search(r"(\d[\d,]{1,5})[- ]bed\b", txt, re.I) or re.search(
+            r"(?:capacity|designed capacity) of (?:about |approximately |up to |nearly )?"
+            r"(\d[\d,]{1,5})", txt, re.I)
+        if m:
+            n = _num(m.group(1))
+            if n and 10 <= n <= 20000:
+                out["beds"] = n
+                out["notes"].append("bed count from article text: \"%s\""
+                                    % txt[max(0, m.start() - 90):m.end() + 60])
+
+    # staffing
+    for pat in (r"staff of (?:about |approximately |roughly |some )?([\d,]{2,7})",
+                r"([\d,]{2,7})\s+(?:full[- ]time )?(?:employees|staff members)\b",
+                r"employ(?:s|ed|ing) (?:about |approximately |roughly |nearly )?([\d,]{2,7})",
+                r"a total of ([\d,]{2,7}) staff",
+                r"staff(?:ing)? of (?:about |approximately |roughly )?([\d,]{2,7})",
+                r"([\d,]{2,7})\s+(?:correctional officers|security staff|nursing staff)"):
+        m = re.search(pat, txt, re.I)
+        if not m:
+            continue
+        n = _num(m.group(1))
+        if not n or not (5 <= n <= 60000):
+            continue
+        if beds and not (0.05 <= n / beds <= 25):
+            continue
+        out["staff"] = n
+        out["notes"].append("staffing figure from article text: \"%s\""
+                            % txt[max(0, m.start() - 110):m.end() + 70])
+        break
+
+    # annual budget: the dollar amount that follows the word "budget" in a facility sentence
+    for m in re.finditer(r"[^.\n]{0,220}budget[^.\n]{0,60}\$[\d.,]+[^.\n]{0,160}\.", txt):
+        sent = re.sub(r"\s+", " ", m.group(0))
+        if _BUDGET_NEG_RE.search(sent):
+            continue
+        own = any(t.lower() in sent.lower() for t in toks) or re.search(
+            r"\b(the|this) (hospital|prison|facility|institution|center)\b|\bits budget\b",
+            sent, re.I)
+        if not own:
+            continue
+        bp = sent.lower().index("budget")
+        after = sent[bp:]
+        b = _money(after)
+        if not b:
+            continue
+        beds_here = beds or out.get("beds")
+        if not (100_000 <= b <= 2_000_000_000):
+            continue
+        if beds_here and not (5_000 <= b / beds_here <= 1_500_000):
+            continue
+        out["budget"] = b
+        out["budget_year"] = _year(sent)
+        out["notes"].append("budget figure from article text: \"%s\"" % sent[:240])
+        break
+
+    # "costs $X million a year to operate" style statements
+    if not out["budget"]:
+        for m in re.finditer(r"[^.\n]{0,180}\$[\d.,]+\s*(?:million|billion)?\s*"
+                             r"(?:a|per|each)\s+year[^.\n]{0,160}\.", txt):
+            sent = re.sub(r"\s+", " ", m.group(0))
+            if _BUDGET_NEG_RE.search(sent):
+                continue
+            if not re.search(r"operat|spends|costs|annual|budget", sent, re.I):
+                continue
+            if not (any(t.lower() in sent.lower() for t in toks) or re.search(
+                    r"\b(the|this) (hospital|prison|facility|institution|center)\b", sent, re.I)):
+                continue
+            b = _money(sent)
+            beds_here = beds or out.get("beds")
+            if not b or not (100_000 <= b <= 2_000_000_000):
+                continue
+            if beds_here and not (15_000 <= b / beds_here <= 1_500_000):
+                continue
+            out["budget"] = b
+            out["budget_year"] = _year(sent)
+            out["notes"].append(f"annual operating cost from article text: \"{sent[:240]}\"")
+            break
+
+    # appropriation (state budget documents summarised in the article)
+    if not out["budget"]:
+        m = re.search(r"appropriation of \$([\d,]+(?:\.\d+)?)\s*(million|billion)?", txt, re.I)
+        if m:
+            b = _money(m.group(0))
+            if b and 100_000 <= b <= 2_000_000_000 and (
+                    beds is None or 5_000 <= b / beds <= 1_500_000):
+                out["budget"] = b
+                out["budget_year"] = _year(txt[max(0, m.start() - 200):m.end() + 120])
+                out["notes"].append("appropriation from article text: \"%s\""
+                                    % txt[max(0, m.start() - 120):m.end() + 90])
+
+    # annual cost per patient / inmate (directly reported)
+    m = re.search(r"(?:annual(?:ly)?[^.]{0,30})?cost per (?:inmate|patient|resident|client) "
+                  r"(?:of |was |is )?\$([\d,]+(?:\.\d+)?)", txt, re.I)
+    if m:
+        v = _money(m.group(0))
+        if v and 5_000 <= v <= 2_000_000:
+            out["cpb"] = v
+            out["cpb_is_est"] = 0
+            out["cpb_year"] = _year(txt[max(0, m.start() - 220):m.end() + 120])
+            out["notes"].append("reported annual cost per patient/inmate from article text: "
+                                "\"%s\"" % txt[max(0, m.start() - 120):m.end() + 90])
+
+    # daily cost per patient / inmate, annualised
+    if not out["cpb"]:
+        m = re.search(r"(?:daily|per[- ]diem|per day)[^.]{0,40}cost per "
+                      r"(?:inmate|patient|resident) (?:of |was |is )?\$([\d,]+(?:\.\d+)?)", txt,
+                      re.I) or re.search(r"cost per (?:inmate|patient|resident)[^.]{0,30}"
+                                         r"\$([\d,]+(?:\.\d+)?)[^.]{0,20}per day", txt, re.I)
+        if m:
+            v = _money(m.group(0))
+            if v and 30 <= v <= 5000:
+                out["cpb"] = int(round(v * 365))
+                out["cpb_is_est"] = 1
+                out["cpb_year"] = _year(txt[max(0, m.start() - 220):m.end() + 120])
+                out["notes"].append("reported daily cost per patient/inmate annualised x365 "
+                                    "(derived, is_est=1): \"%s\""
+                                    % txt[max(0, m.start() - 120):m.end() + 90])
+    return out
+
+
 def record_from_page(conn, page, hint):
     wt = page.get("wikitext") or ""
     ib = parse_infobox(wt)
@@ -676,62 +816,19 @@ def record_from_page(conn, page, hint):
 
     notes = [f"Wikipedia article '{title}'"]
 
-    # staffing + per-patient cost figures stated in the article body
-    cpb = cpb_year = None
-    cpb_is_est = 0
-    if staff is None or budget is None or cpb is None:
-        txt = re.sub(r"\s+", " ", _strip_refs(wt))
-        if staff is None:
-            for pat in (r"staff of (?:about |approximately |roughly |some )?([\d,]{2,7})",
-                        r"([\d,]{2,7})\s+(?:full[- ]time )?(?:employees|staff members|staff)\b",
-                        r"employ(?:s|ed|ing) (?:about |approximately |roughly |nearly )?"
-                        r"([\d,]{2,7})"):
-                m = re.search(pat, txt, re.I)
-                if m:
-                    n = _num(m.group(1))
-                    if n and 10 <= n <= 60000:
-                        staff = n
-                        notes.append("staffing figure from article text: \"%s\""
-                                     % txt[max(0, m.start() - 110):m.end() + 60])
-                        break
-        # cost per patient / inmate / bed per year (or per day, annualised as an estimate)
-        m = re.search(r"\$\s*([\d,]+(?:\.\d+)?)\s*(million|billion)?\s*"
-                      r"(?:per|a|each)\s+(?:patient|inmate|resident|bed|client)\s*"
-                      r"(?:per|a|each)\s+(?:year|annum)", txt, re.I)
-        if m:
-            val = _money(m.group(0))
-            if val and 1000 <= val <= 5_000_000:
-                cpb = val
-                cpb_year = _year(txt[max(0, m.start() - 200):m.end() + 200])
-                notes.append("per-patient annual cost from article text: \"%s\""
-                             % txt[max(0, m.start() - 120):m.end() + 80])
-        if cpb is None:
-            m = re.search(r"\$\s*([\d,]+(?:\.\d+)?)\s*(?:per|a|each)\s+"
-                          r"(?:patient|inmate|resident|bed|client)\s*(?:per|a|each)\s+day", txt, re.I) \
-                or re.search(r"\$\s*([\d,]+(?:\.\d+)?)\s*(?:per|a)\s+day\s+"
-                             r"(?:per|a)\s+(?:patient|inmate|resident|bed|client)", txt, re.I)
-            if m:
-                day = _money(m.group(0))
-                if day and 50 <= day <= 5000:
-                    cpb = int(round(day * 365))
-                    cpb_is_est = 1
-                    cpb_year = _year(txt[max(0, m.start() - 200):m.end() + 200])
-                    notes.append("per-patient daily cost from article text, annualised x365 "
-                                 "(derived): \"%s\""
-                                 % txt[max(0, m.start() - 120):m.end() + 80])
-
-    if budget is None:
-        # look for a sourced annual budget / cost sentence in the article body
-        txt = _strip_refs(wt)
-        for m in re.finditer(r"[^.\n]{0,200}\$[\d.,]+\s*(?:million|billion)?[^.\n]{0,200}\.", txt):
-            s = re.sub(r"\s+", " ", m.group(0))
-            if re.search(r"budget|operat|annual(ly)? cost|per patient|per year|spend", s, re.I):
-                b = _money(s)
-                if b:
-                    budget = b
-                    budget_year = _year(s) or budget_year
-                    notes.append(f"budget figure from article text: \"{s[:220]}\"")
-                    break
+    # staffing / budget / per-patient cost figures stated in the article body
+    econ = _article_econ(wt, name, beds)
+    notes.extend(econ["notes"])
+    if beds is None and econ.get("beds"):
+        beds = econ["beds"]
+    if staff is None and econ.get("staff"):
+        staff = econ["staff"]
+    if budget is None and econ.get("budget"):
+        budget = econ["budget"]
+        budget_year = econ.get("budget_year") or budget_year
+    cpb = econ.get("cpb")
+    cpb_year = econ.get("cpb_year")
+    cpb_is_est = econ.get("cpb_is_est") or 0
 
     if not state:
         for cat in page.get("cats") or []:
@@ -893,8 +990,23 @@ _STATE_WORD_NEXT = {"STATE", "CORRECTIONAL", "PSYCHIATRIC", "MENTAL", "DEVELOPME
                     "PRISON", "INSTITUTION", "HOSPITAL", "REGIONAL"}
 
 
+_MOJIBAKE_RE = re.compile(r"(â€™|â€“|â€œ|â€\x9d|Ã©|Ã¨|Ã¼|Ã±|Â )")
+
+
+def _demojibake(name: str) -> str:
+    if not name or not _MOJIBAKE_RE.search(name):
+        return name
+    try:
+        fixed = name.encode("cp1252", "ignore").decode("utf-8", "ignore")
+    except (UnicodeEncodeError, UnicodeDecodeError):
+        return name
+    return fixed if fixed and len(fixed) >= len(name) - 3 else name
+
+
 def display_name(name: str) -> str:
     """Expand the abbreviations used by some inventory sources (HIFLD/all-caps data)."""
+    name = _demojibake(name or "")
+    name = re.sub(r"\s+\((?:[a-z]{1,4}|[A-Z]{2,5})\)\s*$", "", name)  # "(sq)" style markers
     toks = (name or "").split()
     out = []
     for i, tok in enumerate(toks):
@@ -1268,12 +1380,14 @@ def _write_facility(conn, rec):
         "population_note": "; ".join(dict.fromkeys(rec.get("notes") or []))[:1200] or None,
         "source_id": rec.get("source_id"), "is_est": int(rec.get("is_est") or 0),
     }
+    if row["budget"] is not None and not (100_000 <= (row["budget"] or 0) <= 2_000_000_000):
+        row["budget"] = None  # not a single-institution annual budget
     if row["annual_cost_per_bed"] is None and row["budget"] and row["beds"]:
         try:
             cpb = int(round(row["budget"] / row["beds"]))
         except (TypeError, ZeroDivisionError):
             cpb = None
-        if cpb and math.isfinite(cpb):
+        if cpb and math.isfinite(cpb) and 15_000 <= cpb <= 1_500_000:
             row["annual_cost_per_bed"] = cpb
             row["is_est"] = 1
             note = (f"derived: annual budget ${row['budget']:,} / {row['beds']} beds = "
@@ -1284,7 +1398,7 @@ def _write_facility(conn, rec):
     if rid:
         sets = ", ".join(
             (f"{k}=CASE WHEN ? IN ('open','closed','partial') OR status IS NULL OR status='unknown' "
-             f"THEN ? ELSE status END" if k == "status" else f"{k}=COALESCE(?, {k})")
+             f"THEN ? ELSE status END" if k == "status" else f"{k}=?")
             for k in row if k not in ("name", "name_norm"))
         params = []
         for k, v in row.items():
@@ -1401,7 +1515,11 @@ def run(conn, cfg):
 
     # 5a-1. drop pages that are not institutions (courthouses, museums, agencies) ---------
     junk_re = re.compile(r"courthouse|jail museum|museum$|historical society|sheriff'?s office$|"
-                         r"police department$|cemetery|monument$", re.I)
+                         r"police department$|cemetery|monument$|^federal bureau of prisons|"
+                         r"^list of | facilities in | prisons in | hospitals in | jails in |"
+                         r"^department of corrections$|^department of mental health$|"
+                         r"^[a-z .]+ department of corrections$|war relocation|internment camp|"
+                         r"relocation cent(er|re)|national home for", re.I)
     for k in [k for k, r in merger.recs.items() if junk_re.search(r.get("name") or "")]:
         merger.recs.pop(k, None)
     merger.grid, merger.by_state = {}, {}
@@ -1554,8 +1672,10 @@ def run(conn, cfg):
     econ_notes = []
     for f in facts:
         if f["metric"] == "_dsh_total":
-            ca = [r for k, r in by_kind_state("state_psychiatric", "CA")]
-            beds = sum(r["beds"] or 0 for r in ca)
+            ca = [(k, r) for k, r in by_kind_state("state_psychiatric", "CA")
+                  if r.get("status") == "open" and re.search(r"state hospital", r.get("name") or "",
+                                                             re.I)]
+            beds = sum(r["beds"] or 0 for _k, r in ca)
             if beds:
                 per = int(round(f["value"] / beds))
                 sid = source_id_for(conn, f["source_url"], DOMAIN,
@@ -1563,11 +1683,11 @@ def run(conn, cfg):
                                           "of State Hospitals Budget",
                                     publisher="California Legislative Analyst's Office",
                                     license="Public record (CA state government)")
-                conn.execute(
-                    "UPDATE facility SET annual_cost_per_bed=COALESCE(annual_cost_per_bed,?), "
-                    "is_est=CASE WHEN annual_cost_per_bed IS NULL THEN 1 ELSE is_est END "
-                    "WHERE kind='state_psychiatric' AND state='CA'", (per,))
-                for k, r in by_kind_state("state_psychiatric", "CA"):
+                for k, r in ca:
+                    conn.execute(
+                        "UPDATE facility SET annual_cost_per_bed=COALESCE(annual_cost_per_bed,?), "
+                        "is_est=CASE WHEN annual_cost_per_bed IS NULL THEN 1 ELSE is_est END "
+                        "WHERE id=?", (per, ids[k]))
                     _metric(conn, ids[k], "cost_per_bed_year", per, f["year"],
                             unit="USD/bed/year", is_est=1,
                             note=(f"derived: DSH operational expenditures ${f['value']:,.0f} "
