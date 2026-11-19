@@ -22,9 +22,17 @@ W=$R/logs/workers
 mkdir -p "$W" queue/state
 
 # ---------------------------------------------------------------- single instance
-LOCK=$R/logs/loop.lock
-exec 9>"$LOCK"
-if ! flock -n 9; then echo "loop already running (lock $LOCK)"; exit 0; fi
+# A pidfile, not flock: workers launched from here inherit file descriptors, so an flock held on
+# fd 9 stays held by them after the loop itself dies and blocks every restart.
+PIDFILE=$R/logs/loop.pid
+if [ -f "$PIDFILE" ]; then
+  old_pid=$(cat "$PIDFILE" 2>/dev/null)
+  if [ -n "${old_pid:-}" ] && kill -0 "$old_pid" 2>/dev/null; then
+    echo "loop already running (pid $old_pid)"; exit 0
+  fi
+fi
+echo $$ > "$PIDFILE"
+trap 'rm -f "$PIDFILE"' EXIT
 
 log() { echo "[$(date -Is)] $*" | tee -a "$R/logs/loop.log"; }
 

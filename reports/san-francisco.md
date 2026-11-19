@@ -32,7 +32,7 @@ Between 2007 and 2025 the count moved from 5,703 to 8,671 (+52.0%). A change in 
 | 2024 | 8,323 | 3,969 | 4,354 | 2,989 | not published | not published | 587 |
 | 2025 | 8,671 | 4,317 | 4,354 | 3,214 | not published | not published | 580 |
 
-Against a population of 827,526 [U.S. Census Bureau](https://www2.census.gov/geo/tiger/GENZ2023/shp/cb_2023_us_place_500k.zip), that is **104.8 homeless residents per 10,000 people**† (count ÷ population × 10,000).
+Against a population of 827,526 [US Census Bureau](https://www2.census.gov/programs-surveys/popest/datasets/2020-2024/cities/totals/sub-est2024.csv), that is **104.8 homeless residents per 10,000 people**† (count ÷ population × 10,000).
 
 ## 2. Which bodies are responsible
 
@@ -54,10 +54,23 @@ Against a population of 827,526 [U.S. Census Bureau](https://www2.census.gov/geo
 | [EPISCOPAL COMMUNITY SERVICES OF SAN FRANCISCO](/org/12874-episcopal-community-services-of-san-francisco.html) | $68.75M | $74.77M | not published | 943096716 |
 | [DIGNITYMOVES](/org/11772-dignitymoves.html) | $61.81M | $64.26M | not published | 871111468 |
 | [MISSION ACTION INC](/org/12862-mission-action-inc.html) | $28.72M | $23.57M | not published | 942919302 |
+| [Homeless Prenatal Program Inc](/org/12882-homeless-prenatal-program-inc.html) | $20.37M | $20.61M | not published | 943146280 |
+| [COMMUNITY HOUSING PARTNERSHIP](/org/12876-community-housing-partnership.html) | $19.02M | $19.63M | not published | 943112338 |
+| [HAMILTON FAMILIES](/org/12868-hamilton-families.html) | $16.71M | $18.91M | not published | 943055602 |
+| [Homeless Childrens Network](/org/12896-homeless-childrens-network.html) | $12.74M | $13.37M | not published | 943266686 |
+| [BRIDGE HOUSING CORPORATION - SOUTHERN CALIFORNIA](/org/12892-bridge-housing-corporation---southern-california.html) | $6.80M | $7.77M | not published | 943233154 |
+| [LEAHS PANTRY INC](/org/7331-leahs-pantry-inc.html) | $5.40M | $5.08M | not published | 205512442 |
+| [NEW DOOR VENTURES](/org/12854-new-door-ventures.html) | $4.72M | $6.51M | not published | 942780274 |
+| [ONE TREASURE ISLAND](/org/12898-one-treasure-island.html) | $3.53M | $2.90M | not published | 943280624 |
+| [SAN FRANCISCO RESCUE MISSION SAN FRANCISCO BAY AREA RESCUE MISSION](/org/12884-san-francisco-rescue-mission-san-francisco-bay-area-rescue-mission.html) | $1.96M | $1.56M | not published | 943163872 |
+| [Homeless Youth Alliance Inc](/org/10459-homeless-youth-alliance-inc.html) | $1.89M | $1.56M | not published | 813036333 |
+| [NORTH BEACH CITIZENS](/org/12904-north-beach-citizens.html) | $1.52M | $1.31M | not published | 943360013 |
+| [BRIDGE HOUSING VENTURES INC](/org/12883-bridge-housing-ventures-inc.html) | $1.39M | $20.18M | not published | 943147882 |
+| [COALITION ON HOMELESSNESS](/org/12875-coalition-on-homelessness.html) | $1.12M | $1.15M | not published | 943111898 |
+| [URBAN VISION ALLIANCE](/org/9673-urban-vision-alliance.html) | $1.10M | $1.02M | not published | 474238129 |
 | [HOMEBASE](/org/15-homebase.html) | not published | not published | not published |  |
 | [CITY OF SAN FRANCISCO](/org/1011-city-of-san-francisco.html) | not published | not published | not published |  |
 | [SAN FRANCISCO SUBSTANCE ABUSE SERVICE](/org/1221-san-francisco-substance-abuse-service.html) | not published | not published | not published |  |
-| [LEAHS PANTRY INC](/org/7331-leahs-pantry-inc.html) | not published | not published | not published | 205512442 |
 | [RENE AND MARIE CHARITY FOUNDATION CORP](/org/7915-rene-and-marie-charity-foundation-corp.html) | not published | not published | not published | 332308545 |
 | [WE SAY HELLO](/org/8050-we-say-hello.html) | not published | not published | not published | 333885026 |
 | [REAL FATHERS](/org/8200-real-fathers.html) | not published | not published | not published | 383781664 |
@@ -65,67 +78,54 @@ Against a population of 827,526 [U.S. Census Bureau](https://www2.census.gov/geo
 | [DO THE RIGHT THING FOUNDATION INCOR PORATED](/org/8308-do-the-right-thing-foundation-incor-porated.html) | not published | not published | not published | 393100611 |
 | [ISAMICAS SAFEHOUSE SHELTER SERVICES ON WHEELS](/org/8660-isamicas-safehouse-shelter-services-on-wheels.html) | not published | not published | not published | 413714366 |
 | [ASCENT LIVING](/org/8994-ascent-living.html) | not published | not published | not published | 423032896 |
-| [URBAN VISION ALLIANCE](/org/9673-urban-vision-alliance.html) | not published | not published | not published | 474238129 |
-| [Homeless Youth Alliance Inc](/org/10459-homeless-youth-alliance-inc.html) | not published | not published | not published | 813036333 |
 | [URBAN ANGELS SF](/org/11188-urban-angels-sf.html) | not published | not published | not published | 843536488 |
 | [HOMEMORE PROJECT INC](/org/11438-homemore-project-inc.html) | not published | not published | not published | 852644419 |
-| [2000 OPEN DOORS](/org/12093-2000-open-doors.html) | not published | not published | not published | 882231630 |
-| [ST PETERS SUPPORTIVE HOUSING INC](/org/12236-st-peters-supportive-housing-inc.html) | not published | not published | not published | 900354205 |
-| [RISE OUT OF THE PHOENIX](/org/12541-rise-out-of-the-phoenix.html) | not published | not published | not published | 923928863 |
-| [LG LO](/org/12786-lg-lo.html) | not published | not published | not published | 934274468 |
-| [NEW DOOR VENTURES](/org/12854-new-door-ventures.html) | not published | not published | not published | 942780274 |
-| [ARTSPACE DEVELOPMENT CORPORATION](/org/12858-artspace-development-corporation.html) | not published | not published | not published | 942832487 |
-| [HAIGHT ASHBURY FOOD PROGRAM](/org/12864-haight-ashbury-food-program.html) | not published | not published | not published | 942970899 |
-| [HAMILTON FAMILIES](/org/12868-hamilton-families.html) | not published | not published | not published | 943055602 |
-| [COALITION ON HOMELESSNESS](/org/12875-coalition-on-homelessness.html) | not published | not published | not published | 943111898 |
-| [COMMUNITY HOUSING PARTNERSHIP](/org/12876-community-housing-partnership.html) | not published | not published | not published | 943112338 |
-| [MIDORI HOUSING CORPORATION](/org/12879-midori-housing-corporation.html) | not published | not published | not published | 943129466 |
 
-The 30 largest San Francisco homelessness organisations by reported revenue account for **$261.06M** between them [Internal Revenue Service](https://www.irs.gov/pub/irs-soi/eo1.csv). Revenue is self-reported on IRS Form 990 and lags the fiscal year it describes by up to eighteen months.
+The 30 largest San Francisco homelessness organisations by reported revenue account for **$359.31M** between them [Internal Revenue Service](https://www.irs.gov/pub/irs-soi/eo1.csv). Revenue is self-reported on IRS Form 990 and lags the fiscal year it describes by up to eighteen months.
 
 ### The people running them
 
 | Person | Title | Organization | Compensation | Year |
 |---|---|---|---|---|
-| Kenneth Lombard | President/ceo | BRIDGE HOUSING CORPORATION | 1,067,527 | 2,024 |
-| Kenneth Lombard | President/ceo | BRIDGE HOUSING CORPORATION | 1,007,909 | 2,023 |
-| Simone Robinson | Svp Of Human Resources (outgoing) | BRIDGE HOUSING CORPORATION | 592,378 | 2,022 |
-| Kenneth Lombard | President & Ceo | BRIDGE HOUSING CORPORATION | 503,363 | 2,022 |
-| Kimberly Mckay | Evp Of Development (outgoing) | BRIDGE HOUSING CORPORATION | 486,042 | 2,022 |
-| Aruna Doddapaneni | Svp Development (outgoing) | BRIDGE HOUSING CORPORATION | 474,486 | 2,023 |
-| Sierra Atilano | Chief Real Estate Officer | BRIDGE HOUSING CORPORATION | 452,551 | 2,024 |
-| Delphine Sherman | Evp/cfo | BRIDGE HOUSING CORPORATION | 429,032 | 2,024 |
-| Delphine Sherman | Evp/cfo | BRIDGE HOUSING CORPORATION | 417,504 | 2,023 |
-| Smitha Seshadri | Evp Development | BRIDGE HOUSING CORPORATION | 417,409 | 2,023 |
-| Smitha Seshadri | Evp Development | BRIDGE HOUSING CORPORATION | 410,204 | 2,024 |
-| Rebecca Hlebasko | Svp General Counsel/secretary | BRIDGE HOUSING CORPORATION | 408,787 | 2,023 |
-| Rebecca Hlebasko | Svp General Counsel/secretary | BRIDGE HOUSING CORPORATION | 405,549 | 2,024 |
-| James Mather | Evp/cio | BRIDGE HOUSING CORPORATION | 405,393 | 2,023 |
-| Brad Wiblin | Evp Business Development (outgoing) | BRIDGE HOUSING CORPORATION | 397,025 | 2,023 |
-| James Mather | Evp/cio | BRIDGE HOUSING CORPORATION | 387,481 | 2,024 |
-| Kurt Creager | Evp Development | BRIDGE HOUSING CORPORATION | 374,930 | 2,023 |
-| Smitha Seshadri | Evp Of Development | BRIDGE HOUSING CORPORATION | 371,530 | 2,022 |
-| Mary E Stokes | Executive Director | EPISCOPAL COMMUNITY SERVICES OF SAN FRANCISCO | 367,885 | 2,025 |
-| Sierra Atilano | Evp Development | BRIDGE HOUSING CORPORATION | 366,441 | 2,023 |
-| Thuong Luong | Evp, Chief Of Staff (outgoing) | BRIDGE HOUSING CORPORATION | 355,650 | 2,022 |
-| James Mather | Evp & Cio | BRIDGE HOUSING CORPORATION | 347,823 | 2,022 |
-| Delphine Sherman | Evp & Cfo | BRIDGE HOUSING CORPORATION | 347,144 | 2,022 |
-| Mary E Stokes | Executive Director | EPISCOPAL COMMUNITY SERVICES OF SAN FRANCISCO | 347,112 | 2,024 |
-| Natalia Williams | Svp Asset Mgmt & Portfolio | BRIDGE HOUSING CORPORATION | 346,950 | 2,024 |
-| Rebecca Hlebasko | Svp, General Counsel, & Secty | BRIDGE HOUSING CORPORATION | 342,254 | 2,022 |
-| Kurt Creager | Evp Of Development | BRIDGE HOUSING CORPORATION | 333,278 | 2,022 |
-| Brad Wiblin | Evp Property Acquisitions | BRIDGE HOUSING CORPORATION | 325,537 | 2,022 |
-| Mary E Stokes | Executive Director | EPISCOPAL COMMUNITY SERVICES OF SAN FRANCISCO | 297,866 | 2,023 |
-| Christian Wiedel | Vp Bpmc (outgoing) | BRIDGE HOUSING CORPORATION | 297,688 | 2,023 |
+| Kenneth Lombard | President/ceo | BRIDGE HOUSING CORPORATION | 1,067,527 | 2024 |
+| Kenneth Lombard | President/ceo | BRIDGE HOUSING CORPORATION | 1,007,909 | 2023 |
+| Simone Robinson | Svp Of Human Resources (outgoing) | BRIDGE HOUSING CORPORATION | 592,378 | 2022 |
+| Kenneth Lombard | President & Ceo | BRIDGE HOUSING CORPORATION | 503,363 | 2022 |
+| Kimberly Mckay | Evp Of Development (outgoing) | BRIDGE HOUSING CORPORATION | 486,042 | 2022 |
+| Aruna Doddapaneni | Svp Development (outgoing) | BRIDGE HOUSING CORPORATION | 474,486 | 2023 |
+| Sierra Atilano | Chief Real Estate Officer | BRIDGE HOUSING CORPORATION | 452,551 | 2024 |
+| Delphine Sherman | Evp/cfo | BRIDGE HOUSING CORPORATION | 429,032 | 2024 |
+| Delphine Sherman | Evp/cfo | BRIDGE HOUSING CORPORATION | 417,504 | 2023 |
+| Smitha Seshadri | Evp Development | BRIDGE HOUSING CORPORATION | 417,409 | 2023 |
+| Smitha Seshadri | Evp Development | BRIDGE HOUSING CORPORATION | 410,204 | 2024 |
+| Rebecca Hlebasko | Svp General Counsel/secretary | BRIDGE HOUSING CORPORATION | 408,787 | 2023 |
+| Rebecca Hlebasko | Svp General Counsel/secretary | BRIDGE HOUSING CORPORATION | 405,549 | 2024 |
+| James Mather | Evp/cio | BRIDGE HOUSING CORPORATION | 405,393 | 2023 |
+| Brad Wiblin | Evp Business Development (outgoing) | BRIDGE HOUSING CORPORATION | 397,025 | 2023 |
+| James Mather | Evp/cio | BRIDGE HOUSING CORPORATION | 387,481 | 2024 |
+| Kurt Creager | Evp Development | BRIDGE HOUSING CORPORATION | 374,930 | 2023 |
+| Smitha Seshadri | Evp Of Development | BRIDGE HOUSING CORPORATION | 371,530 | 2022 |
+| Mary E Stokes | Executive Director | EPISCOPAL COMMUNITY SERVICES OF SAN FRANCISCO | 367,885 | 2025 |
+| Sierra Atilano | Evp Development | BRIDGE HOUSING CORPORATION | 366,441 | 2023 |
+| Thuong Luong | Evp, Chief Of Staff (outgoing) | BRIDGE HOUSING CORPORATION | 355,650 | 2022 |
+| James Mather | Evp & Cio | BRIDGE HOUSING CORPORATION | 347,823 | 2022 |
+| Delphine Sherman | Evp & Cfo | BRIDGE HOUSING CORPORATION | 347,144 | 2022 |
+| Mary E Stokes | Executive Director | EPISCOPAL COMMUNITY SERVICES OF SAN FRANCISCO | 347,112 | 2024 |
+| Natalia Williams | Svp Asset Mgmt & Portfolio | BRIDGE HOUSING CORPORATION | 346,950 | 2024 |
+| Rebecca Hlebasko | Svp, General Counsel, & Secty | BRIDGE HOUSING CORPORATION | 342,254 | 2022 |
+| Kurt Creager | Evp Of Development | BRIDGE HOUSING CORPORATION | 333,278 | 2022 |
+| Brad Wiblin | Evp Property Acquisitions | BRIDGE HOUSING CORPORATION | 325,537 | 2022 |
+| Mary E Stokes | Executive Director | EPISCOPAL COMMUNITY SERVICES OF SAN FRANCISCO | 297,866 | 2023 |
+| Christian Wiedel | Vp Bpmc (outgoing) | BRIDGE HOUSING CORPORATION | 297,688 | 2023 |
 
 That is 30 of the officers, directors and key employees published in Form 990 Part VII for San Francisco homelessness nonprofits [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/942827909). Professional roles only — no personal contact details are collected.
 
 | Organization | Federal $ | Revenue (990) | Awards | Employees | Website |
 |---|---|---|---|---|---|
-| [Homeless Youth Alliance Inc](/org/10459-homeless-youth-alliance-inc.html) | not published | not published | 0 | not published |  |
-| [Homeless Prenatal Program Inc](/org/12882-homeless-prenatal-program-inc.html) | not published | not published | 0 | not published |  |
+| [Homeless Prenatal Program Inc](/org/12882-homeless-prenatal-program-inc.html) | not published | $20.37M | 0 | not published |  |
+| [Homeless Childrens Network](/org/12896-homeless-childrens-network.html) | not published | $12.74M | 0 | not published |  |
+| [Homeless Youth Alliance Inc](/org/10459-homeless-youth-alliance-inc.html) | not published | $1.89M | 0 | not published |  |
 | [Homeless Church Ag](/org/12893-homeless-church-ag.html) | not published | not published | 0 | not published |  |
-| [Homeless Childrens Network](/org/12896-homeless-childrens-network.html) | not published | not published | 0 | not published |  |
 | [Center For Homeless Inquiries](/org/13477-center-for-homeless-inquiries.html) | not published | not published | 0 | not published |  |
 | [Zero To 0ne Homeless Services Inc](/org/13741-zero-to-0ne-homeless-services-inc.html) | not published | not published | 0 | not published |  |
 | [Homelessness Accountability Now](/org/14906-homelessness-accountability-now.html) | not published | not published | 0 | not published |  |
@@ -136,24 +136,72 @@ Revenue is the latest self-reported IRS Form 990 figure; it lags by a fiscal yea
 
 ## 5. The people running it
 
+| Person | Title | Organization | Compensation | Year |
+|---|---|---|---|---|
+| April Silas Phd | Ceo | Homeless Childrens Network | 283,458 | 2023 |
+| April Silas Phd | Ceo | Homeless Childrens Network | 275,000 | 2025 |
+| April Silas Phd | Ceo | Homeless Childrens Network | 275,000 | 2024 |
+| Shellena Eskridge | Executive Dir. | Homeless Prenatal Program Inc | 244,953 | 2025 |
+| Shellena Eskridge | Executive Dir. | Homeless Prenatal Program Inc | 243,614 | 2024 |
+| Martha Ryan | Founder | Homeless Prenatal Program Inc | 235,762 | 2023 |
+| Shellena Eskridge | Executive Dir. | Homeless Prenatal Program Inc | 210,656 | 2023 |
+| Kenneth Kim | Coo | Homeless Childrens Network | 210,000 | 2025 |
+| Kristin Hatch | Development Director | Homeless Prenatal Program Inc | 199,903 | 2025 |
+| Kristin Hatch | Development Director | Homeless Prenatal Program Inc | 198,655 | 2024 |
+| Kristin Hatch | Development Director | Homeless Prenatal Program Inc | 192,521 | 2023 |
+| Martha Ryan | Founder | Homeless Prenatal Program Inc | 192,325 | 2025 |
+| Laura Springer | Human Resources Director | Homeless Prenatal Program Inc | 191,730 | 2025 |
+| Laura Springer | Human Resources Director | Homeless Prenatal Program Inc | 190,930 | 2024 |
+| Beverly Ashworth | Finance Director | Homeless Prenatal Program Inc | 188,384 | 2023 |
+| Laura Springer | Human Resources Director | Homeless Prenatal Program Inc | 186,885 | 2023 |
+| Biniam Haile | Finance Dir. | Homeless Prenatal Program Inc | 186,526 | 2025 |
+| Jacqueline Ondatje | Cfo | Homeless Childrens Network | 185,000 | 2025 |
+| Yelena Nedelko | Deputy Director | Homeless Prenatal Program Inc | 181,456 | 2023 |
+| Jennifer Calderon | Dir-bev Health | Homeless Childrens Network | 174,806 | 2023 |
+| Joy Iredia | Dir-hr & Operation | Homeless Childrens Network | 165,000 | 2025 |
+| Matthew Ivey | Programs Director | Homeless Childrens Network | 164,873 | 2023 |
+| Biniam Haile | Finance Dir. | Homeless Prenatal Program Inc | 164,535 | 2024 |
+| Lilli Milton | Director Of Programs | Homeless Prenatal Program Inc | 158,218 | 2025 |
+| Yelena Nedelko | Deputy Director | Homeless Prenatal Program Inc | 157,915 | 2025 |
+
+From IRS Form 990 Part VII — published professional roles only.
+
 ## 6. Beds: what exists, what was closed
 
 | Institution | Kind | Status | Beds | Opened | Closed | Budget |
 |---|---|---|---|---|---|---|
 | San Francisco County Jail #2 | jail | open | 392 | not published | not published | not published |
-| Alcatraz Federal Penitentiary | prison | closed | 312 | 1,934 | 1,963 | $250.00K |
+| Alcatraz Federal Penitentiary | prison | closed | 312 | 1,934 | 1,963 | not published |
 
 **312 beds** in San Francisco institutions in this database are recorded as closed. Reopening capacity at today's state-hospital cost of roughly $250,000–$400,000 per bed-year† would cost $78.00M–$124.80M a year† (beds × published per-bed cost range; the range itself must be re-verified per state).
 
 ## 7. The law
+
+| Jurisdiction | Topic | Provision | Status | Year |
+|---|---|---|---|---|
+| CA | camping ban | [Statewide restriction: Camping in public -- statewide](https://homelesslaw.org/wp-content/uploads/2022/02/2021-HNH-State-Crim-Supplement.pdf) | enacted | 2021 |
+| CA | camping ban | [Statewide restriction: Camping in public -- particular public places](https://homelesslaw.org/wp-content/uploads/2022/02/2021-HNH-State-Crim-Supplement.pdf) | enacted | 2021 |
+| CA | drug | [Substance use disorder named as a basis for civil commitment](https://www.tac.org/map_directory/california/) | enacted | not published |
+| CA | encampment clearance | [2024-25 statewide legislation: non-Cicero statewide anti-homeless measure reported passed](https://housingnothandcuffs.org/wp-content/uploads/2025/06/Cicero-Homeless-Criminalization-Summary-May-2025.pdf) | enacted | 2025 |
+| CA | encampment clearance | [Statewide criminalization bill introduced and not passed](https://nlihc.org/sites/default/files/Successfully-Fighting-Against-State-and-Local-Homelessness-Criminalization-Bills.pdf) | proposed | not published |
+| CA | funding | [State fund supporting local housing trust funds](https://nlihc.org/housing-trust-fund-project) | enacted | 2006 |
+| CA | housing first | [Bill to repeal the Housing First mandate and criminalize sleeping outside (defeated)](https://housingnothandcuffs.org/wp-content/uploads/2025/06/Cicero-Homeless-Criminalization-Summary-May-2025.pdf) | proposed | 2025 |
+| CA | housing first | [Housing First mandate in state law, with the 2025 repeal attempt defeated](https://housingnothandcuffs.org/wp-content/uploads/2025/06/Cicero-Homeless-Criminalization-Summary-May-2025.pdf) | enacted | 2025 |
+| CA | mental health hold | [Emergency evaluation / emergency detention statute](https://www.tac.org/map_directory/california/) | enacted | not published |
+| CA | mental health hold | [Inpatient civil commitment statute](https://www.tac.org/map_directory/california/) | enacted | not published |
+| CA | other | [Outpatient (assisted outpatient) commitment statute](https://www.tac.org/map_directory/california/) | enacted | not published |
+| CA | other | [Treatment Advocacy Center recommended statutory amendments](https://www.tac.org/map_directory/california/) | proposed | not published |
+| CA | other | [Statewide restriction: Loitering / loafing in particular public places](https://homelesslaw.org/wp-content/uploads/2022/02/2021-HNH-State-Crim-Supplement.pdf) | enacted | 2021 |
+| CA | other | [2024-25 statewide legislation: Gloria Johnson Act-style anti-criminalization bill introduced](https://housingnothandcuffs.org/wp-content/uploads/2025/06/Cicero-Homeless-Criminalization-Summary-May-2025.pdf) | proposed | 2025 |
+| CA | panhandling | [Statewide restriction: Panhandling -- statewide](https://homelesslaw.org/wp-content/uploads/2022/02/2021-HNH-State-Crim-Supplement.pdf) | enacted | 2021 |
+| CA | panhandling | [Statewide restriction: Standing in roadway (solicitation / pedestrian)](https://homelesslaw.org/wp-content/uploads/2022/02/2021-HNH-State-Crim-Supplement.pdf) | enacted | 2021 |
+| CA | sit lie | [Statewide restriction: Sitting / lying down in public -- particular public places](https://homelesslaw.org/wp-content/uploads/2022/02/2021-HNH-State-Crim-Supplement.pdf) | enacted | 2021 |
 
 ## 8. Health, crime and cost context
 
 | Metric | Value | Unit | Year | Derived? |
 |---|---|---|---|---|
 | city_homelessness_budget | 834,571,745 | USD | 2025 | no |
-| city_homelessness_budget_per_capita | 1,009 | USD/person | 2025 | † |
-| city_homelessness_budget_per_homeless | 96,249 | USD/person | 2025 | † |
 | hud_coc_esg_obligated_county_attributed | 31,419,476 | USD | 2024 | † |
 | hud_coc_esg_obligated_per_homeless | 3,624 | USD/person | 2024 | † |
 | hud_coc_obligated | 502,150,873 | USD | 2024 | no |
@@ -194,6 +242,21 @@ No national crime dataset records whether an offender was homeless. Area-level c
 
 ## 9. Watch and read
 
+- [San Francisco to once again start clearing certain homeless encampments on the streets](https://www.youtube.com/watch?v=76r77ValgoE) — KPIX | CBS NEWS BAY AREA 
+- [Number of San Francisco homeless encampments at a 6-year low following crackdown](https://www.youtube.com/watch?v=Y67Htw38zjQ) — KPIX | CBS NEWS BAY AREA 
+- ["NO MORE HOMELESS"... San Francisco NUKES 37 Encampments as VOTERS RIOT](https://www.youtube.com/watch?v=EM0LpgG3ZRg) — Cash Jordan 
+- [San Francisco to ramp up clearing unhoused encampments after court clarification, officials say](https://www.youtube.com/watch?v=eun1Bw0O_JI) — ABC7 News Bay Area 
+- [Fake homeless encampment in San Francisco is actually a movie set for new Netflix thriller](https://www.youtube.com/watch?v=BcCt8kfyj1E) — KPIX | CBS NEWS BAY AREA 
+- [San Francisco homeless crisis: Mayor touts record low number of encampments and RVs on city streets](https://www.youtube.com/watch?v=xorzEl5jFQc) — KPIX | CBS NEWS BAY AREA 
+- [Here's a look at SF Tenderloin 1 month after encampment crackdown](https://www.youtube.com/watch?v=8iXma3MoRMw) — ABC7 News Bay Area 
+- [Berkeley clearing homeless camp after deadly leptospirosis outbreak linked to rats | KTVU](https://www.youtube.com/watch?v=pzNsUC5j25o) — KTVU FOX 2 San Francisco 
+- [Homeless encampment fire destroys woman's car in San Francisco](https://www.youtube.com/watch?v=S5TrGkYJOnM) — KRON 4 
+- [Is San Francisco's crackdown criminalizing homelessness or cleaning up its streets?](https://www.youtube.com/watch?v=vOg3-4wFsaI) — CBS Evening News 
+- [A massive homeless encampment popped up in San Francisco. Turns out, it's fake](https://www.youtube.com/watch?v=1_m1LAQAxZQ) — KTLA 5 
+- [SF prepares encampment sweep on 6th Street amid progress, calls for more services | KTVU](https://www.youtube.com/watch?v=tZv1-OOwcLo) — KTVU FOX 2 San Francisco 
+- [The Truth About Homelessness in San Francisco](https://www.youtube.com/watch?v=uw8MACDZ3RI) — Christopher F. Rufo 
+- [Tensions flare as homeless encampment along Sausalito waterfront is cleared](https://www.youtube.com/watch?v=f5QmeGfkPSQ) — KTVU FOX 2 San Francisco 
+- [San Francisco's appeal of encampment sweeps injunction draws out supporters, protesters](https://www.youtube.com/watch?v=aomyR4F_FtI) — KPIX | CBS NEWS BAY AREA 
 - [Punishing the Poorest: How the Criminalization of Homelessness Perpetuates Poverty in San Francisco](https://doi.org/10.2139/ssrn.2620426) — Elsevier BV 2015 (study)
 
 ## 10. What it would cost to end it here
@@ -207,6 +270,5 @@ These are order-of-magnitude figures built from published per-unit costs, not a 
 ## 11. What is still missing from this brief
 
 - federal award detail
-- city and state law rows
 
 *Generated 2026-11-19 by `scripts/sf_report.py` from `data/atlas.db`. 4 distinct sources cited.*

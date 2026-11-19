@@ -37,6 +37,15 @@ def one(sql, args=(), d=None):
     return r[0] if r else (d or {})
 
 
+def yr(v, dash="not published"):
+    if v is None:
+        return dash
+    try:
+        return str(int(float(v)))
+    except (TypeError, ValueError):
+        return str(v)
+
+
 def num(v, dash="not published"):
     if v is None:
         return dash
@@ -151,7 +160,7 @@ if years:
           f"street: CoCs change count methods, and HUD changes definitions.")
         w()
     w(table(["Year", "Total", "Sheltered", "Unsheltered", "Chronic", "Serious mental illness", "Substance use", "Veterans"],
-            [[r["year"], num(r["total"]), num(r["shel"]), num(r["unshel"]), num(r["chronic"]), num(r["smi"]), num(r["sud"]), num(r["vet"])]
+            [[yr(r["year"]), num(r["total"]), num(r["shel"]), num(r["unshel"]), num(r["chronic"]), num(r["smi"]), num(r["sud"]), num(r["vet"])]
              for r in years]))
     w()
     if sf_city and sf_city.get("pop") and latest.get("total"):
@@ -227,7 +236,7 @@ if sf_by_rev:
                  ORDER BY COALESCE(p.comp,0) DESC LIMIT 30""")
     if sfppl:
         w(table(["Person", "Title", "Organization", "Compensation", "Year"],
-                [[p["person"], p.get("title") or "", p.get("org_name") or "", num(p.get("comp")), num(p.get("year"))]
+                [[p["person"], p.get("title") or "", p.get("org_name") or "", num(p.get("comp")), yr(p.get("year"))]
                  for p in sfppl]))
         w()
         w(f"That is {num(len(sfppl))} of the officers, directors and key employees published in Form 990 Part VII for "
@@ -251,7 +260,7 @@ w("## 5. The people running it")
 w()
 if sf_people:
     w(table(["Person", "Title", "Organization", "Compensation", "Year"],
-            [[p["person"], p.get("title") or "", p.get("org_name") or "", num(p.get("comp")), num(p.get("year"))]
+            [[p["person"], p.get("title") or "", p.get("org_name") or "", num(p.get("comp")), yr(p.get("year"))]
              for p in sf_people[:25]]))
     w()
     w("From IRS Form 990 Part VII — published professional roles only.")
@@ -283,7 +292,7 @@ if sf_laws:
     w(table(["Jurisdiction", "Topic", "Provision", "Status", "Year"],
             [[l.get("jurisdiction"), (l.get("topic") or "").replace("_", " "),
               f"[{l.get('title') or l.get('citation')}]({l.get('url')})" if l.get("url") else (l.get("title") or ""),
-              l.get("status") or "", num(l.get("year"))] for l in sf_laws[:40]]))
+              l.get("status") or "", yr(l.get("year"))] for l in sf_laws[:40]]))
     w()
 
 # 8. Metrics

@@ -54,6 +54,16 @@ def money(v, dash="—"):
             return f"${v/div:,.2f}{suf}"
     return f"${v:,.0f}"
 
+def yr(v, dash="—"):
+    """Years print as 2025, never 2,025."""
+    if v is None or v == "":
+        return dash
+    try:
+        return str(int(float(v)))
+    except (TypeError, ValueError):
+        return str(v)
+
+
 def rate(v, d=1, dash="—"):
     if v is None:
         return dash
@@ -841,7 +851,7 @@ def page_people(d, manifest_total):
                      esc(p.get("title") or ""), "", p.get("title") or "",
                      f'<a href="/org/{p["org_id"]}-{slug(p.get("org_name") or "")}.html">{esc(p.get("org_name") or "")}</a>' if p.get("org_id") else esc(p.get("org_name") or ""), "", p.get("org_name") or "",
                      esc(p.get("state") or ""), "", p.get("state") or "",
-                     num(p.get("comp")), "r", p.get("comp") or 0, num(p.get("year")), "r", p.get("year") or 0])
+                     num(p.get("comp")), "r", p.get("comp") or 0, yr(p.get("year")), "r", p.get("year") or 0])
     body = banner("People", "Who runs the organizations",
                   "Officers, directors and key employees exactly as published in IRS Form 990 filings. "
                   "Professional roles only — no personal contact details are collected.") + f"""
@@ -862,8 +872,8 @@ def page_facilities(d, manifest_total):
                      esc((f.get("kind") or "").replace("_", " ")), "", f.get("kind") or "",
                      f'<span class="tag {esc(f.get("status") or "")}">{esc(f.get("status") or "?")}</span>', "", f.get("status") or "",
                      esc(f.get("city") or ""), "", f.get("city") or "", esc(f.get("state") or ""), "", f.get("state") or "",
-                     num(f.get("beds")), "r", f.get("beds") or 0, num(f.get("opened")), "r", f.get("opened") or 0,
-                     num(f.get("closed")), "r", f.get("closed") or 0])
+                     num(f.get("beds")), "r", f.get("beds") or 0, yr(f.get("opened")), "r", f.get("opened") or 0,
+                     yr(f.get("closed")), "r", f.get("closed") or 0])
     body = banner("Institutions", "Asylums, hospitals and prisons — open and closed",
                   "State psychiatric hospitals, psychiatric units, prisons and jails, with capacity, operator and "
                   "operating economics where they are published.") + f"""
@@ -999,7 +1009,7 @@ def page_costs(d, manifest_total):
 
     ph = by_metric["hud_homeless_obligated_per_homeless"]
     prow = [[f'<a href="state/{esc(m["entity_id"])}.html">{esc(m["entity_id"])}</a>', "", m["entity_id"],
-             f'${m["value"]:,.0f}', "r", m["value"] or 0, num(m.get("year")), "r", m.get("year") or 0]
+             f'${m["value"]:,.0f}', "r", m["value"] or 0, yr(m.get("year")), "r", m.get("year") or 0]
             for m in ph[:55]]
     od = [m for m in by_metric["overdose_rate"]]
 
@@ -1052,7 +1062,7 @@ def page_laws(d, manifest_total):
                      esc((l.get("topic") or "").replace("_", " ")), "", l.get("topic") or "",
                      f'<a href="{esc(l.get("url") or "#")}" rel="noopener">{esc(l.get("title") or l.get("citation") or "")}</a>', "",
                      l.get("title") or "", esc(l.get("status") or ""), "", l.get("status") or "",
-                     num(l.get("year")), "r", l.get("year") or 0])
+                     yr(l.get("year")), "r", l.get("year") or 0])
     body = banner("Law", "What the law actually says", "Camping and sit-lie rules, property and encampment clearance, "
                   "involuntary psychiatric hold statutes, civil commitment, and Housing First mandates — with citations.") + f"""
 <div class="wrap"><div style="margin-top:22px">
@@ -1370,7 +1380,7 @@ def page_org(d, o, manifest_total):
            str(a.get("pop_start") or "")[:10], "", a.get("pop_start") or ""] for a in awards]
     prow = [[f'<a href="/person/{person_slug(p)}.html">{esc(p["person"])}</a>', "", p["person"],
              esc(p.get("title") or ""), "", p.get("title") or "", num(p.get("comp")), "r", p.get("comp") or 0,
-             num(p.get("year")), "r", p.get("year") or 0] for p in people]
+             yr(p.get("year")), "r", p.get("year") or 0] for p in people]
     tot = sum(a.get("amount_obligated") or 0 for a in awards)
     body = banner((o.get("org_type") or "organization").replace("_", " "), esc(o.get("name")),
                   f'{esc(o.get("city") or "")} {esc(o.get("state") or "")}'
@@ -1414,7 +1424,7 @@ def page_person(d, p, manifest_total):
     others = q(CONN, """SELECT * FROM org_person WHERE person_norm=? AND org_name<>? LIMIT 50""",
                (p.get("person_norm"), p.get("org_name")))
     orow = [[esc(x.get("org_name") or ""), "", x.get("org_name") or "", esc(x.get("title") or ""), "", x.get("title") or "",
-             num(x.get("year")), "r", x.get("year") or 0] for x in others]
+             yr(x.get("year")), "r", x.get("year") or 0] for x in others]
     body = banner("published role", esc(p["person"]), esc(p.get("title") or ""),
                   crumbs='<a href="/index.html">Atlas</a> / <a href="/people.html">People</a>', small=True) + f"""
 <div class="wrap wrap-narrow">

@@ -102,7 +102,10 @@ FIELDS = [
 ]
 
 LIMIT = 100
-MAX_PAGES = 200          # hard cap per query
+MAX_PAGES = 500          # hard cap per query (the API's own window is 50,000 rows)
+SPLIT_THRESHOLD = 19000  # families above this are swept one fiscal year at a time
+FY_RANGE = range(2008, 2028)   # federal fiscal years with data (API starts 2007-10-01)
+ALL_TIME_END = "2027-09-30"
 LOCK_RETRIES = 10        # concurrent writers: other domain agents hold write locks
 LOCK_SLEEP = 30          # seconds between lock retries
 BUSY_TIMEOUT = 600000    # 10 min sqlite busy timeout (several agents share this DB)
@@ -125,40 +128,103 @@ CREATE TABLE IF NOT EXISTS usaspending_progress (
 # --------------------------------------------------------------------------- #
 # query plan
 # --------------------------------------------------------------------------- #
-def build_queries(selftest: bool = False) -> list[dict]:
-    """Most precise families first (assistance listings, then NAICS), so a partial
-    run still holds the unambiguous homeless-programme awards."""
-    qs: list[dict] = []
+def families() -> list[dict]:
+    """Query families, most precise first (assistance listings, then NAICS, then
+    keyword sweeps), so a partial run still holds the unambiguous awards."""
+    fam: list[dict] = []
     for p in PROGRAM_CODES:
-        qs.append({
+        fam.append({
             "key": f"program:{p}:grants",
             "label": f"grants assistance listing {p}",
             "filters": {"program_numbers": [p], "award_type_codes": GRANTS},
             "group": "grants",
         })
     for n in NAICS_CODES:
-        qs.append({
+        fam.append({
             "key": f"naics:{n}:contracts",
             "label": f"contracts NAICS {n}",
             "filters": {"naics_codes": [n], "award_type_codes": CONTRACTS},
             "group": "contracts",
         })
     for kw in KEYWORDS:
-        qs.append({
+        fam.append({
             "key": f"kw:{kw}:grants",
             "label": f"grants keyword '{kw}'",
             "filters": {"keywords": [kw], "award_type_codes": GRANTS},
             "group": "grants",
         })
     for kw in KEYWORDS:
-        qs.append({
+        fam.append({
             "key": f"kw:{kw}:contracts",
             "label": f"contracts keyword '{kw}'",
             "filters": {"keywords": [kw], "award_type_codes": CONTRACTS},
             "group": "contracts",
         })
+    return fam
+
+
+def family_count(filt: dict):
+    """Award count for a filter set, or None if the API refused it."""
+    try:
+        d = fetch_post_json(COUNT_URL, {"filters": filt}, domain=DOMAIN)
+    except Exception:  # noqa: BLE001
+        return None
+    res = d.get("results") or {}
+    return int(sum(v or 0 for v in res.values() if isinstance(v, int)))
+
+
+def _all_time(filt):
+    """The API's own default window (data starts 2007-10-01), stated explicitly."""
+    f = dict(filt)
+    f["time_period"] = [{"start_date": "2007-10-01", "end_date": ALL_TIME_END,
+                         "date_type": "action_date"}]
+    return f
+
+
+def _fy_window(filt, fy):
+    """One federal fiscal year of the same filter set.
+
+    The search endpoint stops serving pages at a result-window limit and the
+    default ordering slices awards by age, so a single all-time query silently
+    loses whole year cohorts. Splitting per fiscal year keeps every query small.
+    """
+    f = dict(filt)
+    f["time_period"] = [{"start_date": f"{fy - 1}-10-01", "end_date": f"{fy}-09-30",
+                         "date_type": "action_date"}]
+    return f
+
+
+def build_queries(selftest: bool = False) -> list[dict]:
+    """Expand families into concrete queries, per fiscal year where a family is
+    too large for one result window."""
+    qs: list[dict] = []
+    for f in families():
+        n = family_count(f["filters"])
+        if selftest and f["key"] not in ("kw:homeless:grants", "naics:624221:contracts"):
+            continue
+        if n and n > SPLIT_THRESHOLD:
+            for fy in FY_RANGE:
+                qs.append({
+                    "key": f"{f['key']}:fy{fy}",
+                    "label": f"{f['label']} FY{fy}",
+                    "filters": _fy_window(f["filters"], fy),
+                    "group": f["group"],
+                    "n_hint": None,
+                    "family": f["key"],
+                    "family_total": n,
+                })
+        else:
+            qs.append({
+                "key": f["key"],
+                "label": f["label"],
+                "filters": _all_time(f["filters"]),
+                "group": f["group"],
+                "n_hint": n,
+                "family": f["key"],
+                "family_total": n,
+            })
     if selftest:
-        qs = [q for q in qs if q["key"] in ("kw:homeless:grants", "naics:624221:contracts")]
+        qs = qs[:2]
     return qs
 
 
@@ -284,14 +350,7 @@ def run(conn, cfg):
         if budget and time.monotonic() - t0 > budget:
             out_of_time = True
             break
-        # --- size the query (cheap, cached) -------------------------------- #
-        try:
-            cnt = fetch_post_json(COUNT_URL, {"filters": q["filters"]}, domain=DOMAIN)
-            res = cnt.get("results") or {}
-            n = int(sum(v or 0 for v in res.values() if isinstance(v, int)))
-        except Exception as e:  # noqa: BLE001
-            failed.append(f"{q['key']} (count: {str(e)[:120]})")
-            continue
+        n = q.get("n_hint")
         if n == 0:
             zero.append(q["key"])
             _write(conn,
@@ -302,12 +361,16 @@ def run(conn, cfg):
                 (q["key"], q["label"], 0, 0, now()))
             continue
 
-        pages_needed = math.ceil(n / LIMIT)
-        pages_total = min(pages_needed, max_pages)
-        capped_note = None
-        if pages_needed > pages_total:
-            capped_note = f"page cap {max_pages} hit ({pages_needed} pages needed, {n} awards)"
-            capped.append(q["key"])
+        if n is None:
+            pages_total = max_pages
+            capped_note = None
+        else:
+            pages_needed = math.ceil(n / LIMIT)
+            pages_total = min(pages_needed, max_pages)
+            capped_note = None
+            if pages_needed > pages_total:
+                capped_note = f"page cap {max_pages} hit ({pages_needed} pages needed, {n} awards)"
+                capped.append(q["key"])
 
         row = conn.execute("SELECT pages_done,done FROM usaspending_progress WHERE query_key=?",
                            (q["key"],)).fetchone()
@@ -380,6 +443,9 @@ def run(conn, cfg):
                 break
             page += 1
 
+        if n is None and page > pages_total:
+            capped_note = capped_note or f"page cap {max_pages} hit"
+            capped.append(q["key"])
         if out_of_time:
             _write(conn,
                 """UPDATE usaspending_progress SET pages_done=?,updated_at=? WHERE query_key=?""",
@@ -497,49 +563,40 @@ def warm_cache(max_pages=None, verbose=True, budget_s=0):
     cost ~1 ms to re-request.
     """
     max_pages = int(max_pages or MAX_PAGES)
+    queries = build_queries()
     pages_done = 0
-    missing = 0
+    short = 0
     t0 = time.monotonic()
-    for i, q in enumerate(build_queries(), 1):
+    for i, q in enumerate(queries, 1):
         if budget_s and time.monotonic() - t0 > budget_s:
-            print(f"[warm] time budget reached after {pages_done} pages; rerun to resume", flush=True)
+            print(f"[warm] budget reached after {pages_done} pages, {i - 1}/{len(queries)} queries; rerun to resume",
+                  flush=True)
             return pages_done
-        try:
-            cnt = fetch_post_json(COUNT_URL, {"filters": q["filters"]}, domain=DOMAIN)
-            res = cnt.get("results") or {}
-            n = int(sum(v or 0 for v in res.values() if isinstance(v, int)))
-        except Exception as e:  # noqa: BLE001
-            print(f"[warm] {q['key']}: count failed {str(e)[:120]}", flush=True)
-            continue
-        if not n:
-            if verbose:
-                print(f"[warm] {q['key']}: 0 awards", flush=True)
-            continue
-        pages = min(math.ceil(n / LIMIT), max_pages)
+        pages = max_pages if q["n_hint"] is None else min(math.ceil(q["n_hint"] / LIMIT), max_pages)
         got = 0
         for page in range(1, pages + 1):
             if budget_s and time.monotonic() - t0 > budget_s:
-                print(f"[warm] time budget reached at {q['key']} p{page} ({pages_done} pages total); rerun to resume",
-                      flush=True)
+                print(f"[warm] budget reached at {q['key']} p{page} ({pages_done} pages, "
+                      f"{i - 1}/{len(queries)} queries); rerun to resume", flush=True)
                 return pages_done
             payload = {"filters": q["filters"], "fields": FIELDS, "page": page, "limit": LIMIT}
             try:
                 d = fetch_post_json(SEARCH_URL, payload, domain=DOMAIN)
             except Exception as e:  # noqa: BLE001
                 if "maximum result limit" not in str(e):
-                    print(f"[warm] {q['key']} p{page}: {str(e)[:120]}", flush=True)
+                    print(f"[warm] {q['key']} p{page}: {str(e)[:160]}", flush=True)
                 break
             if not (d.get("results") or []):
                 break
             got += 1
             pages_done += 1
-            if verbose and pages_done % 25 == 0:
-                print(f"[warm] {pages_done} pages cached (query {i}/{len(build_queries())}: {q['key']} p{page}/{pages})",
+            if verbose and pages_done % 50 == 0:
+                print(f"[warm] {pages_done} pages cached (query {i}/{len(queries)}: {q['key']} p{page}/{pages})",
                       flush=True)
         if got < pages:
-            missing += pages - got
+            short += 1
         print(f"[warm] {q['key']}: {got}/{pages} pages", flush=True)
-    print(f"[warm] done: {pages_done} pages cached, {missing} pages short", flush=True)
+    print(f"[warm] done: {pages_done} pages cached, {short} queries short of their page budget", flush=True)
     return pages_done
 
 

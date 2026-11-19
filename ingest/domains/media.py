@@ -90,6 +90,20 @@ COMMONS_TOPIC_QUERIES = [
     "homeless shelter",
     "Homelessness in California",
     "street medicine",
+    "homeless encampment",
+    "homeless person sleeping",
+    "homeless tent",
+    "homeless veterans",
+    "Homelessness in New York City",
+    "Homelessness in Seattle",
+    "Homelessness in San Francisco",
+    "Homelessness in Los Angeles",
+    "Homelessness in Portland, Oregon",
+    "homeless memorial",
+    "shantytown United States",
+    "sleeping rough",
+    "cardboard sign panhandling",
+    "shopping cart belongings street",
 ]
 
 # Place names are pulled from the Census place layer already in the DB; these are the
@@ -244,6 +258,60 @@ def _relevant(text: str) -> bool:
     return True
 
 
+# --------------------------------------------------------------------------- place resolution
+# YouTube and Commons give no machine-readable location. The search query names a city, but a
+# video returned for "homeless encampment Philadelphia" is frequently about Los Angeles. So the
+# place we store is: the *first* US place named in the item's own title/description when one is
+# named, else the city the query asked for, else NULL. Nothing is geocoded or guessed.
+_CITY_IDX: dict[str, list[tuple[str, str]]] = {}
+
+
+def _city_index(conn) -> dict[str, list[tuple[str, str]]]:
+    """lowercase place name -> [(name, state)] for Census places >=100k plus EXTRA_CITIES."""
+    global _CITY_IDX
+    if _CITY_IDX:
+        return _CITY_IDX
+    idx: dict[str, list[tuple[str, str]]] = {}
+    for r in conn.execute("SELECT name, state, pop FROM geo_city WHERE kind='place' "
+                          "AND pop >= 100000 ORDER BY pop DESC"):
+        idx.setdefault(r["name"].lower(), []).append((r["name"], r["state"]))
+    for name, st in EXTRA_CITIES:
+        k = name.lower()
+        if all(s != st for _, s in idx.get(k, [])):
+            idx.setdefault(k, []).append((name, st))
+    # longest names first so "Kansas City" is tried before "Kansas" / "New York City" before "York"
+    _CITY_IDX = idx
+    return idx
+
+
+def _place_from_text(conn, text, fallback_place, fallback_state):
+    """(place, state) named in `text`, else the query's city, else (None, None)."""
+    idx = _city_index(conn)
+    if text:
+        hits: list[tuple[int, str, str]] = []
+        low = text.lower()
+        for k, vals in idx.items():
+            if len(k) < 5:                       # skip very short names ("York", "Gary", "Mesa")
+                continue
+            pos = low.find(k)
+            if pos < 0:
+                continue
+            # word boundary check without a per-city regex
+            before = low[pos - 1] if pos else " "
+            after = low[pos + len(k)] if pos + len(k) < len(low) else " "
+            if before.isalnum() or after.isalnum():
+                continue
+            for name, st in vals:
+                hits.append((pos, name, st))
+        if hits:
+            hits.sort(key=lambda h: (h[0], -len(h[1])))
+            if fallback_place and any(h[1] == fallback_place and h[2] == fallback_state
+                                      for h in hits):
+                return fallback_place, fallback_state
+            return hits[0][1], hits[0][2]
+    return fallback_place, fallback_state
+
+
 # --------------------------------------------------------------------------- schema (private)
 DDL = """
 CREATE TABLE IF NOT EXISTS media_progress (
@@ -321,6 +389,7 @@ def ingest_youtube(conn, cmd, stats) -> None:
             if not _relevant(f"{title} {desc or ''}"):
                 stats["yt_dropped"] += 1
                 continue
+            vplace, vstate = _place_from_text(conn, f"{title} {desc or ''}", place, state)
             watch = f"https://www.youtube.com/watch?v={vid}"
             thumbs = e.get("thumbnails") or []
             thumb = None
@@ -335,13 +404,15 @@ def ingest_youtube(conn, cmd, stats) -> None:
                 "publisher": clean(e.get("channel") or e.get("uploader")),
                 "author": clean(e.get("uploader")),
                 "published": _date_iso(e.get("upload_date")),
-                "place": place,
-                "state": state,
+                "place": vplace,
+                "state": vstate,
                 "license": YT_LICENSE_UNKNOWN,
                 "duration": e.get("duration") if isinstance(e.get("duration"), int) else None,
                 "summary": (desc[:600] if desc else None),
                 "source_id": sid,
             }, ["url"])
+            # place can legitimately be NULL after re-resolution; upsert only COALESCEs non-NULLs
+            conn.execute("UPDATE media SET place=?, state=? WHERE url=?", (vplace, vstate, watch))
             kept += 1
             # view count: the media table has no column, so it lands in `metric`
             vc = e.get("view_count")
@@ -491,6 +562,7 @@ def commons_query(conn, q: str, place, state, stats) -> None:
             stats["img_dropped"] += 1
             continue
         lic = mv("LicenseShortName") or mv("UsageTerms") or COMMONS_LICENSE_UNKNOWN
+        iplace, istate = _place_from_text(conn, f"{title} {desc or ''}", place, state)
         _put(conn, "media", {
             "kind": "image",
             "title": title[len("File:"):] if title.startswith("File:") else title,
@@ -499,13 +571,14 @@ def commons_query(conn, q: str, place, state, stats) -> None:
             "publisher": "Wikimedia Commons",
             "author": mv("Artist") or mv("Credit"),
             "published": _date_iso(mv("DateTimeOriginal")),
-            "place": place,
-            "state": state,
+            "place": iplace,
+            "state": istate,
             "license": lic,
             "duration": None,
             "summary": (desc[:600] if desc else None),
             "source_id": sid,
         }, ["url"])
+        conn.execute("UPDATE media SET place=?, state=? WHERE url=?", (iplace, istate, furl))
         kept += 1
         stats["images"] += 1
     _progress(conn, f"commons:{q}", len(pages), kept)
@@ -537,8 +610,10 @@ def run(conn, cfg=None) -> dict:
     else:
         print(f"  yt-dlp: {' '.join(cmd)}", flush=True)
         ingest_youtube(conn, cmd, stats)
-        ingest_youtube_detail(conn, cmd, stats)
+    # images before the (slow) per-video detail pass, so a partial run still has both kinds
     ingest_commons(conn, stats)
+    if cmd:
+        ingest_youtube_detail(conn, cmd, stats)
     conn.commit()
 
     n_vid = conn.execute("SELECT COUNT(*) FROM media WHERE kind='video'").fetchone()[0]
