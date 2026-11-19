@@ -1762,15 +1762,12 @@ def run(conn, cfg):
 
     conn.commit()
 
-    # 8b. reconcile: rows this domain wrote in an earlier run that no longer exist ---------
+    # 8b. reconcile: rows this domain wrote in any earlier run that this run no longer produces
     stale = 0
-    prev = conn.execute(
-        "SELECT run_ts FROM facility_seen WHERE run_ts < ? ORDER BY run_ts DESC LIMIT 1",
-        (run_ts,)).fetchone()
-    if prev:
-        gone = [r[0] for r in conn.execute(
-            "SELECT facility_id FROM facility_seen WHERE run_ts=? AND facility_id NOT IN "
-            "(SELECT facility_id FROM facility_seen WHERE run_ts=?)", (prev[0], run_ts))]
+    gone = [r[0] for r in conn.execute(
+        "SELECT DISTINCT facility_id FROM facility_seen WHERE run_ts <> ? AND facility_id NOT IN "
+        "(SELECT facility_id FROM facility_seen WHERE run_ts = ?)", (run_ts, run_ts))]
+    if gone and len(gone) <= max(200, int(0.15 * max(1, rows))):
         for fid in gone:
             conn.execute("DELETE FROM metric WHERE entity_type='facility' AND entity_id=?",
                          (str(fid),))
@@ -1778,20 +1775,8 @@ def run(conn, cfg):
             conn.execute("DELETE FROM facility_seen WHERE facility_id=?", (fid,))
             stale += 1
         conn.commit()
-    # legacy rows never tracked by the ledger (pre-dating it): remove when the count is
-    # small relative to this run, so a silent source failure cannot wipe the table
-    untracked = [r[0] for r in conn.execute(
-        "SELECT id FROM facility WHERE id NOT IN (SELECT facility_id FROM facility_seen)")]
-    if 0 < len(untracked) <= max(50, int(0.05 * max(1, rows))):
-        for fid in untracked:
-            conn.execute("DELETE FROM metric WHERE entity_type='facility' AND entity_id=?",
-                         (str(fid),))
-            conn.execute("DELETE FROM facility WHERE id=?", (fid,))
-        conn.commit()
-        stale += len(untracked)
-        notes.append(f"untracked_rows_removed={len(untracked)}")
-    elif untracked:
-        notes.append(f"untracked_rows_left={len(untracked)} (above safety threshold)")
+    elif gone:
+        notes.append(f"stale_left={len(gone)} (above safety threshold; not deleted)")
     notes.append(f"stale_removed={stale}")
 
     # 9. state coverage snapshot for the research note -----------------------------------
