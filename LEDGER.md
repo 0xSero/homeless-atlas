@@ -11,3 +11,4 @@
 | 2026-11-19T08:03:33+00:00 | health | DONE | 15021 | research/health.md + ingest/domains/health.py | worker exit 0 |
 | 2026-11-19T08:04:43+00:00 | crime | REJECT | 0 | logs/workers/crime.log | attempt 2 failed rc=143 |
 | 2026-11-19T08:16:26+00:00 | crime | PARKED | 0 | logs/workers/crime.log | failed 3 attempts, needs review |
+| 2026-11-19T08:16:35+00:00 | budgets | REJECT | 1433 | logs/workers/budgets.log | attempt 1 failed rc=143 |
