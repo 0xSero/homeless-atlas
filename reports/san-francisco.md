@@ -44,14 +44,23 @@ Against a population of 827,526 [US Census Bureau](https://www2.census.gov/progr
 
 ## 3. The money
 
-The atlas holds **10 federal awards** with a San Francisco place of performance or a San Francisco recipient, worth **$12.31M obligated**.
+The atlas holds **20 federal awards** attributable to San Francisco, worth **$45.12M obligated**. Of those, 11 carry San Francisco as the place of performance; the rest are attributable through the recipient's name or the recipient organisation's own address, because USASpending's place-of-performance city field is only partly populated (see the `award-places` note).
 
 The largest individual awards, each with the record it came from:
 
 | Recipient | Award | Amount | Start | Source |
 |---|---|---|---|---|
+| CITY & COUNTY OF SAN FRANCISCO | CA1246L9T012113 | $12.18M | 2022 | [US Treasury / USASpending.gov](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| CITY & COUNTY OF SAN FRANCISCO | CA1295L9T012106 | $3.63M | 2022 | [US Treasury / USASpending.gov](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| CITY & COUNTY OF SAN FRANCISCO | CA1296L9T012006 | $2.88M | 2021 | [US Treasury / USASpending.gov](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| CITY & COUNTY OF SAN FRANCISCO | CA1462L9T012005 | $2.64M | 2021 | [US Treasury / USASpending.gov](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| CITY & COUNTY OF SAN FRANCISCO | CA0080L9T012114 | $2.51M | 2022 | [US Treasury / USASpending.gov](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| CITY & COUNTY OF SAN FRANCISCO | CA1296L9T011905 | $2.30M | 2020 | [US Treasury / USASpending.gov](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| CITY & COUNTY OF SAN FRANCISCO | CA1462L9T011904 | $2.19M | 2020 | [US Treasury / USASpending.gov](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| CITY & COUNTY OF SAN FRANCISCO | CA0080L9T012013 | $2.14M | 2021 | [US Treasury / USASpending.gov](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
 | CITY AND COUNTY OF SAN FRANCISCO | E12-MC-06-0016 | $1.61M | 2012 | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
 | CITY AND COUNTY OF SAN FRANCISCO | E16-MC-06-0016 | $1.48M |  | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| CITY AND COUNTY OF SAN FRANCISCO | E-17-MC-06-0016 | $1.48M |  | [US Treasury / USASpending.gov](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
 | CITY AND COUNTY OF SAN FRANCISCO | E15-MC-06-0016 | $1.48M | 2015 | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
 | CITY AND COUNTY OF SAN FRANCISCO | E11-MC-06-0016 | $1.41M | 2011 | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
 | CITY AND COUNTY OF SAN FRANCISCO | E14-MC-06-0016 | $1.39M | 2014 | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
@@ -60,10 +69,13 @@ The largest individual awards, each with the record it came from:
 | SAN FRANCISCO SUBSTANCE ABUSE SERVICE | S07-MC-06-0016 | $943.17K | 2007 | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
 | SAN FRANCISCO SUBSTANCE ABUSE SERVICE | S09-MC-06-0016 | $938.87K | 2009 | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
 | CITY OF SAN FRANCISCO | S10-MC-06-0016 | $926.52K | 2010 | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| HOMEBASE | Y-24-TA-CA-0020 | $850.00K | 2024 | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
 
 | Assistance listing | Awards | Obligated |
 |---|---|---|
-| 14.231 | 10 | $12.31M |
+| 14.267 | 8 | $30.47M |
+| 14.231 | 11 | $13.80M |
+| 14.259 | 1 | $850.00K |
 
 Obligated is not spent, and place of performance is where the work is recorded, not necessarily where the money lands. City general fund, county health dollars and Medicaid are not in this total.
 
@@ -311,4 +323,4 @@ These are order-of-magnitude figures built from published per-unit costs, not a 
 
 - Nothing flagged. Cross-check each section against its cited source before relying on it.
 
-*Generated 2026-11-19 by `scripts/sf_report.py` from `data/atlas.db`. 9 distinct sources cited.*
+*Generated 2026-11-19 by `scripts/sf_report.py` from `data/atlas.db`. 10 distinct sources cited.*

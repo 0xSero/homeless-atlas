@@ -112,8 +112,20 @@ sf_orgs = q("""SELECT o.*, (SELECT SUM(amount_obligated) FROM award a WHERE a.or
                       (SELECT COUNT(*) FROM award a WHERE a.org_id=o.id) n_awards
                FROM org o WHERE (o.city='San Francisco' AND o.state='CA')
                ORDER BY COALESCE(amt,0)+COALESCE(o.revenue,0) DESC LIMIT 80""")
-sf_awards = q("""SELECT * FROM award WHERE (place_city LIKE '%San Francisco%' AND place_state='CA')
-                 OR recipient_uei IN (SELECT uei FROM org WHERE city='San Francisco' AND state='CA' AND uei IS NOT NULL)""")
+# Three independent ways an award can belong to San Francisco. place_city is only partly filled, so
+# recipient name and the recipient organisation's own address carry the rest; the basis is stated below.
+sf_awards = q("""
+    SELECT * FROM award
+    WHERE award_key IN (
+        SELECT award_key FROM award WHERE place_city LIKE '%SAN FRANCISCO%'
+        UNION
+        SELECT award_key FROM award WHERE recipient_name LIKE '%SAN FRANCISCO%'
+        UNION
+        SELECT a.award_key FROM award a JOIN org o ON o.id = a.org_id
+          WHERE o.city LIKE 'San Francisco%' AND o.state = 'CA'
+    )
+    ORDER BY COALESCE(amount_obligated,0) DESC""")
+sf_place_only = sum(1 for a in sf_awards if (a.get("place_city") or "").upper().startswith("SAN FRANCISCO"))
 sf_fac = q("SELECT * FROM facility WHERE state='CA' AND (city LIKE '%San Francisco%' OR operator LIKE '%San Francisco%')")
 sf_laws = q("SELECT * FROM law WHERE jurisdiction IN ('CA','San Francisco') ORDER BY topic")
 sf_media = q("SELECT * FROM media WHERE state='CA' AND (place LIKE '%San Francisco%' OR title LIKE '%San Francisco%') LIMIT 40")
@@ -189,8 +201,10 @@ w("## 3. The money")
 w()
 tot = sum(a.get("amount_obligated") or 0 for a in sf_awards)
 if sf_awards:
-    w(f"The atlas holds **{num(len(sf_awards))} federal awards** with a San Francisco place of performance or a "
-      f"San Francisco recipient, worth **{money(tot)} obligated**.")
+    w(f"The atlas holds **{num(len(sf_awards))} federal awards** attributable to San Francisco, worth "
+      f"**{money(tot)} obligated**. Of those, {num(sf_place_only)} carry San Francisco as the place of performance; "
+      f"the rest are attributable through the recipient's name or the recipient organisation's own address, because "
+      f"USASpending's place-of-performance city field is only partly populated (see the `award-places` note).")
 else:
     w("**Not yet computable.** USASpending rows carry a place-of-performance state but the city and county fields are "
       "empty for the whole table, so an award can be attributed to California but not yet to San Francisco. The queue "
