@@ -1558,6 +1558,25 @@ def page_state(d, s, manifest_total):
     return shell("../", f'{s["name"]} — homelessness', "", body, manifest_total=manifest_total)
 
 
+def coc_outcomes(coc_num):
+    """Outcome measures for one CoC, if the SPM ingest has produced any."""
+    rows = q(CONN, """SELECT metric, value, unit, year, is_est, note, source_id FROM metric
+                      WHERE entity_type='coc' AND entity_id=? AND (metric LIKE 'spm%' OR metric LIKE '%exit%'
+                        OR metric LIKE '%return%') AND value IS NOT NULL
+                      ORDER BY metric, year DESC""", (coc_num,))
+    if not rows:
+        return ""
+    body = "".join(f'<tr><td class="num">{num(r["value"])}{"†" if r["is_est"] else ""}</td>'
+                   f'<td>{esc((r["metric"] or "").replace("_", " "))}</td><td>{yr(r["year"])}</td>'
+                   f'<td>{esc(r.get("note") or "")[:120]}</td><td>{cite(r.get("source_id"))}</td></tr>'
+                   for r in rows[:40])
+    return (f'<h2>Does it work here? System performance</h2><div class="tablewrap"><table class="sortable">'
+            f'<thead><tr><th class="r">Value</th><th>Measure</th><th>Year</th><th>Note</th><th>Source</th>'
+            f'</tr></thead><tbody>{body}</tbody></table></div>'
+            f'<p class="dim" style="font-size:.8rem">HUD System Performance Measures: how long people stay '
+            f'homeless, how many exit to permanent housing, and how many come back. † marks a figure we derived.</p>')
+
+
 def page_coc(d, c, manifest_total):
     num_ = c["coc_num"]
     series = q(CONN, """SELECT * FROM pit WHERE coc_num=? ORDER BY year""", (num_,))
@@ -1573,6 +1592,7 @@ def page_coc(d, c, manifest_total):
              esc(o.get("city") or ""), "", o.get("city") or "", money(o.get("amt")), "r", o.get("amt") or 0,
              money(o.get("revenue")), "r", o.get("revenue") or 0] for o in orgs]
     cur = sub[0] if sub else {}
+    outcomes_block = coc_outcomes(num_)
     body = banner(f'CoC {num_}', esc(c.get("name") or num_),
                   f'Latest count {num(c.get("pit_total"))} ({c.get("pit_year") or "—"}) · {esc(c.get("cities") or "")}',
                   crumbs=f'<a href="/index.html">Atlas</a> / <a href="/states.html">States</a> / '
@@ -1599,6 +1619,7 @@ def page_coc(d, c, manifest_total):
          note="Blank cells are years or subpopulations HUD did not publish for this CoC. SMI and SUD are blank for every "
               "CoC because HUD publishes those two only in per-CoC PDF reports and nationally; the national figures are in "
               "the headline numbers. We never interpolate inside this table.")}
+  {outcomes_block}
   <h2>Organizations associated with this CoC</h2>
   {table([("Organization",""),("City",""),("Federal $","r"),("Revenue","r")], orow)}
 </div>"""
