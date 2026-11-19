@@ -97,7 +97,7 @@ def _num(v):
     """HIFLD uses -999 / 'NOT AVAILABLE' for missing values."""
     if v is None:
         return None
-    if isinstance(v, float) and math.isnan(v):
+    if isinstance(v, float) and not math.isfinite(v):
         return None
     if isinstance(v, (int, float)):
         n = int(v)
@@ -109,9 +109,12 @@ def _num(v):
     if not m:
         return None
     try:
-        n = int(round(float(m.group(0).replace(",", ""))))
+        f = float(m.group(0).replace(",", ""))
     except ValueError:
         return None
+    if not math.isfinite(f):
+        return None
+    n = int(round(f))
     return None if n <= -900 else (n or None)
 
 
@@ -465,16 +468,17 @@ WHERE {{
             cap = None
             if r.get("cap"):
                 try:
-                    cap = int(float(r["cap"]))
+                    fcap = float(r["cap"])
+                    cap = int(fcap) if math.isfinite(fcap) else None
                 except ValueError:
                     cap = None
             records.append({
                 "name": label, "kind": kind, "status": status,
                 "opened": opened, "closed": closed,
                 "beds": cap, "beds_year": None,
-                "staff": int(float(r["emp"])) if (r.get("emp") or "").replace(".", "").isdigit() else None,
+                "staff": _num(r.get("emp")),
                 "staff_year": None,
-                "budget": int(float(r["bud"])) if (r.get("bud") or "").replace(".", "").isdigit() else None,
+                "budget": _num(r.get("bud")),
                 "budget_year": None,
                 "state": state, "city": clean(r.get("admin")),
                 "address": None, "lat": lat, "lon": lon,
@@ -671,6 +675,51 @@ def record_from_page(conn, page, hint):
     budget_year = _year(_first(ib, ["budget_year", "fiscal_year"])) or closed
 
     notes = [f"Wikipedia article '{title}'"]
+
+    # staffing + per-patient cost figures stated in the article body
+    cpb = cpb_year = None
+    cpb_is_est = 0
+    if staff is None or budget is None or cpb is None:
+        txt = re.sub(r"\s+", " ", _strip_refs(wt))
+        if staff is None:
+            for pat in (r"staff of (?:about |approximately |roughly |some )?([\d,]{2,7})",
+                        r"([\d,]{2,7})\s+(?:full[- ]time )?(?:employees|staff members|staff)\b",
+                        r"employ(?:s|ed|ing) (?:about |approximately |roughly |nearly )?"
+                        r"([\d,]{2,7})"):
+                m = re.search(pat, txt, re.I)
+                if m:
+                    n = _num(m.group(1))
+                    if n and 10 <= n <= 60000:
+                        staff = n
+                        notes.append("staffing figure from article text: \"%s\""
+                                     % txt[max(0, m.start() - 110):m.end() + 60])
+                        break
+        # cost per patient / inmate / bed per year (or per day, annualised as an estimate)
+        m = re.search(r"\$\s*([\d,]+(?:\.\d+)?)\s*(million|billion)?\s*"
+                      r"(?:per|a|each)\s+(?:patient|inmate|resident|bed|client)\s*"
+                      r"(?:per|a|each)\s+(?:year|annum)", txt, re.I)
+        if m:
+            val = _money(m.group(0))
+            if val and 1000 <= val <= 5_000_000:
+                cpb = val
+                cpb_year = _year(txt[max(0, m.start() - 200):m.end() + 200])
+                notes.append("per-patient annual cost from article text: \"%s\""
+                             % txt[max(0, m.start() - 120):m.end() + 80])
+        if cpb is None:
+            m = re.search(r"\$\s*([\d,]+(?:\.\d+)?)\s*(?:per|a|each)\s+"
+                          r"(?:patient|inmate|resident|bed|client)\s*(?:per|a|each)\s+day", txt, re.I) \
+                or re.search(r"\$\s*([\d,]+(?:\.\d+)?)\s*(?:per|a)\s+day\s+"
+                             r"(?:per|a)\s+(?:patient|inmate|resident|bed|client)", txt, re.I)
+            if m:
+                day = _money(m.group(0))
+                if day and 50 <= day <= 5000:
+                    cpb = int(round(day * 365))
+                    cpb_is_est = 1
+                    cpb_year = _year(txt[max(0, m.start() - 200):m.end() + 200])
+                    notes.append("per-patient daily cost from article text, annualised x365 "
+                                 "(derived): \"%s\""
+                                 % txt[max(0, m.start() - 120):m.end() + 80])
+
     if budget is None:
         # look for a sourced annual budget / cost sentence in the article body
         txt = _strip_refs(wt)
@@ -714,7 +763,8 @@ def record_from_page(conn, page, hint):
         "address": _clean_wiki_value(_first(ib, ["location", "address"])),
         "lat": lat, "lon": lon, "operator": operator, "owner": owner,
         "budget": budget, "budget_year": budget_year,
-        "notes": notes, "source_id": None, "is_est": 0, "provenance": "wikipedia_page",
+        "annual_cost_per_bed": cpb, "cpb_year": cpb_year, "cpb_is_est": cpb_is_est,
+        "notes": notes, "source_id": None, "is_est": cpb_is_est, "provenance": "wikipedia_page",
         "wiki_title": title,
     }
 
@@ -1214,10 +1264,22 @@ def _write_facility(conn, rec):
         "state": state, "city": city, "address": clean(rec.get("address")),
         "lat": rec.get("lat"), "lon": rec.get("lon"),
         "budget": rec.get("budget"), "staff": rec.get("staff"),
-        "annual_cost_per_bed": None,
+        "annual_cost_per_bed": rec.get("annual_cost_per_bed"),
         "population_note": "; ".join(dict.fromkeys(rec.get("notes") or []))[:1200] or None,
         "source_id": rec.get("source_id"), "is_est": int(rec.get("is_est") or 0),
     }
+    if row["annual_cost_per_bed"] is None and row["budget"] and row["beds"]:
+        try:
+            cpb = int(round(row["budget"] / row["beds"]))
+        except (TypeError, ZeroDivisionError):
+            cpb = None
+        if cpb and math.isfinite(cpb):
+            row["annual_cost_per_bed"] = cpb
+            row["is_est"] = 1
+            note = (f"derived: annual budget ${row['budget']:,} / {row['beds']} beds = "
+                    f"${cpb:,} per bed-year (is_est=1 means derived by division)")
+            row["population_note"] = ("; ".join(
+                x for x in [row["population_note"], note] if x))[:1200]
     rid = _find_existing(conn, nn, state, city)
     if rid:
         sets = ", ".join(

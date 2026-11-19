@@ -5,3 +5,4 @@
 {"ts": "2026-11-19T07:59:42+00:00", "skill": "homeless-atlas", "domain": "hud_pit", "verdict": "DONE", "rows": 7431, "evidence": "research/hud_pit.md", "note": "2007-2025, 413 CoCs, national total matches HUD in 16/19 years, smi/sud national-only by design"}
 {"ts": "2026-11-19T08:00:57+00:00", "skill": "homeless-atlas", "domain": "coc-geometry", "verdict": "DONE", "rows": 0, "evidence": "research/coc-geometry.md + ingest/domains/coc-geometry.py", "note": "worker exit 0"}
 {"ts": "2026-11-19T08:03:33+00:00", "skill": "homeless-atlas", "domain": "health", "verdict": "DONE", "rows": 15021, "evidence": "research/health.md + ingest/domains/health.py", "note": "worker exit 0"}
+{"ts": "2026-11-19T08:04:43+00:00", "skill": "homeless-atlas", "domain": "crime", "verdict": "REJECT", "rows": 0, "evidence": "logs/workers/crime.log", "note": "attempt 2 failed rc=143"}
