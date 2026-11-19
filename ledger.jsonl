@@ -17,3 +17,4 @@
 {"ts": "2026-11-19T09:55:18+00:00", "skill": "homeless-atlas", "domain": "budgets", "verdict": "DONE", "rows": 0, "evidence": "research/budgets.md", "note": "gate passing at final verify"}
 {"ts": "2026-11-19T09:55:18+00:00", "skill": "homeless-atlas", "domain": "docs_collect", "verdict": "DONE", "rows": 375, "evidence": "scripts/collect_docs.py", "note": "audits/court/studies via search API, URL-verified"}
 {"ts": "2026-11-19T09:55:18+00:00", "skill": "homeless-atlas", "domain": "usaspending", "verdict": "DONE", "rows": 41554, "evidence": "scripts/sweep_awards.py", "note": "year-by-year sweep; FY2024 14->8460, provenance 100%"}
+{"ts": "2026-11-19T12:40:46+00:00", "skill": "homeless-atlas", "domain": "hic-beds", "verdict": "DONE", "rows": 0, "evidence": "research/hic-beds.md + ingest/domains/hic-beds.py", "note": "worker exit 0"}

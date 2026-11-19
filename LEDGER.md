@@ -21,3 +21,4 @@
 | 2026-11-19T09:55:18+00:00 | budgets | DONE | 0 | research/budgets.md | gate passing at final verify |
 | 2026-11-19T09:55:18+00:00 | docs_collect | DONE | 375 | scripts/collect_docs.py | audits/court/studies via search API, URL-verified |
 | 2026-11-19T09:55:18+00:00 | usaspending | DONE | 41554 | scripts/sweep_awards.py | year-by-year sweep; FY2024 14->8460, provenance 100% |
+| 2026-11-19T12:40:46+00:00 | hic-beds | DONE | 0 | research/hic-beds.md + ingest/domains/hic-beds.py | worker exit 0 |

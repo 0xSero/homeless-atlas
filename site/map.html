@@ -34,6 +34,14 @@
   <p class="sub">State heat map by homeless rate, Continuum of Care boundaries, city populations and institutions. Toggle layers; click anything for the record.</p>
 </div></div></section>
 <div class="wrap">
+  <div class="layertoggle" id="ctry" style="margin:14px 0">
+    <button data-c="US" class="on">United States</button>
+    <button data-c="CA">Canada</button>
+    <button data-c="GB">United Kingdom</button>
+    <button data-c="AU">Australia</button>
+    <button data-c="world">World view</button>
+  </div>
+  <div class="panel" id="ctrybox" style="margin:0 0 14px;padding:12px 14px"></div>
   <div class="panel" style="margin:16px 0;padding:12px 14px">
     <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
       <label for="yr" style="font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;color:var(--fg2)">Year</label>
@@ -60,6 +68,28 @@
 <script>
 var m=atlasMap.base('map',{zoom:3.2});
 window.__atlasMap=m;
+var COUNTRIES=null;
+function countryBox(code){
+  if(!COUNTRIES){return;}
+  var box=document.getElementById('ctrybox'); if(!box) return;
+  var c=COUNTRIES.countries.filter(function(x){return x.code===code;})[0];
+  if(code==='world'){
+    box.innerHTML='<b>World view</b><br><span class="dim">'+COUNTRIES.countries.map(function(x){
+      return x.name+': '+(x.pending?'not ingested yet':(x.value||0).toLocaleString()+' ('+x.label+', '+x.year+')');
+    }).join(' · ')+'</span>';
+    m.flyTo({center:[-20,25],zoom:1.2});
+    return;
+  }
+  if(!c){box.innerHTML='';return;}
+  if(c.pending){
+    box.innerHTML='<b>'+c.name+'</b> — <span class="dim">no '+c.label+' ingested yet. The queue item for this country '+
+      'is open; nothing is drawn rather than showing an empty or estimated map.</span>';
+    m.flyTo({center:[c.lon,c.lat],zoom:3});
+    return;
+  }
+  box.innerHTML='<b>'+c.name+'</b> — '+(c.value||0).toLocaleString()+' people ('+c.label+', '+c.year+')';
+  m.flyTo({center:[c.lon,c.lat],zoom:3.2});
+}
 var loaded={};
 function loadLayer(name){
   if(loaded[name]) return loaded[name];
@@ -113,6 +143,17 @@ m.on('load',function(){
     apply(inp.value);
     inp.addEventListener('input',function(){ apply(inp.value); });
   });
+});
+fetch('/data/map-countries.json').then(function(r){return r.json();}).then(function(d){
+  COUNTRIES=d;
+  document.querySelectorAll('#ctry button').forEach(function(b){
+    b.addEventListener('click',function(){
+      document.querySelectorAll('#ctry button').forEach(function(x){x.classList.remove('on');});
+      b.classList.add('on');
+      countryBox(b.dataset.c);
+    });
+  });
+  countryBox('US');
 });
 document.querySelectorAll('#lt button').forEach(function(b){
   b.addEventListener('click',function(){

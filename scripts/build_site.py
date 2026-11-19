@@ -448,6 +448,27 @@ def build_exports(d, conn):
         pop = (st_ or {}).get("pop")
         if pop:
             by_year.setdefault(str(r["year"]), {})[r["abbr"]] = round(r["total"] / pop * 10000, 3)
+    # country layer: the US is populated from HUD; the other three are declared and marked as pending
+    # until their ingestors land, so the map never invents a number
+    countries = []
+    us_row = one(CONN, """SELECT value, year FROM metric WHERE entity_type='us' AND metric='pit_total'
+                          ORDER BY year DESC LIMIT 1""", (), {}) or {}
+    uk_row = one(CONN, """SELECT value, year FROM metric WHERE entity_type='uk' AND metric='rough_sleeping'
+                          ORDER BY year DESC LIMIT 1""", (), {}) or {}
+    ca_row = one(CONN, """SELECT value, year FROM metric WHERE entity_type='canada' AND metric='pit_total'
+                          ORDER BY year DESC LIMIT 1""", (), {}) or {}
+    au_row = one(CONN, """SELECT value, year FROM metric WHERE entity_type='australia'
+                          AND metric='census_homeless_estimate' ORDER BY year DESC LIMIT 1""", (), {}) or {}
+    for code, name, lat, lon, row, label in (
+            ("US", "United States", 39.5, -98.35, us_row, "point-in-time count"),
+            ("CA", "Canada", 56.1, -106.3, ca_row, "point-in-time count"),
+            ("GB", "United Kingdom", 54.2, -2.9, uk_row, "rough sleeping snapshot"),
+            ("AU", "Australia", -25.3, 133.8, au_row, "census estimate")):
+        countries.append({"code": code, "name": name, "lat": lat, "lon": lon,
+                          "value": row.get("value"), "year": row.get("year"), "label": label,
+                          "pending": row.get("value") is None})
+    (SITE / "data" / "map-countries.json").write_text(json.dumps({"countries": countries}))
+
     (SITE / "data" / "map-years.json").write_text(json.dumps(
         {"years": yrs, "rates": by_year, "unit": "homeless per 10,000 residents (HUD PIT / Census)"}))
 
@@ -678,6 +699,14 @@ def page_map(d, manifest_total):
     body = banner("Map", "One map, every layer", "State heat map by homeless rate, Continuum of Care boundaries, "
                    "city populations and institutions. Toggle layers; click anything for the record.") + """
 <div class="wrap">
+  <div class="layertoggle" id="ctry" style="margin:14px 0">
+    <button data-c="US" class="on">United States</button>
+    <button data-c="CA">Canada</button>
+    <button data-c="GB">United Kingdom</button>
+    <button data-c="AU">Australia</button>
+    <button data-c="world">World view</button>
+  </div>
+  <div class="panel" id="ctrybox" style="margin:0 0 14px;padding:12px 14px"></div>
   <div class="panel" style="margin:16px 0;padding:12px 14px">
     <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
       <label for="yr" style="font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;color:var(--fg2)">Year</label>
@@ -704,6 +733,28 @@ def page_map(d, manifest_total):
 <script>
 var m=atlasMap.base('map',{zoom:3.2});
 window.__atlasMap=m;
+var COUNTRIES=null;
+function countryBox(code){
+  if(!COUNTRIES){return;}
+  var box=document.getElementById('ctrybox'); if(!box) return;
+  var c=COUNTRIES.countries.filter(function(x){return x.code===code;})[0];
+  if(code==='world'){
+    box.innerHTML='<b>World view</b><br><span class="dim">'+COUNTRIES.countries.map(function(x){
+      return x.name+': '+(x.pending?'not ingested yet':(x.value||0).toLocaleString()+' ('+x.label+', '+x.year+')');
+    }).join(' · ')+'</span>';
+    m.flyTo({center:[-20,25],zoom:1.2});
+    return;
+  }
+  if(!c){box.innerHTML='';return;}
+  if(c.pending){
+    box.innerHTML='<b>'+c.name+'</b> — <span class="dim">no '+c.label+' ingested yet. The queue item for this country '+
+      'is open; nothing is drawn rather than showing an empty or estimated map.</span>';
+    m.flyTo({center:[c.lon,c.lat],zoom:3});
+    return;
+  }
+  box.innerHTML='<b>'+c.name+'</b> — '+(c.value||0).toLocaleString()+' people ('+c.label+', '+c.year+')';
+  m.flyTo({center:[c.lon,c.lat],zoom:3.2});
+}
 var loaded={};
 function loadLayer(name){
   if(loaded[name]) return loaded[name];
@@ -757,6 +808,17 @@ m.on('load',function(){
     apply(inp.value);
     inp.addEventListener('input',function(){ apply(inp.value); });
   });
+});
+fetch('/data/map-countries.json').then(function(r){return r.json();}).then(function(d){
+  COUNTRIES=d;
+  document.querySelectorAll('#ctry button').forEach(function(b){
+    b.addEventListener('click',function(){
+      document.querySelectorAll('#ctry button').forEach(function(x){x.classList.remove('on');});
+      b.classList.add('on');
+      countryBox(b.dataset.c);
+    });
+  });
+  countryBox('US');
 });
 document.querySelectorAll('#lt button').forEach(function(b){
   b.addEventListener('click',function(){
