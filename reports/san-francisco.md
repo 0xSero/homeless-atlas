@@ -44,48 +44,55 @@ Against a population of 827,526 [US Census Bureau](https://www2.census.gov/progr
 
 ## 3. The money
 
-The atlas holds **246 federal awards** attributable to San Francisco, worth **$204.32M obligated**. Of those, 11 carry San Francisco as the place of performance; the rest are attributable through the recipient's name or the recipient organisation's own address, because USASpending's place-of-performance city field is only partly populated (see the `award-places` note).
+The atlas holds **1,401 federal awards** attributable to San Francisco, worth **$1.34B obligated**. Of those, 11 carry San Francisco as the place of performance; the rest are attributable through the recipient's name or the recipient organisation's own address, because USASpending's place-of-performance city field is only partly populated (see the `award-places` note).
 
 The largest individual awards, each with the record it came from:
 
 | Recipient | Award | Amount | Start | Source |
 |---|---|---|---|---|
-| CITY & COUNTY OF SAN FRANCISCO | CA1246L9T012113 | $12.18M | 2022 | [US Treasury / USASpending.gov](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
-| CITY AND COUNTY OF SAN FRANCISCO | CAH23F003 | $7.41M | 2023 | [US Treasury / USASpending.gov](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
-| CITY AND COUNTY OF SAN FRANCISCO | M23-MC060213 | $5.26M | 2023 | [US Treasury / USASpending.gov](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
-| CITY & COUNTY OF SAN FRANCISCO | CA1295L9T012106 | $3.63M | 2022 | [US Treasury / USASpending.gov](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
-| CITY & COUNTY OF SAN FRANCISCO | CA1296L9T012006 | $2.88M | 2021 | [US Treasury / USASpending.gov](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
-| CITY & COUNTY OF SAN FRANCISCO | CA1462L9T012005 | $2.64M | 2021 | [US Treasury / USASpending.gov](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
-| CITY & COUNTY OF SAN FRANCISCO | CA0080L9T012114 | $2.51M | 2022 | [US Treasury / USASpending.gov](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
-| CITY & COUNTY OF SAN FRANCISCO | CA1296L9T011905 | $2.30M | 2020 | [US Treasury / USASpending.gov](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
-| CITY & COUNTY OF SAN FRANCISCO | CA0080L9T011811 | $2.20M | 2019 | [US Treasury / USASpending.gov](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
-| CITY & COUNTY OF SAN FRANCISCO | CA1462L9T011904 | $2.19M | 2020 | [US Treasury / USASpending.gov](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
-| CITY & COUNTY OF SAN FRANCISCO | CA0080L9T011912 | $2.17M | 2020 | [US Treasury / USASpending.gov](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
-| CITY & COUNTY OF SAN FRANCISCO | CA0080L9T012013 | $2.14M | 2021 | [US Treasury / USASpending.gov](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
-| CITY & COUNTY OF SAN FRANCISCO | CA1462L9T011803 | $2.09M | 2019 | [US Treasury / USASpending.gov](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
-| CITY & COUNTY OF SAN FRANCISCO | CA1296L9T011703 | $2.02M | 2018 | [US Treasury / USASpending.gov](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
-| CITY & COUNTY OF SAN FRANCISCO | CA0042L9T012013 | $1.89M | 2021 | [US Treasury / USASpending.gov](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
-| CITY & COUNTY OF SAN FRANCISCO | CA1296L9T011804 | $1.89M | 2019 | [US Treasury / USASpending.gov](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
-| CITY & COUNTY OF SAN FRANCISCO | CA0058L9T011912 | $1.82M | 2020 | [US Treasury / USASpending.gov](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
-| CITY & COUNTY OF SAN FRANCISCO | CA0058L9T011811 | $1.65M | 2019 | [US Treasury / USASpending.gov](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
-| CITY & COUNTY OF SAN FRANCISCO | CA0058L9T011710 | $1.65M | 2018 | [US Treasury / USASpending.gov](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
-| CITY AND COUNTY OF SAN FRANCISCO | E12-MC-06-0016 | $1.61M | 2012 | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
-| CITY AND COUNTY OF SAN FRANCISCO | E-23-MC-06-0016 | $1.60M | 2023 | [US Treasury / USASpending.gov](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
-| CITY & COUNTY OF SAN FRANCISCO | CA0042L9T011811 | $1.59M | 2019 | [US Treasury / USASpending.gov](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
-| CITY & COUNTY OF SAN FRANCISCO | CA0042L9T011912 | $1.57M | 2020 | [US Treasury / USASpending.gov](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
-| CITY & COUNTY OF SAN FRANCISCO | CA0039L9T012013 | $1.53M | 2021 | [US Treasury / USASpending.gov](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
-| CITY & COUNTY OF SAN FRANCISCO | CA1462L9T011702 | $1.52M | 2018 | [US Treasury / USASpending.gov](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| CITY AND COUNTY OF SAN FRANCISCO | E-20-MW-06-0016 | $49.11M | 2020 | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| CITY AND COUNTY OF SAN FRANCISCO | CAH13F003 | $25.90M | 2013 | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| THE TRUST FOR PUBLIC LAND | 03D25324 | $19.96M | 2025 | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| CITY AND COUNTY OF SAN FRANCISCO | M21-MP060213 | $18.74M | 2021 | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| THE FRIENDSHIP HOUSE ASSOCIATION OF AMERICAN INDIANS | 75H70320C00009 | $16.62M | 2020 | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| DEPARTMENT OF HOMELESSNESS & SUPPORTIVE HOUSING | CA1246L9T012416 | $16.15M | 2025 | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| DEPARTMENT OF HOMELESSNESS & SUPPORTIVE HOUSING | CA1246L9T012315 | $15.37M | 2024 | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| DEPARTMENT OF HOMELESSNESS & SUPPORTIVE HOUSING | CA1246L9T012214 | $12.86M | 2023 | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| CITY AND COUNTY OF SAN FRANCISCO | M13-MC060213 | $12.25M |  | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| CITY & COUNTY OF SAN FRANCISCO | CA1246L9T012113 | $12.18M | 2022 | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| CITY OF SAN FRANCISCO | CAH10F003 | $9.98M | 2010 | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| CITY AND COUNTY OF SAN FRANCISCO | CAH11F003 | $9.78M | 2011 | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| CITY AND COUNTY OF SAN FRANCISCO | CAH12F003 | $9.73M | 2012 | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| SAN FRANCISCO SUBSTANCE ABUSE SERVICE | CAH09F003 | $9.23M | 2009 | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| SWORDS TO PLOWSHARES VETERANS RIGHTS ORGANIZATION | 18-CA-091-24 | $9.15M |  | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| SAN FRANCISCO SUBSTANCE ABUSE SERVICE | S09-MY-06-0016 | $8.76M | 2008 | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| SAN FRANCISCO SUBSTANCE ABUSE SERVICE | M09-MC060213 | $8.60M | 2009 | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| CITY OF SAN FRANCISCO | M10-MC060213 | $8.58M | 2010 | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| SAN FRANCISCO HOUSING AUTHORITY | CA001SR0014 | $8.52M | 2007 | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| CITY AND COUNTY OF SAN FRANCISCO | CAH14F003 | $8.24M | 2014 | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| SAN FRANCISCO SUBSTANCE ABUSE SERVICE | CAH08F003 | $8.19M | 2007 | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| SAN FRANCISCO SUBSTANCE ABUSE SERVICE | CAH07F003 | $8.19M | 2007 | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| SWORDS TO PLOWSHARES VETERANS RIGHTS ORGANIZATION | 2018-CA-091-25 | $8.15M |  | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| CITY AND COUNTY OF SAN FRANCISCO | M06-MC060213 | $8.10M | 2006 | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| SAN FRANCISCO SUBSTANCE ABUSE SERVICE | M07-MC060213 | $8.06M | 2007 | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
 
 | Assistance listing | Awards | Obligated |
 |---|---|---|
-| 14.267 | 227 | $172.71M |
-| 14.231 | 12 | $15.40M |
-| 14.241 | 1 | $7.41M |
-| 14.239 | 2 | $6.56M |
-| 14.259 | 1 | $850.00K |
-| 16.812 | 1 | $744.00K |
-| 93.866 | 1 | $595.32K |
-| 45.024 | 1 | $50.00K |
+| 14.267 | 693 | $481.86M |
+| 14.241 | 37 | $180.48M |
+| 14.239 | 22 | $142.42M |
+| unclassified | 118 | $113.29M |
+| 14.231 | 112 | $96.03M |
+| 64.033 | 19 | $86.24M |
+| 14.249 | 15 | $55.57M |
+| 14.238 | 164 | $52.12M |
+| 14.235 | 128 | $46.13M |
+| 66.616 | 1 | $19.96M |
+| 64.024 | 15 | $14.48M |
+| 17.805 | 20 | $12.33M |
+| 14.257 | 1 | $8.76M |
+| 93.279 | 2 | $4.59M |
+| 93.243 | 7 | $4.24M |
 
 Obligated is not spent, and place of performance is where the work is recorded, not necessarily where the money lands. City general fund, county health dollars and Medicaid are not in this total.
 
@@ -94,16 +101,16 @@ Obligated is not spent, and place of performance is where the work is recorded, 
 | Organization | Revenue (990) | Expenses | Employees | EIN | Source |
 |---|---|---|---|---|---|
 | [BRIDGE HOUSING CORPORATION](/org/12857-bridge-housing-corporation.html) | $101.78M | $47.55M | not published | 942827909 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/942827909) |
-| [EPISCOPAL COMMUNITY SERVICES OF SAN FRANCISCO](/org/12874-episcopal-community-services-of-san-francisco.html) | $68.75M | $74.77M | not published | 943096716 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/943096716) |
+| [EPISCOPAL COMMUNITY SERVICES OF SAN FRANCISCO](/org/12874-episcopal-community-services-of-san-francisco.html) | $68.75M | $74.77M | not published | 943096716 | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
 | [DIGNITYMOVES](/org/11772-dignitymoves.html) | $61.81M | $64.26M | not published | 871111468 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/871111468) |
 | [MISSION ACTION INC](/org/12862-mission-action-inc.html) | $28.72M | $23.57M | not published | 942919302 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/942919302) |
-| [Homeless Prenatal Program Inc](/org/12882-homeless-prenatal-program-inc.html) | $20.37M | $20.61M | not published | 943146280 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/943146280) |
-| [COMMUNITY HOUSING PARTNERSHIP](/org/12876-community-housing-partnership.html) | $19.02M | $19.63M | not published | 943112338 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/943112338) |
+| [HOMELESS PRENATAL PROGRAM, INC.](/org/12882-homeless-prenatal-program,-inc..html) | $20.37M | $20.61M | not published | 943146280 | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| [COMMUNITY HOUSING PARTNERSHIP](/org/12876-community-housing-partnership.html) | $19.02M | $19.63M | not published | 943112338 | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
 | [HAMILTON FAMILIES](/org/12868-hamilton-families.html) | $16.71M | $18.91M | not published | 943055602 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/943055602) |
 | [Homeless Childrens Network](/org/12896-homeless-childrens-network.html) | $12.74M | $13.37M | not published | 943266686 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/943266686) |
 | [BRIDGE HOUSING CORPORATION - SOUTHERN CALIFORNIA](/org/12892-bridge-housing-corporation---southern-california.html) | $6.80M | $7.77M | not published | 943233154 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/943233154) |
 | [LEAHS PANTRY INC](/org/7331-leahs-pantry-inc.html) | $5.40M | $5.08M | not published | 205512442 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/205512442) |
-| [NEW DOOR VENTURES](/org/12854-new-door-ventures.html) | $4.72M | $6.51M | not published | 942780274 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/942780274) |
+| [NEW DOOR VENTURES](/org/12854-new-door-ventures.html) | $4.72M | $6.51M | not published | 942780274 | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
 | [ONE TREASURE ISLAND](/org/12898-one-treasure-island.html) | $3.53M | $2.90M | not published | 943280624 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/943280624) |
 | [SAN FRANCISCO RESCUE MISSION SAN FRANCISCO BAY AREA RESCUE MISSION](/org/12884-san-francisco-rescue-mission-san-francisco-bay-area-rescue-mission.html) | $1.96M | $1.56M | not published | 943163872 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/943163872) |
 | [Homeless Youth Alliance Inc](/org/10459-homeless-youth-alliance-inc.html) | $1.89M | $1.56M | not published | 813036333 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/813036333) |
@@ -111,6 +118,7 @@ Obligated is not spent, and place of performance is where the work is recorded, 
 | [BRIDGE HOUSING VENTURES INC](/org/12883-bridge-housing-ventures-inc.html) | $1.39M | $20.18M | not published | 943147882 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/943147882) |
 | [COALITION ON HOMELESSNESS](/org/12875-coalition-on-homelessness.html) | $1.12M | $1.15M | not published | 943111898 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/943111898) |
 | [URBAN VISION ALLIANCE](/org/9673-urban-vision-alliance.html) | $1.10M | $1.02M | not published | 474238129 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/474238129) |
+| [EL DORADO HOUSING CORPORATION](/org/12880-el-dorado-housing-corporation.html) | $897.06K | $1.05M | not published | 943129467 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/943129467) |
 | [MIDORI HOUSING CORPORATION](/org/12879-midori-housing-corporation.html) | $506.57K | $1.65M | not published | 943129466 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/943129466) |
 | [ST PETERS SUPPORTIVE HOUSING INC](/org/12236-st-peters-supportive-housing-inc.html) | $453.47K | $783.59K | not published | 900354205 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/900354205) |
 | [HOMEMORE PROJECT INC](/org/11438-homemore-project-inc.html) | $423.15K | $224.61K | not published | 852644419 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/852644419) |
@@ -119,12 +127,11 @@ Obligated is not spent, and place of performance is where the work is recorded, 
 | [HAIGHT ASHBURY FOOD PROGRAM](/org/12864-haight-ashbury-food-program.html) | $239.95K | $202.04K | not published | 942970899 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/942970899) |
 | [ARTSPACE DEVELOPMENT CORPORATION](/org/12858-artspace-development-corporation.html) | $221.33K | $273.20K | not published | 942832487 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/942832487) |
 | [SHELTER TECH](/org/8206-shelter-tech.html) | $171.03K | $170.18K | not published | 383984099 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/383984099) |
-| [BRIDGE HOUSING ACQUISITIONS INC](/org/12885-bridge-housing-acquisitions-inc.html) | $36.50K | $36.50K | not published | 943175634 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/943175634) |
+| [BRIDGE HOUSING ACQUISITIONS INC](/org/12885-bridge-housing-acquisitions-inc.html) | $144.60K | $144.60K | not published | 943175634 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/943175634) |
+| [Center For Homeless Inquiries](/org/13477-center-for-homeless-inquiries.html) | $8.35K | $85.50K | not published | 853293108 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/853293108) |
 | [HOMEBASE](/org/15-homebase.html) | not published | not published | not published |  | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
-| [CITY OF SAN FRANCISCO](/org/1011-city-of-san-francisco.html) | not published | not published | not published |  | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
-| [SAN FRANCISCO SUBSTANCE ABUSE SERVICE](/org/1221-san-francisco-substance-abuse-service.html) | not published | not published | not published |  | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
 
-The 30 largest San Francisco homelessness organisations by reported revenue account for **$362.06M** between them [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/942827909). Revenue is self-reported on IRS Form 990 and lags the fiscal year it describes by up to eighteen months.
+The 30 largest San Francisco homelessness organisations by reported revenue account for **$363.08M** between them [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/942827909). Revenue is self-reported on IRS Form 990 and lags the fiscal year it describes by up to eighteen months.
 
 ### The people running them
 
@@ -165,11 +172,10 @@ That is 30 of the officers, directors and key employees published in Form 990 Pa
 
 | Organization | Federal $ | Revenue (990) | Awards | Employees | Website |
 |---|---|---|---|---|---|
-| [Homeless Prenatal Program Inc](/org/12882-homeless-prenatal-program-inc.html) | not published | $20.37M | 0 | not published | http://www.homelessprenatal.org/ |
 | [Homeless Childrens Network](/org/12896-homeless-childrens-network.html) | not published | $12.74M | 0 | not published |  |
 | [Homeless Youth Alliance Inc](/org/10459-homeless-youth-alliance-inc.html) | not published | $1.89M | 0 | not published |  |
+| [Center For Homeless Inquiries](/org/13477-center-for-homeless-inquiries.html) | not published | $8.35K | 0 | not published |  |
 | [Homeless Church Ag](/org/12893-homeless-church-ag.html) | not published | not published | 0 | not published |  |
-| [Center For Homeless Inquiries](/org/13477-center-for-homeless-inquiries.html) | not published | not published | 0 | not published |  |
 | [Zero To 0ne Homeless Services Inc](/org/13741-zero-to-0ne-homeless-services-inc.html) | not published | not published | 0 | not published |  |
 | [Homelessness Accountability Now](/org/14906-homelessness-accountability-now.html) | not published | not published | 0 | not published |  |
 | [Up From Darkness Transitional Housing & Educational Program Inc](/org/15294-up-from-darkness-transitional-housing-&-educational-program-inc.html) | not published | not published | 0 | not published |  |
@@ -184,28 +190,28 @@ Revenue is the latest self-reported IRS Form 990 figure; it lags by a fiscal yea
 | April Silas Phd | Ceo | Homeless Childrens Network | 283,458 | 2023 |
 | April Silas Phd | Ceo | Homeless Childrens Network | 275,000 | 2025 |
 | April Silas Phd | Ceo | Homeless Childrens Network | 275,000 | 2024 |
-| Shellena Eskridge | Executive Dir. | Homeless Prenatal Program Inc | 244,953 | 2025 |
-| Shellena Eskridge | Executive Dir. | Homeless Prenatal Program Inc | 243,614 | 2024 |
-| Martha Ryan | Founder | Homeless Prenatal Program Inc | 235,762 | 2023 |
-| Shellena Eskridge | Executive Dir. | Homeless Prenatal Program Inc | 210,656 | 2023 |
 | Kenneth Kim | Coo | Homeless Childrens Network | 210,000 | 2025 |
-| Kristin Hatch | Development Director | Homeless Prenatal Program Inc | 199,903 | 2025 |
-| Kristin Hatch | Development Director | Homeless Prenatal Program Inc | 198,655 | 2024 |
-| Kristin Hatch | Development Director | Homeless Prenatal Program Inc | 192,521 | 2023 |
-| Martha Ryan | Founder | Homeless Prenatal Program Inc | 192,325 | 2025 |
-| Laura Springer | Human Resources Director | Homeless Prenatal Program Inc | 191,730 | 2025 |
-| Laura Springer | Human Resources Director | Homeless Prenatal Program Inc | 190,930 | 2024 |
-| Beverly Ashworth | Finance Director | Homeless Prenatal Program Inc | 188,384 | 2023 |
-| Laura Springer | Human Resources Director | Homeless Prenatal Program Inc | 186,885 | 2023 |
-| Biniam Haile | Finance Dir. | Homeless Prenatal Program Inc | 186,526 | 2025 |
 | Jacqueline Ondatje | Cfo | Homeless Childrens Network | 185,000 | 2025 |
-| Yelena Nedelko | Deputy Director | Homeless Prenatal Program Inc | 181,456 | 2023 |
 | Jennifer Calderon | Dir-bev Health | Homeless Childrens Network | 174,806 | 2023 |
 | Joy Iredia | Dir-hr & Operation | Homeless Childrens Network | 165,000 | 2025 |
 | Matthew Ivey | Programs Director | Homeless Childrens Network | 164,873 | 2023 |
-| Biniam Haile | Finance Dir. | Homeless Prenatal Program Inc | 164,535 | 2024 |
-| Lilli Milton | Director Of Programs | Homeless Prenatal Program Inc | 158,218 | 2025 |
-| Yelena Nedelko | Deputy Director | Homeless Prenatal Program Inc | 157,915 | 2025 |
+| Shawneshia Hoover | Dir-afro Mental | Homeless Childrens Network | 156,695 | 2023 |
+| Matthew Ivy | Cco | Homeless Childrens Network | 155,000 | 2025 |
+| Hazel Benigno | Programs Director | Homeless Childrens Network | 148,264 | 2023 |
+| Sara Ferree | Development Dir | Homeless Childrens Network | 144,480 | 2025 |
+| Sara Ferree | Development Dir | Homeless Childrens Network | 144,480 | 2024 |
+| Jacqueline Ondatje | Dir-finance/oper | Homeless Childrens Network | 144,480 | 2024 |
+| Jennifer Calderon | Dir-behav Health | Homeless Childrens Network | 139,311 | 2025 |
+| Jennifer Calderon | Dir-behav Health | Homeless Childrens Network | 139,311 | 2024 |
+| Cameron Smith | Dir-africentric Pr | Homeless Childrens Network | 135,000 | 2025 |
+| Shawneshia Hoover | Dir-mental Health | Homeless Childrens Network | 134,160 | 2025 |
+| Matthew Ivey | Dir-quality Assur | Homeless Childrens Network | 134,160 | 2024 |
+| Shawneshia Hoover | Dir-mental Health | Homeless Childrens Network | 134,160 | 2024 |
+| Mark Ryle | Chief Operating | Homeless Childrens Network | 133,849 | 2023 |
+| Daniella Severs | Grant Manager | Homeless Childrens Network | 128,109 | 2023 |
+| Mary Howe | Executive Director | Homeless Youth Alliance Inc | 86,191 | 2024 |
+| Mary Howe | Executive Director | Homeless Youth Alliance Inc | 85,000 | 2025 |
+| Mary Howe | Executive Director | Homeless Youth Alliance Inc | 42,500 | 2023 |
 
 From IRS Form 990 Part VII — published professional roles only.
 
@@ -337,4 +343,4 @@ These are order-of-magnitude figures built from published per-unit costs, not a 
 
 - Nothing flagged. Cross-check each section against its cited source before relying on it.
 
-*Generated 2026-11-19 by `scripts/sf_report.py` from `data/atlas.db`. 33 distinct sources cited.*
+*Generated 2026-11-19 by `scripts/sf_report.py` from `data/atlas.db`. 31 distinct sources cited.*

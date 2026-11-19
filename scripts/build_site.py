@@ -25,6 +25,7 @@ NOW = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
 CITY_PAGE_MIN_POP = 25_000
 PERSON_OK = set()   # slugs that actually have a page
+ORG_URL = {}        # org id -> the URL its page was actually written to
 ORG_PAGE_MAX = 30_000
 PERSON_PAGE_MAX = 25_000
 
@@ -522,8 +523,7 @@ def build_index(d):
             f"/org/{o['id']}-{slug(o['name'])}.html")
     for p in d["people_all"]:
         sl = person_slug(p)
-        url = f"/person/{sl}.html" if sl in PERSON_OK else (
-            f"/org/{p['org_id']}-{slug(p.get('org_name') or '')}.html" if p.get("org_id") else "/people.html")
+        url = f"/person/{sl}.html" if sl in PERSON_OK else ORG_URL.get(p.get("org_id"), "/people.html")
         add("person", p["person"], f"{(p.get('title') or '').strip()} — {p.get('org_name') or ''}", url)
     for f in d["facilities"]:
         add("facility", f["name"], f"{(f.get('kind') or '').replace('_',' ')} · {f.get('status') or '?'} · {f.get('city') or ''} {f.get('state') or ''}",
@@ -865,7 +865,8 @@ def page_people(d, manifest_total):
     for p in d["people_top"][:4000]:
         rows.append([f'<a href="/person/{person_slug(p)}.html">{esc(p["person"])}</a>', "", p["person"],
                      esc(p.get("title") or ""), "", p.get("title") or "",
-                     f'<a href="/org/{p["org_id"]}-{slug(p.get("org_name") or "")}.html">{esc(p.get("org_name") or "")}</a>' if p.get("org_id") else esc(p.get("org_name") or ""), "", p.get("org_name") or "",
+                     (f'<a href="{ORG_URL[p["org_id"]]}">{esc(p.get("org_name") or "")}</a>'
+                      if ORG_URL.get(p.get("org_id")) else esc(p.get("org_name") or "")), "", p.get("org_name") or "",
                      esc(p.get("state") or ""), "", p.get("state") or "",
                      num(p.get("comp")), "r", p.get("comp") or 0, yr(p.get("year")), "r", p.get("year") or 0])
     body = banner("People", "Who runs the organizations",
@@ -1542,7 +1543,7 @@ def page_person(d, p, manifest_total):
                   crumbs='<a href="/index.html">Atlas</a> / <a href="/people.html">People</a>', small=True) + f"""
 <div class="wrap wrap-narrow">
   <div class="panel"><dl class="facts">
-    <dt>Organization</dt><dd>{f'<a href="/org/{p["org_id"]}-{slug(p.get("org_name") or "")}.html">{esc(p.get("org_name") or "")}</a>' if p.get("org_id") else esc(p.get('org_name') or '')}</dd>
+    <dt>Organization</dt><dd>{f'<a href="{ORG_URL[p["org_id"]]}">{esc(p.get("org_name") or "")}</a>' if ORG_URL.get(p.get("org_id")) else esc(p.get('org_name') or '')}</dd>
     <dt>Role</dt><dd>{esc(p.get('title') or '—')}</dd>
     <dt>Compensation reported</dt><dd>{num(p.get('comp'))}</dd>
     <dt>Tax year</dt><dd>{num(p.get('year'))}</dd>
@@ -1623,7 +1624,7 @@ def save_baseline(counts: dict):
 
 
 def main():
-    global CONN, SITE, PERSON_OK
+    global CONN, SITE, PERSON_OK, ORG_URL
     if "--out" in sys.argv:
         SITE = Path(sys.argv[sys.argv.index("--out") + 1]).resolve()
         print(f"building into {SITE}")
@@ -1656,6 +1657,7 @@ def main():
         shutil.copy(SRC / f, SITE / "assets" / f)
 
     PERSON_OK = {person_slug(p) for p in d["people_top"][:PERSON_PAGE_MAX]}
+    ORG_URL = {o["id"]: f"/org/{o['id']}-{slug(o['name'])}.html" for o in d["top_orgs"][:ORG_PAGE_MAX]}
     geo_counts = build_exports(d, CONN)
     total, manifest = build_index(d)
     (SITE / "data" / "manifest.json").write_text(json.dumps({"total": total, "at": NOW, "rows": counts}))

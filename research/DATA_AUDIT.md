@@ -76,3 +76,17 @@ Flagged `status='unknown'` and the impossible `closed` year removed (not silentl
 - 0 organisations had revenue/expenses citing `eo1.csv` (the IRS Business Master File, which contains no financial fields).
 - 0 were re-sourced from their actual Form 990 filing on Nonprofit Explorer.
 - 0 had no filing with figures and were set to NULL rather than keep an uncitable number.
+
+### audit --fix pass
+
+- org 'TBD' (1614) -> status placeholder_name
+- org 'TBD' (1726) -> status placeholder_name
+- org 'TBD' (2061) -> status placeholder_name
+- org 'TBD' (2385) -> status placeholder_name
+- org 'TBD' (2505) -> status placeholder_name
+- org 'TBD' (13920) -> status placeholder_name
+- org 'TBD' (14107) -> status placeholder_name
+- org 'TBD' (18130) -> status placeholder_name
+- org 'TBD' (19384) -> status placeholder_name
+- org 'TBD' (19583) -> status placeholder_name
+- org 'TBD' (19600) -> status placeholder_name

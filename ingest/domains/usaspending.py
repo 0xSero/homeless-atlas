@@ -21,6 +21,7 @@ response is disk-cached by ingest.common.fetch, so a rerun replays from cache.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 import re
@@ -110,6 +111,8 @@ LOCK_RETRIES = 10        # concurrent writers: other domain agents hold write lo
 LOCK_SLEEP = 30          # seconds between lock retries
 BUSY_TIMEOUT = 600000    # 10 min sqlite busy timeout (several agents share this DB)
 DESC_MAX = 4000          # description is truncated to this many chars
+
+_PREFIX_LOADED: set = set()
 
 PROGRESS_DDL = """
 CREATE TABLE IF NOT EXISTS usaspending_progress (
@@ -256,23 +259,56 @@ def _org_type(name):
     return None
 
 
-def program_names() -> dict:
-    """Assistance listing code -> description, from the live reference endpoint."""
-    out, page = {}, 1
-    while page <= 10:
-        url = f"{ASSIST_LIST_URL}?limit=100&page={page}"
+def _listing(prefix, out: dict) -> None:
+    """Load every assistance listing title for one 2-digit agency prefix."""
+    for page in range(1, 6):
+        url = f"{API}/api/v2/references/assistance_listing/{prefix}/?limit=100&page={page}"
         try:
             payload = json.loads(common.fetch(url, domain=DOMAIN))
-        except Exception:
-            break
+        except Exception:  # noqa: BLE001
+            return
         res = payload.get("results") or []
         for r in res:
-            if r.get("code"):
+            if r.get("code") and r["code"] not in out:
                 out[r["code"]] = clean(r.get("description"))
         if len(res) < 100:
-            break
-        page += 1
+            return
+
+
+def program_names() -> dict:
+    """Assistance listing code -> title, read from the live reference endpoint.
+
+    HUD (14.xxx) is loaded up front; other agencies are loaded lazily when an
+    award carries one of their CFDA numbers.
+    """
+    out: dict = {}
+    _listing("14", out)
     return out
+
+
+def program_for(cfda, pmap: dict):
+    """Title for a CFDA number, fetching that agency's listing on first use."""
+    if not cfda:
+        return None
+    if cfda in pmap:
+        return pmap[cfda]
+    prefix = cfda.split(".")[0]
+    if prefix not in _PREFIX_LOADED:
+        _PREFIX_LOADED.add(prefix)
+        _listing(prefix, pmap)
+    return pmap.get(cfda)
+
+
+def _cache_path(payload):
+    """The on-disk fetch-cache file that ingest.common.fetch would use."""
+    data = json.dumps(payload)
+    key = hashlib.sha1(("POST" + SEARCH_URL + json.dumps(data, sort_keys=True, default=str)).encode()).hexdigest()
+    return common.RAW / DOMAIN / f"{key}.bin"
+
+
+def _cached(payload):
+    p = _cache_path(payload)
+    return p.exists() and p.stat().st_size > 0
 
 
 def _write(conn, sql, params=()):
@@ -315,6 +351,7 @@ def run(conn, cfg):
     selftest = bool(cfg.get("selftest"))
     max_pages = int(cfg.get("max_pages") or (1 if selftest else MAX_PAGES))
     budget = float(cfg.get("budget_s") or 0)   # 0 = run to completion
+    cache_only = bool(cfg.get("cache_only"))   # load phase: never touch the network
     t0 = time.monotonic()
     out_of_time = False
 
@@ -391,6 +428,7 @@ def run(conn, cfg):
             (q["key"], q["label"], n, pages_total, start_page - 1, capped_note, now()))
 
         # --- paginate ------------------------------------------------------ #
+        skipped = False
         page = start_page
         while page <= pages_total:
             if budget and time.monotonic() - t0 > budget:
@@ -403,6 +441,10 @@ def run(conn, cfg):
                 "page": page,
                 "limit": LIMIT,
             }
+            if cache_only and not _cached(payload):
+                notes.append(f"{q['key']}: page {page} not warmed yet, skipped")
+                skipped = True
+                break
             try:
                 d = fetch_post_json(SEARCH_URL, payload, domain=DOMAIN)
             except Exception as e:  # noqa: BLE001
@@ -446,6 +488,12 @@ def run(conn, cfg):
         if n is None and page > pages_total:
             capped_note = capped_note or f"page cap {max_pages} hit"
             capped.append(q["key"])
+        if skipped:
+            # leave the query incomplete so a later run picks it up again
+            _write(conn,
+                """UPDATE usaspending_progress SET done=0,pages_done=?,updated_at=? WHERE query_key=?""",
+                (min(page - 1, pages_total), now(), q["key"]))
+            continue
         if out_of_time:
             _write(conn,
                 """UPDATE usaspending_progress SET pages_done=?,updated_at=? WHERE query_key=?""",
@@ -455,6 +503,22 @@ def run(conn, cfg):
             """UPDATE usaspending_progress SET done=1,pages_done=?,note=?,updated_at=?
                WHERE query_key=?""",
             (min(page - 1, pages_total), capped_note or "", now(), q["key"]))
+
+    # another agent's `usaspending_sweep` ingestor wrote query labels into
+    # award.program on rows we now own; upsert's COALESCE cannot clear a column,
+    # so blank them explicitly (only rows carrying our source_id).
+    if not cache_only:
+        _write(conn,
+               """UPDATE award SET program=NULL WHERE source_id=? AND program LIKE 'grants kw=%'""",
+               (src_id,))
+        # normalise empty strings left on shared rows (upsert drops our NULLs, so
+        # COALESCE keeps whatever a previous writer put in the column)
+        for col in ("award_id", "recipient_name", "recipient_norm", "recipient_uei", "agency",
+                    "subtier", "office", "cfda", "psc", "naics", "program", "description",
+                    "pop_start", "pop_end", "fy", "place_state", "place_city", "place_county"):
+            _write(conn, f"UPDATE award SET {col}=NULL WHERE source_id=? AND trim({col})=''", (src_id,))
+        for col in ("city", "state", "zip", "uei", "county", "address1"):
+            _write(conn, f"UPDATE org SET {col}=NULL WHERE source_id=? AND trim({col})=''", (src_id,))
 
     awards_total = conn.execute("SELECT COUNT(*) FROM award").fetchone()[0]
     orgs_total = conn.execute("SELECT COUNT(*) FROM org").fetchone()[0]
@@ -537,7 +601,7 @@ def _write_award(conn, r, group, src_id, pmap, seen: set, org_cache: dict) -> No
         "cfda": cfda,
         "psc": _code(r.get("PSC")),
         "naics": _code(r.get("NAICS")),
-        "program": pmap.get(cfda) if cfda else None,
+        "program": program_for(cfda, pmap),
         "description": (clean(r.get("Description")) or "")[:DESC_MAX] or None,
         "amount_obligated": obligated if obligated is not None else award_amount,
         "amount_total": potential if potential is not None else award_amount,
@@ -605,7 +669,14 @@ def warm_cache(max_pages=None, verbose=True, budget_s=0):
 # --------------------------------------------------------------------------- #
 def _selftest():
     conn = common.db()
+    # re-ingest the two sample queries from scratch so the gate is meaningful
+    conn.execute("DELETE FROM usaspending_progress WHERE query_key IN "
+                 "('kw:homeless:grants:fy2008', 'naics:624221:contracts')")
+    conn.commit()
     res = run(conn, {"selftest": True, "max_pages": 1})
+    # do not leave the one-page sample cursors behind: a real run must redo these
+    conn.execute("DELETE FROM usaspending_progress WHERE query_key IN "
+                 "('kw:homeless:grants:fy2008', 'naics:624221:contracts')")
     conn.commit()
     print(f"[{DOMAIN}] selftest rows={res['rows']} notes={res['notes']}")
     common.selftest_report(conn, DOMAIN, "award", "award_key IS NOT NULL", 3)
@@ -615,6 +686,12 @@ def _selftest():
 if __name__ == "__main__":
     if "--selftest" in sys.argv:
         _selftest()
+    elif "--load" in sys.argv:
+        b = 0
+        for a in sys.argv[1:]:
+            if a.startswith("--budget="):
+                b = int(a.split("=", 1)[1])
+        common.main(DOMAIN, lambda c, cfg: run(c, {"cache_only": True, "budget_s": b}), "award")
     elif "--warm" in sys.argv:
         mp, bs = None, 0
         for a in sys.argv[1:]:

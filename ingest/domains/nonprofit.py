@@ -38,8 +38,8 @@ import time
 import urllib.parse
 from pathlib import Path
 
-from ingest.common import (clean, db, fetch, main, name_norm, now, save_raw,
-                           selftest_report, source_id_for, to_int, upsert)
+from ingest.common import (clean, db, fetch, main, name_norm, now,
+                           selftest_report, source_id_for, to_int)
 
 DOMAIN = "nonprofit"
 
@@ -284,6 +284,9 @@ def _ensure_tables(conn):
         "  SELECT rowid, ROW_NUMBER() OVER (PARTITION BY phase,key ORDER BY done DESC) rn"
         "  FROM nonprofit_progress) WHERE rn=1)",
         "CREATE UNIQUE INDEX IF NOT EXISTS ux_np_prog ON nonprofit_progress(phase,key)",
+        "DELETE FROM org_person WHERE rowid NOT IN (SELECT rowid FROM ("
+        "  SELECT rowid, ROW_NUMBER() OVER (PARTITION BY org_id, person_norm, year, title"
+        "  ORDER BY id) rn FROM org_person WHERE org_id IS NOT NULL) WHERE rn=1)",
     ):
         try:
             conn.execute(stmt)
@@ -404,17 +407,28 @@ def _add_person(conn, org_id, org_name, person, title, comp, year, role, sid):
     pn = person_norm(person)
     if not pn or not org_name:
         return 0
-    row = conn.execute(
-        """SELECT id FROM org_person
-           WHERE person_norm=? AND org_name=? AND year IS ? AND title IS ?""",
-        (pn, org_name, year, title),
-    ).fetchone()
+    # Match on org_id first: an org can be renamed (by this domain or another
+    # worker), and keying on org_name alone then duplicates the whole roster.
+    row = None
+    if org_id is not None:
+        row = conn.execute(
+            """SELECT id FROM org_person
+               WHERE person_norm=? AND org_id=? AND year IS ? AND title IS ?""",
+            (pn, org_id, year, title),
+        ).fetchone()
+    if row is None:
+        row = conn.execute(
+            """SELECT id FROM org_person
+               WHERE person_norm=? AND org_name=? AND year IS ? AND title IS ?""",
+            (pn, org_name, year, title),
+        ).fetchone()
     if row:
         conn.execute(
             """UPDATE org_person SET comp=COALESCE(comp,?), org_id=COALESCE(org_id,?),
-                   role_class=COALESCE(role_class,?), source_id=COALESCE(source_id,?)
+                   role_class=COALESCE(role_class,?), source_id=COALESCE(source_id,?),
+                   org_name=COALESCE(?,org_name)
                WHERE id=?""",
-            (comp, org_id, role, sid, row["id"]),
+            (comp, org_id, role, sid, org_name, row["id"]),
         )
         return 0
     conn.execute(
@@ -947,7 +961,7 @@ def run(conn, cfg):
     n_bmf = _safe("bmf", phase_bmf, conn, cfg) or 0
     sres = _safe("search", phase_search, conn, cfg) or (0, 0)
     n_search, s_pages = sres
-    n_orgs = _safe("orgs", phase_orgs, conn, cfg) or 0
+    _safe("orgs", phase_orgs, conn, cfg)
 
     # 3. fetch + parse filing pages (network only, no DB writes -> lock free)
     page_stats = phase_pages(conn, cfg)
