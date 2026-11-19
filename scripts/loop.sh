@@ -17,6 +17,7 @@ THINKING=${THINKING:-high}
 SESSION=${SESSION:-atlas}
 MAX_ATTEMPTS=${MAX_ATTEMPTS:-3}
 SLEEP=${SLEEP:-20}
+WORKER_TIMEOUT=${WORKER_TIMEOUT:-7200}   # 2h wall clock per worker, then requeue
 W=$R/logs/workers
 mkdir -p "$W" queue/state
 
@@ -76,9 +77,8 @@ launch() {
   cat > "$W/$dom.run.sh" <<RUN
 #!/usr/bin/env bash
 cd $R || exit 1
-pi -p --model $MODEL --thinking $THINKING --name "atlas-$dom" "\$(cat $W/$dom.prompt.txt)" \
-  2>&1 | tee -a $R/logs/workers/$dom.log
-echo "\${PIPESTATUS[0]}" > $W/$dom.exit
+{ timeout $WORKER_TIMEOUT pi -p --model $MODEL --thinking $THINKING --name "atlas-$dom" \
+    "\$(cat $W/$dom.prompt.txt)" 2>&1; echo \$? > $W/$dom.exit; } | tee -a $R/logs/workers/$dom.log
 RUN
   chmod +x "$W/$dom.run.sh"
   if tmux has-session -t "$SESSION" 2>/dev/null; then
@@ -143,8 +143,8 @@ while :; do
       if [ -f "$W/$d.exit" ]; then
         finish "$d" "$(cat "$W/$d.exit")"
         checkpoint
-      elif ! tmux list-windows -t "$SESSION" -F '#{window_name}' 2>/dev/null | grep -qx "$d"; then
-        log "worker $d vanished without exit marker (interrupted); requeueing"
+      elif ! pgrep -f -- "atlas-$d" >/dev/null 2>&1; then
+        log "worker $d is not alive and left no exit marker; requeueing"
         finish "$d" 1
         checkpoint
       fi

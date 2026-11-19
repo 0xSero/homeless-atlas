@@ -339,9 +339,9 @@ def wikidata_records(conn):
 SELECT ?i ?label ?walabel
        (SAMPLE(?typeLabel) AS ?type)
        (MIN(?inception) AS ?incep) (MIN(?dissolved) AS ?diss)
-       (MIN(?cap) AS ?cap) (MIN(?coords) AS ?coord)
+       (SAMPLE(?cap) AS ?cap) (SAMPLE(?coords) AS ?coord)
        (SAMPLE(?opLabel) AS ?op) (SAMPLE(?ownerLabel) AS ?owner)
-       (SAMPLE(?adminLabel) AS ?admin) (MIN(?emp) AS ?emp) (MIN(?bud) AS ?bud)
+       (SAMPLE(?adminLabel) AS ?admin) (SAMPLE(?emp) AS ?emp) (SAMPLE(?bud) AS ?bud)
 WHERE {{
   VALUES ?t {{ {vals} }}
   ?i wdt:P31 ?t .

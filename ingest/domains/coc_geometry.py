@@ -115,6 +115,11 @@ def _exec(conn, sql, params=()):
     return _retry(lambda: conn.execute(sql, params))
 
 
+def _source_id(conn, url, *a, **kw):
+    """source_id_for() writes a row; other workers share the DB, so retry on locks."""
+    return _retry(lambda: source_id_for(conn, url, DOMAIN, *a, **kw))
+
+
 # --------------------------------------------------------------------------- #
 # pure-python geometry helpers (Douglas-Peucker etc.)
 # --------------------------------------------------------------------------- #
@@ -508,7 +513,7 @@ def _fetch_coc(conn, max_pages=None):
                           n_points=excluded.n_points, url=excluded.url, done_at=excluded.done_at""",
               (offset, len(page_feats), npts, url, now()))
         _commit(conn)
-        src = source_id_for(conn, url, DOMAIN, title=f"{HUD_TITLE} — features {offset}-{offset + PAGE - 1}",
+        src = _source_id(conn, url, title=f"{HUD_TITLE} — features {offset}-{offset + PAGE - 1}",
                             publisher=HUD_PUBLISHER, license=HUD_LICENSE)
         for f in page_feats:
             feats.append((f.get("properties") or {}, f.get("geometry"), src))
@@ -575,7 +580,7 @@ def _census_states(conn, tol):
     dbf = _write_tmp(tmp, "states.dbf", parts["dbf"])
     attrs = _read_dbf(dbf)
     shapes = _read_shp_polygons(shp)
-    src_state = source_id_for(conn, CB_STATE_URL, DOMAIN,
+    src_state = _source_id(conn, CB_STATE_URL,
                               title="2023 Cartographic Boundary File, State (cb_2023_us_state_500k)",
                               publisher=CENSUS_PUB, license=CENSUS_LIC)
 
@@ -620,7 +625,7 @@ def _pep_population(conn):
         return _PEP_CACHE["pop"]
     raw = fetch(PEP_URL, domain=DOMAIN)
     save_raw(DOMAIN, "sub-est2024.csv", raw)
-    src = source_id_for(conn, PEP_URL, DOMAIN,
+    src = _source_id(conn, PEP_URL,
                         title="Annual Estimates of the Resident Population for Incorporated Places "
                               "and Minor Civil Divisions, 2020-2024 (sub-est2024)",
                         publisher=CENSUS_PUB, license=CENSUS_LIC)
@@ -653,7 +658,7 @@ def _gazetteer_points(conn):
     save_raw(DOMAIN, "2023_Gaz_place_national.zip", raw)
     z = zipfile.ZipFile(io.BytesIO(raw))
     txt = z.read(z.namelist()[0]).decode("latin-1")
-    src = source_id_for(conn, GAZ_PLACE_URL, DOMAIN,
+    src = _source_id(conn, GAZ_PLACE_URL,
                         title="2023 Gazetteer Files, National Places (2023_Gaz_place_national)",
                         publisher=CENSUS_PUB, license=CENSUS_LIC)
     out = {}
@@ -684,7 +689,7 @@ def _census_places(conn, coc_geoms):
     tmp.mkdir(parents=True, exist_ok=True)
     dbf = _write_tmp(tmp, "places.dbf", parts["dbf"])
     attrs = _read_dbf(dbf)
-    src_place = source_id_for(conn, CB_PLACE_URL, DOMAIN,
+    src_place = _source_id(conn, CB_PLACE_URL,
                               title="2023 Cartographic Boundary File, Place (cb_2023_us_place_500k)",
                               publisher=CENSUS_PUB, license=CENSUS_LIC)
     gaz, _src_gaz = _gazetteer_points(conn)
@@ -815,15 +820,19 @@ def run(conn, cfg):
             "state": coc_num.split("-")[0],
             "geo_type": clean(props.get("Geo_Type")),
         }, "geometry": _round_geom(rec["geom"])})
-    coc_path = EXPORT / "coc.geojson"
+    # a --selftest run only has PAGE features; never let it clobber the real export
+    coc_path = EXPORT / "coc.geojson" if not max_pages else (
+        ROOT / "data" / "raw" / DOMAIN / "_tmp" / "coc.selftest.geojson")
     coc_text = json.dumps({"type": "FeatureCollection",
                            "name": "HUD CoC boundaries FY2024 (simplified)",
                            "features": coc_feats}, separators=(",", ":"))
+    coc_path.parent.mkdir(parents=True, exist_ok=True)
     coc_path.write_text(coc_text)
 
     # ---- states -----------------------------------------------------------
     state_feats, _src_state, state_rows = _census_states(conn, tol)
-    state_path = EXPORT / "state.geojson"
+    state_path = EXPORT / "state.geojson" if not max_pages else (
+        ROOT / "data" / "raw" / DOMAIN / "_tmp" / "state.selftest.geojson")
     state_text = json.dumps({"type": "FeatureCollection",
                              "name": "US states, Census 2023 cartographic boundaries (simplified)",
                              "features": state_feats}, separators=(",", ":"))
@@ -847,7 +856,7 @@ def run(conn, cfg):
     # sanity: the export must be valid JSON and inside the size budget
     json.loads(coc_path.read_text())
     json.loads(state_path.read_text())
-    if total_bytes > 12_000_000:
+    if not max_pages and total_bytes > 12_000_000:
         raise RuntimeError(f"export budget blown: {total_bytes} bytes")
     nonnull = conn.execute("SELECT COUNT(*) FROM geo_coc WHERE geometry IS NOT NULL").fetchone()[0]
     if not max_pages and nonnull < 380:

@@ -24,7 +24,9 @@ from __future__ import annotations
 import json
 import math
 import re
+import sqlite3
 import sys
+import time
 
 from ingest import common
 from ingest.common import clean, fetch_post_json, name_norm, now, source_id_for, upsert
@@ -101,6 +103,7 @@ FIELDS = [
 
 LIMIT = 100
 MAX_PAGES = 200          # hard cap per query
+LOCK_RETRIES = 8         # concurrent writers: other domain agents hold write locks
 DESC_MAX = 4000          # description is truncated to this many chars
 
 PROGRESS_DDL = """
@@ -227,6 +230,7 @@ def run(conn, cfg):
     selftest = bool(cfg.get("selftest"))
     max_pages = int(cfg.get("max_pages") or (1 if selftest else MAX_PAGES))
 
+    conn.execute("PRAGMA busy_timeout = 120000")
     conn.execute(PROGRESS_DDL)
     conn.commit()
 
@@ -312,20 +316,37 @@ def run(conn, cfg):
             if not results:
                 break
 
-            for r in results:
-                _write_award(conn, r, q["group"], src_id, pmap, seen, org_cache)
-
-            conn.execute(
-                """UPDATE usaspending_progress SET pages_done=?,updated_at=? WHERE query_key=?""",
-                (page, now(), q["key"]))
-            conn.commit()
+            # other agents write to this DB too; retry the page as a whole on
+            # lock contention, restoring the in-memory dedupe state first
+            for attempt in range(LOCK_RETRIES):
+                snap_seen, snap_org = set(seen), dict(org_cache)
+                try:
+                    with conn:
+                        for r in results:
+                            _write_award(conn, r, q["group"], src_id, pmap, seen, org_cache)
+                        conn.execute(
+                            """UPDATE usaspending_progress SET pages_done=?,updated_at=? WHERE query_key=?""",
+                            (page, now(), q["key"]))
+                    break
+                except sqlite3.OperationalError as e:
+                    if "locked" not in str(e) and "busy" not in str(e):
+                        raise
+                    seen.clear()
+                    seen.update(snap_seen)
+                    org_cache.clear()
+                    org_cache.update(snap_org)
+                    notes.append(f"{q['key']} p{page}: locked, retry {attempt + 1}/{LOCK_RETRIES}")
+                    time.sleep(20)
+            else:
+                failed.append(f"{q['key']} p{page}: database locked, gave up")
+                break
             page += 1
 
-        conn.execute(
-            """UPDATE usaspending_progress SET done=1,pages_done=?,note=?,updated_at=?
-               WHERE query_key=?""",
-            (min(page - 1, pages_total), capped_note or "", now(), q["key"]))
-        conn.commit()
+        with conn:
+            conn.execute(
+                """UPDATE usaspending_progress SET done=1,pages_done=?,note=?,updated_at=?
+                   WHERE query_key=?""",
+                (min(page - 1, pages_total), capped_note or "", now(), q["key"]))
 
     awards_total = conn.execute("SELECT COUNT(*) FROM award").fetchone()[0]
     orgs_total = conn.execute("SELECT COUNT(*) FROM org").fetchone()[0]

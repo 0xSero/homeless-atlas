@@ -240,6 +240,18 @@ class _Poly:
         ys = np.concatenate([r[:, 1] for r in self.rings])
         self.bbox = (xs.min(), ys.min(), xs.max(), ys.max())
 
+    def min_dist(self, x, y):
+        """Distance (degrees) from a point to the nearest polygon vertex."""
+        import numpy as np
+        best = float("inf")
+        for ring in self.rings:
+            dx = ring[:, 0] - x
+            dy = ring[:, 1] - y
+            d = float(np.min(dx * dx + dy * dy))
+            if d < best:
+                best = d
+        return best ** 0.5
+
     def contains(self, x, y):
         import numpy as np
         if self.bbox is None:
@@ -263,15 +275,31 @@ class _Poly:
         return not any(in_ring(h) for h in self.holes)
 
 
-def assign_coc(points, polys):
-    """points: list of (key, lon, lat) -> {key: coc_num} (first containing CoC)."""
+def assign_coc(points, polys, max_fallback=0.25):
+    """points: list of (key, lon, lat) -> {key: coc_num}.
+
+    Point-in-polygon first. Census 'internal points' for a handful of coastal
+    cities/counties (San Francisco, Boston, ...) sit in open water just outside
+    the CoC land polygon, so those fall back to the nearest CoC boundary, and
+    only if it is within `max_fallback` degrees (~25 km).
+    """
     out = {}
     order = list(polys.items())
     for key, lon, lat in points:
+        hit = None
         for coc, poly in order:
             if poly.contains(lon, lat):
-                out[key] = coc
+                hit = coc
                 break
+        if hit is None:
+            best, bestd = None, max_fallback
+            for coc, poly in order:
+                d = poly.min_dist(lon, lat)
+                if d < bestd:
+                    best, bestd = coc, d
+            hit = best
+        if hit:
+            out[key] = hit
     return out
 
 
@@ -340,6 +368,8 @@ def read_census():
         # 162 = whole place. 157 in this vintage = place-part-by-county, which
         # would triple-count multi-county cities (New York, Chicago, ...).
         if r["SUMLEV"] != "162":
+            continue
+        if r["PLACE"].startswith("999"):      # 'Balance of X County' pseudo-place
             continue
         p = pop(r)
         if not p:
