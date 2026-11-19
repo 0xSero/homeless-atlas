@@ -20,8 +20,11 @@ def now() -> str:
 
 def db() -> sqlite3.Connection:
     DB.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(DB, timeout=120)
+    conn = sqlite3.connect(DB, timeout=300)
     conn.row_factory = sqlite3.Row
+    # durability over speed: this is a public-record archive, not a cache
+    conn.execute("PRAGMA busy_timeout=300000")
+    conn.execute("PRAGMA synchronous=FULL")
     with open(ROOT / "ingest" / "schema.sql") as f:
         conn.executescript(f.read())
     return conn

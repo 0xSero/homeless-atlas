@@ -1,0 +1,4 @@
+{"step": "state_federal", "done_at": "2026-11-19T08:10:08+00:00", "detail": "111 state-year totals"}
+{"step": "coc_county", "done_at": "2026-11-19T08:10:08+00:00", "detail": "279 CoCs, matched 469/1002 county rows"}
+{"step": "city_budgets", "done_at": "2026-11-19T08:10:35+00:00", "detail": "7 cities: San Francisco, New York, Los Angeles, Seattle, Chicago, Austin, San Mateo County"}
+{"step": "city_awards", "done_at": "2026-11-19T08:10:35+00:00", "detail": "54 local governments"}

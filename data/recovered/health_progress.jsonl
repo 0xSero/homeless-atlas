@@ -1,0 +1,7 @@
+{"step": "nchs_state", "ts": "2026-11-19T08:02:53+00:00", "rows": 1872, "ok": 1, "note": "nchs_state rows=936 years=1999-2016"}
+{"step": "vsrr_state", "ts": "2026-11-19T08:02:54+00:00", "rows": 1040, "ok": 1, "note": "vsrr_state periods=7452 jurisdictions=53 skipped_pre2017=108"}
+{"step": "vsrr_county", "ts": "2026-11-19T08:02:54+00:00", "rows": 8626, "ok": 1, "note": "vsrr_county years=2023,2024 county_cells=75456 counties=2446"}
+{"step": "sf_dph", "ts": "2026-11-19T08:02:54+00:00", "rows": 14, "ok": 1, "note": "sf_dph rows=81 distinct_months=81 years=7"}
+{"step": "ct_ocme", "ts": "2026-11-19T08:02:54+00:00", "rows": 3327, "ok": 1, "note": "ct_ocme rows=6991 municipalities=1773 unmatched_residence_names=344"}
+{"step": "city_from_county", "ts": "2026-11-19T08:02:54+00:00", "rows": 34, "ok": 1, "note": "coextensive_cities=32 skipped_had_city_source=1 nyc=yes"}
+{"step": "brfss_state", "ts": "2026-11-19T08:02:54+00:00", "rows": 108, "ok": 1, "note": "brfss states=108 years=[2024, 2025]"}

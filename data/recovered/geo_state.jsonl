@@ -1,0 +1,56 @@
+{"fips": "01", "abbr": "AL", "name": "Alabama", "pop": 5157699, "lat": 32.79042, "lon": -86.82806, "land_sqmi": 50650.8, "source_id": 24, "is_est": 0}
+{"fips": "02", "abbr": "AK", "name": "Alaska", "pop": 740133, "lat": 64.52934, "lon": -152.67357, "land_sqmi": 571051.6, "source_id": 24, "is_est": 0}
+{"fips": "04", "abbr": "AZ", "name": "Arizona", "pop": 7582384, "lat": 34.29309, "lon": -111.66439, "land_sqmi": 113655.4, "source_id": 24, "is_est": 0}
+{"fips": "05", "abbr": "AR", "name": "Arkansas", "pop": 3088354, "lat": 34.89988, "lon": -92.4384, "land_sqmi": 51992.7, "source_id": 24, "is_est": 0}
+{"fips": "06", "abbr": "CA", "name": "California", "pop": 39431263, "lat": 37.25406, "lon": -119.61115, "land_sqmi": 155859.1, "source_id": 24, "is_est": 0}
+{"fips": "08", "abbr": "CO", "name": "Colorado", "pop": 5957493, "lat": 38.99855, "lon": -105.54781, "land_sqmi": 103637.1, "source_id": 24, "is_est": 0}
+{"fips": "09", "abbr": "CT", "name": "Connecticut", "pop": 3675069, "lat": 41.62071, "lon": -72.72535, "land_sqmi": 4842.4, "source_id": 24, "is_est": 0}
+{"fips": "10", "abbr": "DE", "name": "Delaware", "pop": 1051917, "lat": 38.98652, "lon": -75.5004, "land_sqmi": 1948.5, "source_id": 24, "is_est": 0}
+{"fips": "11", "abbr": "DC", "name": "District of Columbia", "pop": 702250, "lat": 38.90473, "lon": -77.01629, "land_sqmi": 61.1, "source_id": 24, "is_est": 0}
+{"fips": "12", "abbr": "FL", "name": "Florida", "pop": 23372215, "lat": 28.64932, "lon": -82.50152, "land_sqmi": 53654.2, "source_id": 24, "is_est": 0}
+{"fips": "13", "abbr": "GA", "name": "Georgia", "pop": 11180878, "lat": 32.64936, "lon": -83.44657, "land_sqmi": 57716.6, "source_id": 24, "is_est": 0}
+{"fips": "15", "abbr": "HI", "name": "Hawaii", "pop": 1446146, "lat": 19.59837, "lon": -155.51832, "land_sqmi": 6422.6, "source_id": 24, "is_est": 0}
+{"fips": "16", "abbr": "ID", "name": "Idaho", "pop": 2001619, "lat": 44.38908, "lon": -114.65941, "land_sqmi": 82645.1, "source_id": 24, "is_est": 0}
+{"fips": "17", "abbr": "IL", "name": "Illinois", "pop": 12710158, "lat": 40.06503, "lon": -89.19841, "land_sqmi": 55513.1, "source_id": 24, "is_est": 0}
+{"fips": "18", "abbr": "IN", "name": "Indiana", "pop": 6924275, "lat": 39.90799, "lon": -86.27562, "land_sqmi": 35825.1, "source_id": 24, "is_est": 0}
+{"fips": "19", "abbr": "IA", "name": "Iowa", "pop": 3241488, "lat": 42.07465, "lon": -93.50005, "land_sqmi": 55853.3, "source_id": 24, "is_est": 0}
+{"fips": "20", "abbr": "KS", "name": "Kansas", "pop": 2970606, "lat": 38.4847, "lon": -98.3802, "land_sqmi": 81758.6, "source_id": 24, "is_est": 0}
+{"fips": "21", "abbr": "KY", "name": "Kentucky", "pop": 4588372, "lat": 37.52726, "lon": -85.2877, "land_sqmi": 39485.4, "source_id": 24, "is_est": 0}
+{"fips": "22", "abbr": "LA", "name": "Louisiana", "pop": 4597740, "lat": 31.06567, "lon": -91.9909, "land_sqmi": 43216.6, "source_id": 24, "is_est": 0}
+{"fips": "23", "abbr": "ME", "name": "Maine", "pop": 1405012, "lat": 45.37974, "lon": -69.23036, "land_sqmi": 30845.0, "source_id": 24, "is_est": 0}
+{"fips": "24", "abbr": "MD", "name": "Maryland", "pop": 6263220, "lat": 39.03973, "lon": -76.77499, "land_sqmi": 9711.1, "source_id": 24, "is_est": 0}
+{"fips": "25", "abbr": "MA", "name": "Massachusetts", "pop": 7136171, "lat": 42.27317, "lon": -71.8303, "land_sqmi": 7800.9, "source_id": 24, "is_est": 0}
+{"fips": "26", "abbr": "MI", "name": "Michigan", "pop": 10140459, "lat": 43.48277, "lon": -84.62319, "land_sqmi": 56610.3, "source_id": 24, "is_est": 0}
+{"fips": "27", "abbr": "MN", "name": "Minnesota", "pop": 5793151, "lat": 46.31648, "lon": -94.30927, "land_sqmi": 79631.5, "source_id": 24, "is_est": 0}
+{"fips": "28", "abbr": "MS", "name": "Mississippi", "pop": 2943045, "lat": 32.75148, "lon": -89.66539, "land_sqmi": 46924.4, "source_id": 24, "is_est": 0}
+{"fips": "29", "abbr": "MO", "name": "Missouri", "pop": 6245466, "lat": 38.36761, "lon": -92.4774, "land_sqmi": 68746.4, "source_id": 24, "is_est": 0}
+{"fips": "30", "abbr": "MT", "name": "Montana", "pop": 1137233, "lat": 47.03346, "lon": -109.64513, "land_sqmi": 145550.2, "source_id": 24, "is_est": 0}
+{"fips": "31", "abbr": "NE", "name": "Nebraska", "pop": 2005465, "lat": 41.52714, "lon": -99.8108, "land_sqmi": 76814.9, "source_id": 24, "is_est": 0}
+{"fips": "32", "abbr": "NV", "name": "Nevada", "pop": 3267467, "lat": 39.35618, "lon": -116.65525, "land_sqmi": 109860.4, "source_id": 24, "is_est": 0}
+{"fips": "33", "abbr": "NH", "name": "New Hampshire", "pop": 1409032, "lat": 43.6856, "lon": -71.57761, "land_sqmi": 8953.8, "source_id": 24, "is_est": 0}
+{"fips": "34", "abbr": "NJ", "name": "New Jersey", "pop": 9500851, "lat": 40.18438, "lon": -74.66164, "land_sqmi": 7354.9, "source_id": 24, "is_est": 0}
+{"fips": "35", "abbr": "NM", "name": "New Mexico", "pop": 2130256, "lat": 34.42135, "lon": -106.10837, "land_sqmi": 121312.8, "source_id": 24, "is_est": 0}
+{"fips": "36", "abbr": "NY", "name": "New York", "pop": 19867248, "lat": 42.94375, "lon": -75.50565, "land_sqmi": 47123.4, "source_id": 24, "is_est": 0}
+{"fips": "37", "abbr": "NC", "name": "North Carolina", "pop": 11046024, "lat": 35.54222, "lon": -79.38122, "land_sqmi": 48624.1, "source_id": 24, "is_est": 0}
+{"fips": "38", "abbr": "ND", "name": "North Dakota", "pop": 796568, "lat": 47.44633, "lon": -100.46931, "land_sqmi": 68994.3, "source_id": 24, "is_est": 0}
+{"fips": "39", "abbr": "OH", "name": "Ohio", "pop": 11883304, "lat": 40.29092, "lon": -82.7901, "land_sqmi": 40858.8, "source_id": 24, "is_est": 0}
+{"fips": "40", "abbr": "OK", "name": "Oklahoma", "pop": 4095393, "lat": 35.58348, "lon": -97.50828, "land_sqmi": 68596.6, "source_id": 24, "is_est": 0}
+{"fips": "41", "abbr": "OR", "name": "Oregon", "pop": 4272371, "lat": 43.93661, "lon": -120.55531, "land_sqmi": 95996.7, "source_id": 24, "is_est": 0}
+{"fips": "42", "abbr": "PA", "name": "Pennsylvania", "pop": 13078751, "lat": 40.87382, "lon": -77.79955, "land_sqmi": 44742.2, "source_id": 24, "is_est": 0}
+{"fips": "44", "abbr": "RI", "name": "Rhode Island", "pop": 1112308, "lat": 41.69496, "lon": -71.58909, "land_sqmi": 1033.9, "source_id": 24, "is_est": 0}
+{"fips": "45", "abbr": "SC", "name": "South Carolina", "pop": 5478831, "lat": 33.90821, "lon": -80.89635, "land_sqmi": 30064.2, "source_id": 24, "is_est": 0}
+{"fips": "46", "abbr": "SD", "name": "South Dakota", "pop": 924669, "lat": 44.43615, "lon": -100.23049, "land_sqmi": 75807.9, "source_id": 24, "is_est": 0}
+{"fips": "47", "abbr": "TN", "name": "Tennessee", "pop": 7227750, "lat": 35.84311, "lon": -86.34212, "land_sqmi": 41232.7, "source_id": 24, "is_est": 0}
+{"fips": "48", "abbr": "TX", "name": "Texas", "pop": 31290831, "lat": 31.4881, "lon": -99.35336, "land_sqmi": 261270.0, "source_id": 24, "is_est": 0}
+{"fips": "49", "abbr": "UT", "name": "Utah", "pop": 3503613, "lat": 39.32382, "lon": -111.67825, "land_sqmi": 82595.7, "source_id": 24, "is_est": 0}
+{"fips": "50", "abbr": "VT", "name": "Vermont", "pop": 648493, "lat": 44.0752, "lon": -72.66262, "land_sqmi": 9217.3, "source_id": 24, "is_est": 0}
+{"fips": "51", "abbr": "VA", "name": "Virginia", "pop": 8811195, "lat": 37.513, "lon": -78.88401, "land_sqmi": 39482.1, "source_id": 24, "is_est": 0}
+{"fips": "53", "abbr": "WA", "name": "Washington", "pop": 7958180, "lat": 47.37442, "lon": -120.42837, "land_sqmi": 66455.4, "source_id": 24, "is_est": 0}
+{"fips": "54", "abbr": "WV", "name": "West Virginia", "pop": 1769979, "lat": 38.64258, "lon": -80.61373, "land_sqmi": 24041.2, "source_id": 24, "is_est": 0}
+{"fips": "55", "abbr": "WI", "name": "Wisconsin", "pop": 5960975, "lat": 44.6339, "lon": -90.01295, "land_sqmi": 54167.3, "source_id": 24, "is_est": 0}
+{"fips": "56", "abbr": "WY", "name": "Wyoming", "pop": 587618, "lat": 42.99956, "lon": -107.55136, "land_sqmi": 97088.5, "source_id": 24, "is_est": 0}
+{"fips": "72", "abbr": "PR", "name": "Puerto Rico", "pop": null, "lat": 18.22469, "lon": -66.4796, "land_sqmi": 3424.4, "source_id": 23, "is_est": 0}
+{"fips": "60", "abbr": "AS", "name": "American Samoa", "pop": null, "lat": -14.30046, "lon": -170.71825, "land_sqmi": 76.4, "source_id": 23, "is_est": 0}
+{"fips": "78", "abbr": "VI", "name": "United States Virgin Islands", "pop": null, "lat": 17.7331, "lon": -64.76848, "land_sqmi": 134.4, "source_id": 23, "is_est": 0}
+{"fips": "66", "abbr": "GU", "name": "Guam", "pop": null, "lat": 13.44397, "lon": 144.77435, "land_sqmi": 209.9, "source_id": 23, "is_est": 0}
+{"fips": "69", "abbr": "MP", "name": "Commonwealth of the Northern Mariana Islands", "pop": null, "lat": 15.18875, "lon": 145.75344, "land_sqmi": 182.4, "source_id": 23, "is_est": 0}

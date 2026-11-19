@@ -342,7 +342,8 @@ def _pick(fields, hints, types, prefer_type=None):
     return None
 
 
-CAT_STEMS = ["nibrs", "nibr", "ucr", "offense_category", "offense_description",
+CAT_STEMS = ["text_general_code", "crm_cd_desc", "nibrs", "nibr", "ucr",
+             "offense_category", "offense_description", "code_description",
              "offense_desc", "offense", "offence", "primary_type", "crime_type",
              "crime_category", "incident_category", "incident_description", "statute",
              "general_subject", "crime", "category", "description", "type"]
@@ -362,7 +363,10 @@ def _cat_candidates(fields, allowed_types):
         if typ not in allowed_types:
             continue
         low = name.lower()
-        if any(b in low for b in CAT_BLACKLIST) or low.endswith("id"):
+        if any(b in low for b in CAT_BLACKLIST):
+            continue
+        if low.endswith("id") and not any(k in low for k in
+                                          ("offense", "offence", "nibrs", "ucr", "category")):
             continue
         score = None
         for i, stem in enumerate(CAT_STEMS):
@@ -451,6 +455,12 @@ def _socrata_counts(src):
             break
     if not cat_f:
         raise RuntimeError("no usable classification column (tried " + ", ".join(tried) + ")")
+    if best[0] < 0.25:
+        raise RuntimeError(f"classification column {cat_f} maps only {best[0]:.0%} of incidents "
+                           f"to violent/property/theft (tried " + ", ".join(tried) + ")")
+    if best[0] < 0.25:
+        raise RuntimeError(f"classification column {cat_f} maps only {best[0]:.0%} of incidents "
+                           f"to violent/property/theft (tried " + ", ".join(tried) + ")")
     is_cal = any(f[0] == date_f and f[1] == "calendar_date" for f in fields)
     iso_year = any(f[0] == date_f and f[1] == "number" and "year" in f[0].lower() for f in fields)
     out = {}
@@ -546,6 +556,9 @@ def _agol_counts(src):
             break
     if not cat_f:
         raise RuntimeError("no usable classification column (tried " + ", ".join(tried) + ")")
+    if best[0] < 0.25:
+        raise RuntimeError(f"classification column {cat_f} maps only {best[0]:.0%} of incidents "
+                           f"to violent/property/theft (tried " + ", ".join(tried) + ")")
 
     out = {}
     fixed = src.get("year_fixed")
@@ -593,7 +606,7 @@ def _write_city(conn, conn_meta, geoid, pop, buckets, src_id, src):
                 conn.execute("SELECT year, source_id FROM crime_city_year WHERE geoid=?",
                              (geoid,))}
     for year in sorted(buckets):
-        if year < MIN_YEAR - 6:
+        if year < MIN_YEAR:
             continue
         if year in existing and existing[year] != src_id:
             continue

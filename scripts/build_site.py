@@ -423,6 +423,19 @@ def build_exports(d, conn):
             feats.append({"type": "Feature", "properties": p2, "geometry": f.get("geometry")})
     (SITE / "data" / "map-states.geojson").write_text(json.dumps({"type": "FeatureCollection", "features": feats}))
 
+    # per-year rates so the map can be scrubbed through time (growth and fall, state by state)
+    yrs = [r["year"] for r in q(CONN, "SELECT DISTINCT year FROM pit WHERE total IS NOT NULL ORDER BY year")]
+    by_year = {}
+    for r in q(CONN, """SELECT c.state abbr, p.year, SUM(p.total) total
+                        FROM pit p JOIN geo_coc c ON c.coc_num=p.coc_num
+                        WHERE c.state IS NOT NULL AND p.total IS NOT NULL GROUP BY c.state, p.year"""):
+        st_ = next((x for x in d["states"] if x["abbr"] == r["abbr"]), None)
+        pop = (st_ or {}).get("pop")
+        if pop:
+            by_year.setdefault(str(r["year"]), {})[r["abbr"]] = round(r["total"] / pop * 10000, 3)
+    (SITE / "data" / "map-years.json").write_text(json.dumps(
+        {"years": yrs, "rates": by_year, "unit": "homeless per 10,000 residents (HUD PIT / Census)"}))
+
     # city points
     pts = []
     for c in d["cities"][:12000]:
@@ -639,6 +652,14 @@ def page_map(d, manifest_total):
     body = banner("Map", "One map, every layer", "State heat map by homeless rate, Continuum of Care boundaries, "
                    "city populations and institutions. Toggle layers; click anything for the record.") + """
 <div class="wrap">
+  <div class="panel" style="margin:16px 0;padding:12px 14px">
+    <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+      <label for="yr" style="font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;color:var(--fg2)">Year</label>
+      <input id="yr" type="range" min="2007" max="2025" step="1" value="2025" style="flex:1;min-width:220px;accent-color:var(--ember)">
+      <output id="yrout" class="mono" style="font-size:1.05rem;color:var(--amber)">2025</output>
+    </div>
+    <div class="legend" id="yrlegend" style="margin-top:8px"><span class="dim">Scrub through the HUD counts: the colour of each state is its homeless rate that January.</span></div>
+  </div>
   <div class="layertoggle" id="lt">
     <button data-l="choro" class="on">State heat</button>
     <button data-l="coc" class="on">CoC areas</button>
@@ -678,7 +699,38 @@ function loadLayer(name){
      m.on('click','fac',e=>{var p=e.features[0].properties;pop.setLngLat(e.features[0].geometry.coordinates).setHTML(p.__html||p.name).addTo(m);});
   });
 }
-m.on('load',function(){loadLayer('choro');loadLayer('coc');loadLayer('fac');});
+m.on('load',function(){
+  loadLayer('choro');loadLayer('coc');loadLayer('fac');
+  // time scrubber: recolour states from per-year rates
+  var YR=null, STATE_ID='st';
+  fetch('/data/map-years.json').then(r=>r.json()).then(function(d){
+    YR=d;
+    var lo=2007, hi=d.years[d.years.length-1], inp=document.getElementById('yr'), out=document.getElementById('yrout');
+    inp.min=lo; inp.max=hi; inp.value=hi; out.textContent=String(hi);
+    function colorExpr(){ return ['interpolate',['linear'],['coalesce',['feature-state','rate'],0],
+        0,'#22303f',3,'#3d2a3f',8,'#6b2f3a',15,'#a83c33',28,'#e2603a',45,'#ff8a4c',70,'#ffc857']; }
+    function apply(y){
+      var rates=(YR.rates[String(y)]||{});
+      var src=m.getSource(STATE_ID); if(!src) return;
+      var data=src._data;
+      data.features.forEach(function(f){
+        var ab=f.properties.abbr||'';
+        var v=rates[ab]||0;
+        m.setFeatureState({source:STATE_ID,id:f.id!==undefined?f.id:ab}, {rate:v});
+      });
+      m.setPaintProperty('st-fill','fill-color',colorExpr());
+      out.textContent=String(y);
+      var known=Object.keys(rates).length;
+      document.getElementById('yrlegend').innerHTML='<span class="dim">'+y+' · '+known+' states reporting · darker = lower rate, amber = 70+ per 10,000</span>';
+    }
+    inp.addEventListener('input',function(){ apply(inp.value); });
+    // feature-state needs stable ids
+    var gj=m.getSource(STATE_ID)._data;
+    gj.features.forEach(function(f,i){ f.id=f.properties.abbr||i; });
+    m.getSource(STATE_ID).setData(gj);
+    apply(hi);
+  }).catch(function(){});
+});
 document.querySelectorAll('#lt button').forEach(function(b){
   b.addEventListener('click',function(){
     var l=b.dataset.l,on=b.classList.toggle('on');

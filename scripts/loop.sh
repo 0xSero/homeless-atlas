@@ -130,6 +130,16 @@ checkpoint() {
   if ! git diff --cached --quiet; then
     git commit -q -m "data: loop checkpoint $(date -u +%Y-%m-%dT%H:%MZ)" && log "committed"
   fi
+  if ! python3 -c "
+import sqlite3,sys
+c=sqlite3.connect('data/atlas.db',timeout=120)
+r=c.execute('pragma quick_check').fetchone()[0]
+sys.exit(0 if r=='ok' else 1)" 2>/dev/null; then
+    log "DATABASE INTEGRITY FAILURE — stopping the loop; restore from data/backups/ and investigate"
+    touch STOP
+    break
+  fi
+  ./scripts/backup_db.sh >> logs/backup.log 2>&1 || log "backup failed"
   python3 scripts/audit.py --fix >> logs/audit.log 2>&1 || log "AUDIT: problems remain (see logs/audit.log)"
   python3 scripts/verify.py >> logs/verify.log 2>&1 && log "VERIFY: ALL GATES PASS"
   if [ -f scripts/build_site.py ]; then

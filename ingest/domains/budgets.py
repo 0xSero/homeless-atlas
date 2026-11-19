@@ -113,13 +113,6 @@ CITY_BUDGETS = [
         page="https://data.austintexas.gov/d/yeeq-kk6v",
     ),
     dict(
-        city="Honolulu", state="HI", host="data.honolulu.gov", ds="4mj2-5un8",
-        where="lower(department_name) like '%homeless%' OR lower(division_name) like '%homeless%'",
-        amount_col="fy_2025_adopted_budget", group_cols=["department_name", "division_name"], fy="2025",
-        basis="FY2025 adopted budget lines whose department or division name contains 'homeless'",
-        page="https://data.honolulu.gov/d/4mj2-5un8",
-    ),
-    dict(
         city="San Mateo County", state="CA", host="data.smcgov.org", ds="8w4u-sjiw",
         where="1=1", amount_col="appropriations", group_cols=["orginization_description"], fy="2014",
         entity_type="county", metric="county_homelessness_budget",
@@ -513,13 +506,13 @@ def _city_budgets(conn, stats):
             note_extra = ""
 
         year = int(fy_label) if str(fy_label).isdigit() else None
-        _metric(conn, etype, city, metric, total, "USD", year, sid,
-                note=f"{city}: {spec['basis']}; filter [{spec['where']}]; {kept} published line(s) summed{note_extra}")
-
         pop_row = conn.execute(
             "SELECT geoid, pop, coc_num FROM geo_city WHERE name=? AND state=? AND kind=? "
             "ORDER BY pop DESC LIMIT 1", (city, state, kind)).fetchone()
         eid = pop_row["geoid"] if pop_row and pop_row["geoid"] else city
+        _metric(conn, etype, eid, metric, total, "USD", year, sid,
+                note=f"{city}, {state}: {spec['basis']}; filter [{spec['where']}]; "
+                     f"{kept} published line(s) summed{note_extra}")
         if pop_row and pop_row["pop"]:
             _metric(conn, etype, eid, f"{metric}_per_capita", total / pop_row["pop"], "USD/person",
                     year, sid, is_est=1,

@@ -1021,12 +1021,26 @@ def display_name(name: str) -> str:
     return " ".join(out)
 
 
+_ACRONYM_EXPAND = {
+    "USP": "UNITED STATES PENITENTIARY", "FCI": "FEDERAL CORRECTIONAL INSTITUTION",
+    "FDC": "FEDERAL DETENTION CENTER", "FPC": "FEDERAL PRISON CAMP",
+    "FMC": "FEDERAL MEDICAL CENTER", "MCC": "METROPOLITAN CORRECTIONAL CENTER",
+    "MDC": "METROPOLITAN DETENTION CENTER", "MCF": "METROPOLITAN CORRECTIONAL FACILITY",
+    "SP": "STATE PRISON", "CF": "CORRECTIONAL FACILITY", "CI": "CORRECTIONAL INSTITUTION",
+    "SF": "SAN FRANCISCO",
+}
+_MATCH_DROP = {"UNITED", "STATES", "CAMPUS", "FACILITY", "COMPLEX"}
+
+
 def _match_name(name: str) -> str:
     """Name used only for cross-source matching (not stored)."""
     n = name_norm(display_name(name))
     n = _NAME_PREFIX_RE.sub("", n)
-    n = re.sub(r"\b(CAMPUS|FACILITY|COMPLEX)\b", " ", n)
-    return re.sub(r"\s+", " ", n).strip()
+    toks = []
+    for t in n.split():
+        toks.extend(_ACRONYM_EXPAND.get(t, t).split())
+    toks = [t for t in toks if t not in _MATCH_DROP]
+    return re.sub(r"\s+", " ", " ".join(toks)).strip()
 
 
 def _key(rec):
@@ -1421,11 +1435,17 @@ def _write_facility(conn, rec):
     return cur.lastrowid
 
 
-def _metric(conn, fid, metric, value, year, unit=None, is_est=0, note=None, source_id=None):
+OUR_METRICS = ("facility_beds", "facility_staff", "facility_annual_budget", "cost_per_bed_year")
+
+
+def _metric(conn, fid, metric, value, year, unit=None, is_est=0, note=None, source_id=None,
+            emitted=None):
     if value is None or fid is None:
         return
     if year is None:
         year = 0
+    if emitted is not None:
+        emitted.add((fid, metric, int(year)))
     conn.execute(
         "INSERT INTO metric(entity_type,entity_id,metric,value,unit,year,is_est,note,source_id) "
         "VALUES('facility',?,?,?,?,?,?,?,?) ON CONFLICT(entity_type,entity_id,metric,year) "
@@ -1627,6 +1647,7 @@ def run(conn, cfg):
                 yield k, rec
 
     n_beds = n_staff = n_budget = n_cost = 0
+    emitted = set()
     for k, rec in list(merger.recs.items()):
         fid = ids.get(k)
         if not fid:
@@ -1635,18 +1656,18 @@ def run(conn, cfg):
             _metric(conn, fid, "facility_beds", rec["beds"], rec.get("beds_year") or 0,
                     unit="beds", is_est=int(rec.get("is_est") or 0),
                     note="bed/capacity count as reported by the cited inventory source",
-                    source_id=rec.get("source_id"))
+                    source_id=rec.get("source_id"), emitted=emitted)
             n_beds += 1
         if rec.get("staff"):
             _metric(conn, fid, "facility_staff", rec["staff"], rec.get("staff_year") or 0,
                     unit="staff", note="staffing count as reported by the cited source",
-                    source_id=rec.get("source_id"))
+                    source_id=rec.get("source_id"), emitted=emitted)
             n_staff += 1
         if rec.get("budget"):
             _metric(conn, fid, "facility_annual_budget", rec["budget"],
                     rec.get("budget_year") or 0, unit="USD/year",
                     note="annual operating budget as reported; see population_note",
-                    source_id=rec.get("source_id"))
+                    source_id=rec.get("source_id"), emitted=emitted)
             n_budget += 1
             if rec.get("beds") and not rec.get("annual_cost_per_bed"):
                 cpb = int(round(rec["budget"] / rec["beds"]))
@@ -1654,7 +1675,7 @@ def run(conn, cfg):
                         unit="USD/bed/year", is_est=1,
                         note=f"derived: annual budget ${rec['budget']:,} / {rec['beds']} beds "
                              f"= ${cpb:,} per bed-year (is_est=1 means derived by division)",
-                        source_id=rec.get("source_id"))
+                        source_id=rec.get("source_id"), emitted=emitted)
                 n_cost += 1
         if rec.get("annual_cost_per_bed"):
             _metric(conn, fid, "cost_per_bed_year", rec["annual_cost_per_bed"],
@@ -1662,10 +1683,20 @@ def run(conn, cfg):
                     unit="USD/bed/year", is_est=int(rec.get("cpb_is_est") or 0),
                     note="per-patient/per-bed operating cost; see population_note for the "
                          "quoted source sentence and any annualisation",
-                    source_id=rec.get("source_id"))
+                    source_id=rec.get("source_id"), emitted=emitted)
             n_cost += 1
 
+    # 7b. remove metric rows from earlier runs that this run does not produce any more -----
+    dropped = 0
+    for fid in set(ids.values()):
+        for row in conn.execute(
+                "SELECT id, metric, year FROM metric WHERE entity_type='facility' AND entity_id=?",
+                (str(fid),)).fetchall():
+            if row[1] in OUR_METRICS and (fid, row[1], row[2]) not in emitted:
+                conn.execute("DELETE FROM metric WHERE id=?", (row[0],))
+                dropped += 1
     conn.commit()
+    notes.append(f"stale_metrics_dropped={dropped}")
 
     # 8. published operating economics (state systems) -----------------------------------
     facts = economics(conn)
@@ -1695,7 +1726,7 @@ def run(conn, cfg):
                                   f"psychiatric hospitals = ${per:,} per bed-year. Statewide "
                                   "system average, not this facility's own cost. "
                                   f"Quote: {f['quote']}"),
-                            source_id=sid)
+                            source_id=sid, emitted=emitted)
                     n_cost += 1
                 econ_notes.append(f"CA state hospital system: ${per:,}/bed-year (derived, {beds} beds)")
 
@@ -1722,7 +1753,7 @@ def run(conn, cfg):
                                   "used as a proxy for cost per occupied prison bed. Statewide "
                                   "system average, not this facility's own cost. "
                                   f"Quote: {f['quote']}"),
-                            source_id=sid)
+                            source_id=sid, emitted=emitted)
                     n_cost += 1
                 econ_notes.append(f"CA prison system: ${per:,}/inmate-year (derived)")
 
@@ -1747,6 +1778,20 @@ def run(conn, cfg):
             conn.execute("DELETE FROM facility_seen WHERE facility_id=?", (fid,))
             stale += 1
         conn.commit()
+    # legacy rows never tracked by the ledger (pre-dating it): remove when the count is
+    # small relative to this run, so a silent source failure cannot wipe the table
+    untracked = [r[0] for r in conn.execute(
+        "SELECT id FROM facility WHERE id NOT IN (SELECT facility_id FROM facility_seen)")]
+    if 0 < len(untracked) <= max(50, int(0.05 * max(1, rows))):
+        for fid in untracked:
+            conn.execute("DELETE FROM metric WHERE entity_type='facility' AND entity_id=?",
+                         (str(fid),))
+            conn.execute("DELETE FROM facility WHERE id=?", (fid,))
+        conn.commit()
+        stale += len(untracked)
+        notes.append(f"untracked_rows_removed={len(untracked)}")
+    elif untracked:
+        notes.append(f"untracked_rows_left={len(untracked)} (above safety threshold)")
     notes.append(f"stale_removed={stale}")
 
     # 9. state coverage snapshot for the research note -----------------------------------

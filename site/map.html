@@ -34,6 +34,14 @@
   <p class="sub">State heat map by homeless rate, Continuum of Care boundaries, city populations and institutions. Toggle layers; click anything for the record.</p>
 </div></div></section>
 <div class="wrap">
+  <div class="panel" style="margin:16px 0;padding:12px 14px">
+    <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+      <label for="yr" style="font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;color:var(--fg2)">Year</label>
+      <input id="yr" type="range" min="2007" max="2025" step="1" value="2025" style="flex:1;min-width:220px;accent-color:var(--ember)">
+      <output id="yrout" class="mono" style="font-size:1.05rem;color:var(--amber)">2025</output>
+    </div>
+    <div class="legend" id="yrlegend" style="margin-top:8px"><span class="dim">Scrub through the HUD counts: the colour of each state is its homeless rate that January.</span></div>
+  </div>
   <div class="layertoggle" id="lt">
     <button data-l="choro" class="on">State heat</button>
     <button data-l="coc" class="on">CoC areas</button>
@@ -73,7 +81,38 @@ function loadLayer(name){
      m.on('click','fac',e=>{var p=e.features[0].properties;pop.setLngLat(e.features[0].geometry.coordinates).setHTML(p.__html||p.name).addTo(m);});
   });
 }
-m.on('load',function(){loadLayer('choro');loadLayer('coc');loadLayer('fac');});
+m.on('load',function(){
+  loadLayer('choro');loadLayer('coc');loadLayer('fac');
+  // time scrubber: recolour states from per-year rates
+  var YR=null, STATE_ID='st';
+  fetch('/data/map-years.json').then(r=>r.json()).then(function(d){
+    YR=d;
+    var lo=2007, hi=d.years[d.years.length-1], inp=document.getElementById('yr'), out=document.getElementById('yrout');
+    inp.min=lo; inp.max=hi; inp.value=hi; out.textContent=String(hi);
+    function colorExpr(){ return ['interpolate',['linear'],['coalesce',['feature-state','rate'],0],
+        0,'#22303f',3,'#3d2a3f',8,'#6b2f3a',15,'#a83c33',28,'#e2603a',45,'#ff8a4c',70,'#ffc857']; }
+    function apply(y){
+      var rates=(YR.rates[String(y)]||{});
+      var src=m.getSource(STATE_ID); if(!src) return;
+      var data=src._data;
+      data.features.forEach(function(f){
+        var ab=f.properties.abbr||'';
+        var v=rates[ab]||0;
+        m.setFeatureState({source:STATE_ID,id:f.id!==undefined?f.id:ab}, {rate:v});
+      });
+      m.setPaintProperty('st-fill','fill-color',colorExpr());
+      out.textContent=String(y);
+      var known=Object.keys(rates).length;
+      document.getElementById('yrlegend').innerHTML='<span class="dim">'+y+' · '+known+' states reporting · darker = lower rate, amber = 70+ per 10,000</span>';
+    }
+    inp.addEventListener('input',function(){ apply(inp.value); });
+    // feature-state needs stable ids
+    var gj=m.getSource(STATE_ID)._data;
+    gj.features.forEach(function(f,i){ f.id=f.properties.abbr||i; });
+    m.getSource(STATE_ID).setData(gj);
+    apply(hi);
+  }).catch(function(){});
+});
 document.querySelectorAll('#lt button').forEach(function(b){
   b.addEventListener('click',function(){
     var l=b.dataset.l,on=b.classList.toggle('on');
@@ -85,7 +124,7 @@ document.querySelectorAll('#lt button').forEach(function(b){
 </script></main>
 <footer class="site"><div class="wrap">
   <div class="row">
-    <div><strong>Homeless Atlas</strong> · public-record research · generated 2026-11-19 · 43,000 indexed records</div>
+    <div><strong>Homeless Atlas</strong> · public-record research · generated 2026-11-19 · 45,047 indexed records</div>
     <div><a href="method.html">Method &amp; caveats</a> · <a href="sources.html">Sources &amp; licences</a> · <a href="about.html">About</a></div>
   </div>
   <p class="dim" style="margin-top:14px">Every figure links to a public source. Anything marked † is derived, not published.

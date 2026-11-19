@@ -1,0 +1,15 @@
+{"city": "Los Angeles", "state": "CA", "fy": "2025", "label": "actual payments recorded in the city's Homelessness Expense Tracker (expenditure, not appropriation)", "amount": 390362907.84, "dataset": "data.lacity.org/98ve-cuf5", "source_id": 1285}
+{"city": "Chicago", "state": "IL", "fy": "2024", "label": "Department of Family and Support Services | Homeless Services", "amount": 35257069.0, "dataset": "data.cityofchicago.org/x394-e874", "source_id": 1287}
+{"city": "Chicago", "state": "IL", "fy": "2024", "label": "Department of Family and Support Services | Homeless Services for Youth", "amount": 1540979.0, "dataset": "data.cityofchicago.org/x394-e874", "source_id": 1287}
+{"city": "San Francisco", "state": "CA", "fy": "2025", "label": "HOM Homelessness Services", "amount": 834571745.0, "dataset": "data.sfgov.org/xdgd-c79v", "source_id": 1283}
+{"city": "Seattle", "state": "WA", "fy": "2025", "label": "City-Managed Homelessness Programs", "amount": 15836430.0, "dataset": "data.seattle.gov/8u2j-imqx", "source_id": 1286}
+{"city": "Seattle", "state": "WA", "fy": "2025", "label": "Homelessness Prevention and Support", "amount": 0.0, "dataset": "data.seattle.gov/8u2j-imqx", "source_id": 1286}
+{"city": "Seattle", "state": "WA", "fy": "2025", "label": "Homeless Outreach and Provider Ecosystem (HOPE) Team", "amount": 5812962.44, "dataset": "data.seattle.gov/8u2j-imqx", "source_id": 1286}
+{"city": "Seattle", "state": "WA", "fy": "2025", "label": "King County Regional Homelessness Authority", "amount": 104562177.24, "dataset": "data.seattle.gov/8u2j-imqx", "source_id": 1286}
+{"city": "Austin", "state": "TX", "fy": "2025", "label": "Homeless Strategies and Operations | Division placeholder", "amount": 5712508.0, "dataset": "data.austintexas.gov/yeeq-kk6v", "source_id": 1288}
+{"city": "Austin", "state": "TX", "fy": "2025", "label": "Homeless Strategies and Operations | Homeless Strategy Office", "amount": 4593769.0, "dataset": "data.austintexas.gov/yeeq-kk6v", "source_id": 1288}
+{"city": "Austin", "state": "TX", "fy": "2025", "label": "Homeless Strategies and Operations | Social Service Grants - HSO", "amount": 32932961.0, "dataset": "data.austintexas.gov/yeeq-kk6v", "source_id": 1288}
+{"city": "Austin", "state": "TX", "fy": "2025", "label": "Homeless Strategies and Operations | Support Services", "amount": 1039966.0, "dataset": "data.austintexas.gov/yeeq-kk6v", "source_id": 1288}
+{"city": "San Mateo County", "state": "CA", "fy": "2014", "label": "Health Care for Homeless", "amount": 1958019.0, "dataset": "data.smcgov.org/8w4u-sjiw", "source_id": 1337}
+{"city": "San Mateo County", "state": "CA", "fy": "2014", "label": "Homeless and Safety Net Services", "amount": 7164423.0, "dataset": "data.smcgov.org/8w4u-sjiw", "source_id": 1337}
+{"city": "New York", "state": "NY", "fy": "2025", "label": "all agencies matching filter (publication 20240630)", "amount": 4107730976.0, "dataset": "data.cityofnewyork.us/mwzb-yiwb", "source_id": 1284}
