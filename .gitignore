@@ -1,7 +1,20 @@
+# the database is a build artifact: reproducible from the ingestors, and far too large for git
+data/atlas.db
+data/atlas.db-*
+data/atlas.db.new
+data/atlas.db.malformed
+data/atlas.db.corrupt-*
+data/backups/
+data/recovered/
 data/raw/*
 !data/raw/.gitkeep
-data/atlas.db*
+data/baseline-counts.json
 logs/
+site/
+site.staging/
+site.prev/
+site_src/__pycache__/
 __pycache__/
 *.pyc
 .venv/
+data/geo/*.geojson
