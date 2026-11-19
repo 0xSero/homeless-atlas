@@ -13,3 +13,4 @@
 | 2026-11-19T08:16:26+00:00 | crime | PARKED | 0 | logs/workers/crime.log | failed 3 attempts, needs review |
 | 2026-11-19T08:16:35+00:00 | budgets | REJECT | 1433 | logs/workers/budgets.log | attempt 1 failed rc=143 |
 | 2026-11-19T08:16:44+00:00 | laws | REJECT | 0 | logs/workers/laws.log | attempt 1 failed rc=143 |
+| 2026-11-19T08:16:52+00:00 | media | REJECT | 0 | logs/workers/media.log | attempt 1 failed rc=143 |
