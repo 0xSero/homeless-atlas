@@ -167,6 +167,11 @@ RE_TEL = re.compile(r"tel:([+0-9()\-.\s]{7,24})", re.I)
 RE_EMAIL = re.compile(r"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,12}")
 RE_PHONE_TXT = re.compile(r"(?:phone|call us|call|tel|telephone|office)\s*(?:at|:|is)?\s*"
                           r"(\(?\d{3}\)?[\s.\-]{0,2}\d{3}[\s.\-]{0,2}\d{4})", re.I)
+STOP_TOK = {"THE", "AND", "FOR", "OF", "INC", "LLC", "INCORPORATED", "CORP", "CORPORATION", "ASSOC",
+            "ASSOCIATION", "FOUNDATION", "SERVICE", "SERVICES", "PROGRAM", "PROGRAMS", "PROJECT",
+            "PROJECTS", "COUNTY", "CITY", "AREA", "COMPANY", "ORGANIZATION", "MINISTRIES", "NONPROFIT",
+            "UNITED", "AMERICA", "AMERICAN", "STATE", "NATIONAL", "REGIONAL"}
+
 GENERIC_TOK = {"HOME", "HOMES", "HOUSE", "HOUSING", "STREET", "CARE", "CARES", "HELP", "HOPE",
                "LIFE", "NEW", "FIRST", "GOOD", "SAFE", "SHELTER", "PEOPLE", "COMMUNITY", "FAMILY",
                "FAMILIES", "YOUTH", "WOMEN", "WOMENS", "MEN", "MENS", "CHILD", "CHILDREN", "FOOD",
@@ -583,7 +588,7 @@ def _name_match(name, title, text, host):
     """Prove the page belongs to this organisation. Host carrying the full name is strongest."""
     nn = name_norm(name)
     bare = (host or "").lower().replace("-", "").replace(".", "")
-    full = nn.replace(" ", "")
+    full = nn.replace(" ", "").lower()
     if len(full) >= 6 and full in bare:
         return "host:fullname"
     toks = [t for t in nn.split() if len(t) >= 4 and t not in STOP_TOK]
@@ -852,6 +857,17 @@ def _crawl(conn, t0):
             break
         if s["org_id"] not in persons:
             persons[s["org_id"]] = _person_tokens(conn, s["org_id"])
+        if (s.get("attempts") or 0) >= 1:
+            # a filed address that did not answer: try the next address the org filed in a later/
+            # earlier year before giving up on the organisation
+            alt = conn.execute("""SELECT website FROM org_contacts_filing
+                                  WHERE org_id=? AND website IS NOT NULL AND website<>?
+                                  ORDER BY tax_period DESC LIMIT 1""",
+                               (s["org_id"], s["candidate_url"])).fetchone()
+            if alt and alt[0]:
+                s = dict(s)
+                s["candidate_url"] = alt[0]
+                s["candidate_host"] = urllib.parse.urlsplit(alt[0]).hostname
         try:
             rec = _crawl_site(conn, s, persons[s["org_id"]])
         except Exception as e:  # noqa: BLE001 - one bad site must not kill the sweep
