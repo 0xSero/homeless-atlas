@@ -19,6 +19,7 @@ in `note`; unknown fields stay NULL.
 from __future__ import annotations
 
 import difflib
+import sqlite3
 import json
 import math
 import re
@@ -703,6 +704,14 @@ def _article_econ(wt, name, beds):
                             % txt[max(0, m.start() - 110):m.end() + 70])
         break
 
+    # average daily census, used to derive a per-resident cost when a budget is stated
+    census = None
+    mc = re.search(r"(?:served|serving|treated|housed) an average of (?:about |approximately |"
+                   r"roughly )?([\d,]{2,6})\s+(?:adults|patients|inmates|residents|people|men|"
+                   r"women)[^.]{0,20}(?:per day|daily|a day)", txt, re.I)
+    if mc:
+        census = _num(mc.group(1))
+
     # annual budget: the dollar amount that follows the word "budget" in a facility sentence
     for m in re.finditer(r"[^.\n]{0,220}budget[^.\n]{0,60}\$[\d.,]+[^.\n]{0,160}\.", txt):
         sent = re.sub(r"\s+", " ", m.group(0))
@@ -790,6 +799,14 @@ def _article_econ(wt, name, beds):
                 out["notes"].append("reported daily cost per patient/inmate annualised x365 "
                                     "(derived, is_est=1): \"%s\""
                                     % txt[max(0, m.start() - 120):m.end() + 90])
+    if out["budget"] and census and not out["cpb"] and 50 <= census <= 20000:
+        out["cpb"] = int(round(out["budget"] / census))
+        out["cpb_is_est"] = 1
+        out["cpb_year"] = out["budget_year"]
+        out["notes"].append(
+            f"per-resident annual cost derived from the stated budget and the article's average "
+            f"daily census of {census} (is_est=1: budget / census)")
+
     return out
 
 
@@ -1629,9 +1646,37 @@ def run(conn, cfg):
         "CREATE TABLE IF NOT EXISTS facility_seen (run_ts TEXT NOT NULL, facility_id INTEGER "
         "NOT NULL, PRIMARY KEY(run_ts, facility_id))")
     conn.commit()
+    # resolve every record to at most one physical database row before writing, so two records
+    # for the same institution can never overwrite each other's values
+    grouped = {}
+    for k, rec in merger.recs.items():
+        nn = name_norm(display_name(clean(rec.get("name")) or ""))
+        st = rec.get("state") or None
+        ct = clean(rec.get("city")) or None
+        try:
+            fid0 = _find_existing(conn, nn, st, ct)
+        except sqlite3.Error:
+            fid0 = None
+        gk = ("id", fid0) if fid0 else ("new", nn, st or "", name_norm(ct or ""))
+        grouped.setdefault(gk, []).append(rec)
+    records = []
+    for gk, rs in grouped.items():
+        if len(rs) == 1:
+            records.append(rs[0])
+            continue
+        rs.sort(key=lambda r: (0 if (r.get("provenance") or "").startswith("hifld") else 1,
+                               r.get("status") not in ("open", "closed", "partial"),
+                               -(r.get("beds") or 0)))
+        base = rs[0]
+        for other in rs[1:]:
+            _merge_into(base, other)
+        records.append(base)
+    notes.append(f"records_after_target_merge={len(records)}")
+
     ids = {}
     n_written = 0
-    for k, rec in merger.recs.items():
+    for rec in records:
+        k = _key(rec)
         fid = _write_facility(conn, rec)
         if fid:
             ids[k] = fid

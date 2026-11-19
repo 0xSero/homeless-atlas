@@ -1516,9 +1516,8 @@ def main():
             print(f"  {t:12} {a:,} -> {b:,}")
         print("That usually means an ingestor is mid-transaction. Re-run with --force if the drop is real.")
         return 2
-    if SITE.exists():
-        shutil.rmtree(SITE)
-    SITE.mkdir(parents=True, exist_ok=True)
+    if "--out" in sys.argv:
+        SITE.mkdir(parents=True, exist_ok=True)
     if "--out" not in sys.argv:
         # write into STAGING and swap at the end (see the end of main)
         if STAGING.exists():

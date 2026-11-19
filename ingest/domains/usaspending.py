@@ -248,6 +248,9 @@ def run(conn, cfg):
     cfg = cfg or {}
     selftest = bool(cfg.get("selftest"))
     max_pages = int(cfg.get("max_pages") or (1 if selftest else MAX_PAGES))
+    budget = float(cfg.get("budget_s") or 0)   # 0 = run to completion
+    t0 = time.monotonic()
+    out_of_time = False
 
     conn.execute(f"PRAGMA busy_timeout = {BUSY_TIMEOUT}")
     _write(conn, PROGRESS_DDL)
@@ -278,6 +281,9 @@ def run(conn, cfg):
     capped, zero, failed = [], [], []
 
     for q in queries:
+        if budget and time.monotonic() - t0 > budget:
+            out_of_time = True
+            break
         # --- size the query (cheap, cached) -------------------------------- #
         try:
             cnt = fetch_post_json(COUNT_URL, {"filters": q["filters"]}, domain=DOMAIN)
@@ -324,6 +330,10 @@ def run(conn, cfg):
         # --- paginate ------------------------------------------------------ #
         page = start_page
         while page <= pages_total:
+            if budget and time.monotonic() - t0 > budget:
+                out_of_time = True
+                notes.append(f"{q['key']}: paused at page {page} (time budget)")
+                break
             payload = {
                 "filters": q["filters"],
                 "fields": FIELDS,
@@ -370,6 +380,11 @@ def run(conn, cfg):
                 break
             page += 1
 
+        if out_of_time:
+            _write(conn,
+                """UPDATE usaspending_progress SET pages_done=?,updated_at=? WHERE query_key=?""",
+                (min(page - 1, pages_total), now(), q["key"]))
+            break
         _write(conn,
             """UPDATE usaspending_progress SET done=1,pages_done=?,note=?,updated_at=?
                WHERE query_key=?""",
@@ -385,6 +400,7 @@ def run(conn, cfg):
         f"zero={len(zero)}:{','.join(zero)}" if zero else "zero=0",
         f"failed={len(failed)}:{';'.join(failed[:6])}" if failed else "failed=0",
         f"program_names={len(pmap)}",
+        "OUT_OF_TIME: rerun to resume" if out_of_time else "complete",
     ] + notes[-8:]
 
     return {
@@ -472,7 +488,7 @@ def _write_award(conn, r, group, src_id, pmap, seen: set, org_cache: dict) -> No
     }, keys=["award_key"])
 
 
-def warm_cache(max_pages=None, verbose=True):
+def warm_cache(max_pages=None, verbose=True, budget_s=0):
     """Phase A: pull every page of every query into the on-disk fetch cache.
 
     Touches no database table, so it is not slowed down by the other domain
@@ -483,7 +499,11 @@ def warm_cache(max_pages=None, verbose=True):
     max_pages = int(max_pages or MAX_PAGES)
     pages_done = 0
     missing = 0
+    t0 = time.monotonic()
     for i, q in enumerate(build_queries(), 1):
+        if budget_s and time.monotonic() - t0 > budget_s:
+            print(f"[warm] time budget reached after {pages_done} pages; rerun to resume", flush=True)
+            return pages_done
         try:
             cnt = fetch_post_json(COUNT_URL, {"filters": q["filters"]}, domain=DOMAIN)
             res = cnt.get("results") or {}
@@ -498,6 +518,10 @@ def warm_cache(max_pages=None, verbose=True):
         pages = min(math.ceil(n / LIMIT), max_pages)
         got = 0
         for page in range(1, pages + 1):
+            if budget_s and time.monotonic() - t0 > budget_s:
+                print(f"[warm] time budget reached at {q['key']} p{page} ({pages_done} pages total); rerun to resume",
+                      flush=True)
+                return pages_done
             payload = {"filters": q["filters"], "fields": FIELDS, "page": page, "limit": LIMIT}
             try:
                 d = fetch_post_json(SEARCH_URL, payload, domain=DOMAIN)
@@ -535,10 +559,12 @@ if __name__ == "__main__":
     if "--selftest" in sys.argv:
         _selftest()
     elif "--warm" in sys.argv:
-        mp = None
+        mp, bs = None, 0
         for a in sys.argv[1:]:
             if a.startswith("--max-pages="):
                 mp = int(a.split("=", 1)[1])
-        warm_cache(mp)
+            if a.startswith("--budget="):
+                bs = int(a.split("=", 1)[1])
+        warm_cache(mp, budget_s=bs)
     else:
         common.main(DOMAIN, run, "award")
