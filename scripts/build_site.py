@@ -105,7 +105,7 @@ NAV = [
     ("/index.html", "Overview"), ("/map.html", "Map"), ("/search.html", "Search"),
     ("/states.html", "States"), ("/cities.html", "Cities"), ("/orgs.html", "Organizations"),
     ("/people.html", "People"), ("/facilities.html", "Institutions"), ("/budgets.html", "Money"),
-    ("/costs.html", "Costs"), ("/laws.html", "Laws"), ("/media.html", "Media"), ("/docs.html", "Docs"),
+    ("/rankings.html", "Rankings"), ("/costs.html", "Costs"), ("/laws.html", "Laws"), ("/media.html", "Media"), ("/docs.html", "Docs"),
 ]
 
 # ---------------------------------------------------------------- shell
@@ -957,6 +957,102 @@ def page_budgets(d, manifest_total):
     return shell("", "Money", "budgets.html", body, manifest_total=manifest_total)
 
 
+def page_rankings(d, manifest_total):
+    """Leaderboards that are actually comparable.
+
+    HUD publishes counts per Continuum of Care, never per city limit, and a CoC's number is inherited by
+    every city inside it — so ranking cities by count produces dozens of ties (every Los Angeles County
+    city "had" 67,777 homeless people in 2025). We therefore rank CoCs for counts and rates, and rank
+    cities only where a city genuinely publishes its own figure: budgets and overdose deaths.
+    """
+    # ---- CoCs by count and rate (published numbers)
+    coc_rows = []
+    for c in d["cocs"]:
+        if not c.get("pit_total"):
+            continue
+        pop = c.get("pop")
+        coc_rows.append({"coc": c["coc_num"], "name": c.get("name") or "", "state": c.get("state") or "",
+                         "total": c["pit_total"], "year": c.get("pit_year"),
+                         "pop": pop, "rate": (c["pit_total"] / pop * 10000) if pop else None})
+    by_count = sorted(coc_rows, key=lambda r: -r["total"])[:100]
+    by_rate = sorted([r for r in coc_rows if r["rate"]], key=lambda r: -r["rate"])[:100]
+
+    def coc_cell(r):
+        return f'<a href="coc/{esc(r["coc"])}.html">{esc(r["coc"])}</a> {esc(r["name"])[:60]}'
+
+    crow = [[coc_cell(r), "", r["coc"], esc(r["state"]), "", r["state"],
+             num(r["total"]), "r", r["total"], yr(r["year"]), "", r["year"] or 0] for r in by_count]
+    rrow = [[coc_cell(r), "", r["coc"], esc(r["state"]), "", r["state"],
+             num(r["pop"]), "r", r["pop"] or 0, f"{r['rate']:.1f}", "r", r["rate"]] for r in by_rate]
+
+    # ---- cities with their own published money and harm figures (entity_id is the place GEOID)
+    def city_metric(metric, limit=60):
+        rows = q(CONN, """SELECT m.entity_id geoid, m.value, m.year, m.is_est, m.note,
+                                 g.name, g.state, g.pop
+                          FROM metric m LEFT JOIN geo_city g ON g.geoid = m.entity_id
+                          WHERE m.entity_type='city' AND m.metric=? AND m.value IS NOT NULL
+                          ORDER BY m.value DESC LIMIT ?""", (metric, limit))
+        return rows
+
+    bud = city_metric("city_homelessness_budget")
+    od = city_metric("overdose_deaths")
+
+    def ccell(r):
+        if r.get("name"):
+            return f'<a href="city/{esc(r["geoid"])}.html">{esc(r["name"])}, {esc(r["state"] or "")}</a>'
+        return esc(str(r["geoid"]))
+
+    brow = [[ccell(r), "", str(r["geoid"]), num(r["pop"]), "r", r["pop"] or 0,
+             money(r["value"]), "r", r["value"], yr(r["year"]), "", r["year"] or 0] for r in bud]
+    orow = [[ccell(r), "", str(r["geoid"]), num(r["pop"]), "r", r["pop"] or 0,
+             num(r["value"]), "r", r["value"], yr(r["year"]), "", r["year"] or 0] for r in od]
+
+    # spend per homeless person: city budget ÷ the count of the CoC that plans it (derived)
+    spend = []
+    for r in bud:
+        coc = next((c for c in d["cocs"] if c.get("coc_num") and r.get("state")
+                    and (c["coc_num"] or "").startswith(r["state"])
+                    and (c.get("name") or "").lower().startswith((r.get("name") or "x").lower()[:6])), None)
+        if coc and coc.get("pit_total"):
+            spend.append({"name": r.get("name"), "state": r.get("state"), "geoid": r["geoid"],
+                          "budget": r["value"], "count": coc["pit_total"], "coc": coc["coc_num"],
+                          "per": r["value"] / coc["pit_total"]})
+    spend.sort(key=lambda x: -x["per"])
+    srow = [[f'<a href="city/{esc(x["geoid"])}.html">{esc(x["name"])}, {esc(x["state"] or "")}</a>', "", x["name"],
+             money(x["budget"]), "r", x["budget"], num(x["count"]), "r", x["count"],
+             money(x["per"]) + "†", "r", x["per"]] for x in spend]
+
+    body = banner("Rankings", "Ranked, with the caveats built in",
+                  "Counts are ranked by Continuum of Care because that is how HUD publishes them; cities are ranked "
+                  "only where a city publishes its own money or death figures. Every derived column carries a †.") + f"""
+<div class="wrap">
+  <h2>Continuums of Care with the most people homeless</h2>
+  {table([("CoC",""),("State",""),("Homeless","r"),("Year","")], crow,
+         note="Published HUD point-in-time totals. A CoC is the regional planning body, so this is the only "
+              "geography for which an official count exists.")}
+
+  <h2>Highest rate per 10,000 residents</h2>
+  {table([("CoC",""),("State",""),("Population","r"),("Per 10,000†","r")], rrow,
+         note="† CoC count ÷ CoC population × 10,000. CoC population is a Census county aggregate and is missing "
+              "for 29 CoCs that split a county, which is why they do not appear here.")}
+
+  <h2>Cities with the largest homelessness budgets</h2>
+  {table([("City",""),("Population","r"),("Budget","r"),("Year","")], brow,
+         note="From each city's own adopted budget. This is city money, not the federal awards shown on Money.")}
+
+  <h2>City spend per homeless resident</h2>
+  {table([("City",""),("Budget","r"),("Homeless (CoC)","r"),("$ per person†","r")], srow,
+         note="† city budget ÷ the point-in-time count of the CoC that plans that city. It mixes a city's money with a "
+              "regional count and is therefore an order-of-magnitude comparison, not an accounting figure.")}
+
+  <h2>Overdose deaths by city</h2>
+  {table([("City",""),("Population","r"),("Deaths","r"),("Year","")], orow,
+         note="Where a city or county publishes medical-examiner counts. Cause of death, not an attribution to "
+              "homeless people.")}
+</div>"""
+    return shell("", "Rankings", "rankings.html", body, manifest_total=manifest_total)
+
+
 def page_costs(d, manifest_total):
     """What institutional and housing capacity actually costs, every figure sourced or marked derived."""
     facs = d["facilities"]
@@ -1573,6 +1669,7 @@ def main():
     write("people.html", page_people(d, total))
     write("facilities.html", page_facilities(d, total))
     write("budgets.html", page_budgets(d, total))
+    write("rankings.html", page_rankings(d, total))
     write("costs.html", page_costs(d, total))
     write("laws.html", page_laws(d, total))
     write("media.html", page_media(d, total))

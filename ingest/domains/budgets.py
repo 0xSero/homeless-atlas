@@ -608,6 +608,36 @@ def _fmt(v):
 # ---------------------------------------------------------------------------
 # 3. state's own appropriations
 # ---------------------------------------------------------------------------
+def _state_lines(spec):
+    """HTTP phase for a state budget dataset: returns (url, fy, total, by_fy). No DB access."""
+    st = spec["state"]
+    sel = [spec["fy_col"]]
+    grp = [spec["fy_col"]]
+    if spec.get("fy_kind"):
+        sel.append("type")
+        grp.append("type")
+    sel.append(f"sum({spec['amount']})")
+    url, rows = _soql(spec["host"], spec["ds"], {
+        "$select": ",".join(sel), "$where": spec["where"],
+        "$group": ",".join(grp), "$limit": 5000,
+    })
+    if not rows:
+        return url, None, None, {}
+    amt_key = [k for k in rows[0] if k.startswith("sum_")][0]
+    by_fy = {}
+    for r in rows:
+        if spec.get("fy_kind") and str(r.get("type")) != spec["fy_kind"]:
+            continue
+        fy = _fy_int(r.get(spec["fy_col"]))
+        amt = _money(r.get(amt_key))
+        if fy and amt is not None:
+            by_fy[fy] = by_fy.get(fy, 0.0) + amt
+    if not by_fy:
+        return url, None, None, {}
+    fy = max(by_fy)
+    return url, fy, by_fy[fy], by_fy
+
+
 def _state_own(conn, stats):
     for spec in STATE_OWN:
         st = spec["state"]
@@ -618,30 +648,13 @@ def _state_own(conn, stats):
             grp.append("type")
         sel.append(f"sum({spec['amount']})")
         try:
-            url, rows = _soql(spec["host"], spec["ds"], {
-                "$select": ",".join(sel), "$where": spec["where"],
-                "$group": ",".join(grp), "$limit": 5000,
-            })
+            url, fy, total, by_fy = _state_lines(spec)
         except Exception as e:
             stats["notes"].append(f"state {st}: {repr(e)[:130]}")
             continue
-        if not rows:
-            stats["notes"].append(f"state {st}: filter matched no rows")
-            continue
-        amt_key = [k for k in rows[0] if k.startswith("sum_")][0]
-        by_fy = {}
-        for r in rows:
-            if spec.get("fy_kind") and str(r.get("type")) != spec["fy_kind"]:
-                continue
-            fy = _fy_int(r.get(spec["fy_col"]))
-            amt = _money(r.get(amt_key))
-            if fy and amt is not None:
-                by_fy[fy] = by_fy.get(fy, 0.0) + amt
-        if not by_fy:
+        if fy is None:
             stats["notes"].append(f"state {st}: no rows of type {spec.get('fy_kind')}")
             continue
-        fy = max(by_fy)
-        total = by_fy[fy]
 
         meta_url, meta_title, _ = _dataset_meta(spec["host"], spec["ds"])
         sid = _source(conn, url,
@@ -684,65 +697,72 @@ def _jurisdiction(conn, spec):
     return r
 
 
+def _city_lines(spec):
+    """HTTP phase for one jurisdiction budget: (url, rows, amt_key, where, newest, year).
+
+    Pure fetch (no DB), so `--warm` can populate data/raw/budgets/ before the write lock
+    is free. Returns None when the table has no matching lines.
+    """
+    amt = spec["amount"]
+
+    # 1. which fiscal year: fixed in the spec, or the latest present in the table
+    year = spec.get("year")
+    if spec.get("fy_col") and not year:
+        _, fyrows = _soql(spec["host"], spec["ds"], {
+            "$select": f"{spec['fy_col']},sum({amt})", "$where": spec["where"],
+            "$group": spec["fy_col"], "$limit": 5000})
+        key = [k for k in fyrows[0] if k.startswith("sum_")][0] if fyrows else None
+        cands = {_fy_int(r.get(spec["fy_col"])): _money(r.get(key)) for r in fyrows}
+        cands = {y: v for y, v in cands.items() if y and v is not None}
+        if spec.get("nonzero"):
+            cands = {y: v for y, v in cands.items() if v > 0}
+        if not cands:
+            return None
+        year = max(cands)
+
+    where = spec["where"]
+    if spec.get("fy_col") and spec.get("year") is None:
+        where = f"({where}) AND {spec['fy_col']}='{year}'"
+
+    # 2. tables that publish the same fiscal year several times: keep the newest publication
+    newest = None
+    if spec.get("dedupe_col"):
+        _, drows = _soql(spec["host"], spec["ds"], {
+            "$select": f"{spec['dedupe_col']},sum({amt})", "$where": where,
+            "$group": spec["dedupe_col"], "$limit": 5000})
+        pubs = sorted(str(r.get(spec["dedupe_col"])) for r in drows if r.get(spec["dedupe_col"]))
+        newest = pubs[-1]
+        where = f"({where}) AND {spec['dedupe_col']}='{newest}'"
+
+    url, rows = _soql(spec["host"], spec["ds"], {
+        "$select": ",".join(spec["group"] + [f"sum({amt})"]),
+        "$where": where, "$group": ",".join(spec["group"]), "$limit": 5000})
+    if not rows:
+        return None
+    amt_key = [k for k in rows[0] if k.startswith("sum_")][0]
+    return url, rows, amt_key, where, newest, year
+
+
 def _city_budgets(conn, stats):
     for spec in CITY_BUDGETS:
         city, state = spec["city"], spec["state"]
         metric = spec.get("metric", "city_homelessness_budget")
         etype = "county" if spec.get("kind") == "county" else "city"
-        amt = spec["amount"]
-
-        # 1. which fiscal year (fixed, or the latest in the table)
-        year = spec.get("year")
-        if spec.get("fy_col") and not year:
-            try:
-                _, fyrows = _soql(spec["host"], spec["ds"], {
-                    "$select": f"{spec['fy_col']},sum({amt})", "$where": spec["where"],
-                    "$group": spec["fy_col"], "$limit": 5000})
-            except Exception as e:
-                stats["notes"].append(f"{city}: fy probe {repr(e)[:110]}")
-                continue
-            key = [k for k in fyrows[0] if k.startswith("sum_")][0] if fyrows else None
-            cands = {_fy_int(r.get(spec["fy_col"])): _money(r.get(key)) for r in fyrows}
-            cands = {y: v for y, v in cands.items() if y and v is not None}
-            if spec.get("nonzero"):
-                cands = {y: v for y, v in cands.items() if v > 0}
-            if not cands:
-                stats["notes"].append(f"{city}: no fiscal year with a non-zero amount")
-                continue
-            year = max(cands)
-
-        # 2. the published lines for that year
-        if spec.get("fy_col") and spec.get("year") is None:
-            where = f"({spec['where']}) AND {spec['fy_col']}='{year}'"
-        else:
-            where = spec["where"]
-        if spec.get("dedupe_col"):
-            try:
-                _, drows = _soql(spec["host"], spec["ds"], {
-                    "$select": f"{spec['dedupe_col']},sum({amt})", "$where": where,
-                    "$group": spec["dedupe_col"], "$limit": 5000})
-                pubs = sorted(str(r.get(spec["dedupe_col"])) for r in drows if r.get(spec["dedupe_col"]))
-                newest = pubs[-1]
-                where = f"({where}) AND {spec['dedupe_col']}='{newest}'"
-            except Exception as e:
-                stats["notes"].append(f"{city}: publication probe {repr(e)[:110]}")
-                newest = None
-        else:
-            newest = None
-
-        params = {"$select": ",".join(spec["group"] + [f"sum({amt})"]),
-                  "$where": where, "$group": ",".join(spec["group"]), "$limit": 5000}
         try:
-            url, rows = _soql(spec["host"], spec["ds"], params)
+            got = _city_lines(spec)
         except Exception as e:
             stats["notes"].append(f"{city}: {repr(e)[:130]}")
             continue
-        if not rows:
-            stats["notes"].append(f"{city}: query returned 0 rows")
+        if not got:
+            stats["notes"].append(f"{city}: query returned no lines")
             continue
-        amt_key = [k for k in rows[0] if k.startswith("sum_")][0]
+        url, rows, amt_key, where, newest, year = got
 
         meta_url, meta_title, _ = _dataset_meta(spec["host"], spec["ds"])
+        if year is None and meta_title:
+            # no fiscal-year column in the table: the FY is in the dataset title
+            m = re.search(r"\b(19|20)\d{2}\b", meta_title)
+            year = int(m.group(0)) if m else None
         sid = _source(conn, url,
                       title=f"{meta_title or city + ' budget dataset'} ({spec['host']}/{spec['ds']}) — "
                             f"homelessness lines used for {city}, {state}",
@@ -786,6 +806,32 @@ def _city_budgets(conn, stats):
                              f"for CoC {j['coc_num']} ({pr['total']:,} people)")
         _commit(conn)
         stats["cities"].append(f"{city} {year} ${total:,.0f} ({kept} lines)")
+
+
+def warm():
+    """Populate data/raw/budgets/ for every URL the real run needs (no DB, no write lock)."""
+    for fy, start, end in FYS:
+        for cfda in ("14.231", "14.267", "14.276", "14.241"):
+            for layer in ("state", "county"):
+                if layer == "county" and cfda not in ("14.231", "14.267"):
+                    continue
+                try:
+                    _geo([cfda], start, end, layer)
+                except Exception as e:
+                    print(f"geo {layer} {cfda} FY{fy}: {repr(e)[:120]}")
+    for spec in STATE_OWN:
+        try:
+            _dataset_meta(spec["host"], spec["ds"])
+            print("state", spec["state"], _state_lines(spec)[1:3])
+        except Exception as e:
+            print("state", spec["state"], repr(e)[:120])
+    for spec in CITY_BUDGETS:
+        try:
+            _dataset_meta(spec["host"], spec["ds"])
+            got = _city_lines(spec)
+            print("city", spec["city"], (got[5], round(sum(_money(r.get(got[2])) or 0 for r in got[1]))) if got else None)
+        except Exception as e:
+            print("city", spec["city"], repr(e)[:120])
 
 
 # ---------------------------------------------------------------------------
@@ -873,6 +919,8 @@ def selftest():
 if __name__ == "__main__":
     if "--selftest" in sys.argv:
         selftest()
+    elif "--warm" in sys.argv:
+        warm()
     else:
         from ingest.common import main
         main(DOMAIN, run)
