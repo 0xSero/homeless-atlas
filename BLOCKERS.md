@@ -314,3 +314,36 @@ OCOH annual report dropped in `data/raw/sf/`. Until then this domain publishes P
 "Operating" program, so later years are captured at department total and at hospital operating-fund
 level instead. Unblocks it: a Socrata dataset or CSV of the Annual Appropriation Ordinance detail
 for FY2019+ (OpenBook's own exports).
+
+## org_contacts
+
+**Blocked: SAM.gov entity registration as a source of organisation websites (`api.sam.gov`).**
+The brief lists the org's SAM registration as one of the three possible origins of a website address.
+That data lives behind the SAM Entity Management API, which needs an `api.data.gov` key we do not have
+and which is *not* in the keyless set this repo already uses. What was tried on 2026-11-19:
+
+| URL | result |
+|---|---|
+| `https://api.sam.gov/entity-information/v3/entities?ueiSAM=…` | HTTP 404 with no key, and 404 with `api_key=DEMO_KEY` (DEMO_KEY is only valid for a handful of api.data.gov services) |
+| `https://sam.gov/api/prod/sgs/v1/search/?index=ei&q=ABODE+SERVICES` | HTTP 200, but the `ei` index is the **exclusions** list (debarment records), not entity registrations — returned entities are excluded parties, no website field |
+| `https://sam.gov/api/prod/sgs/v1/search/?index=entity` / `index=sam` / `index=entity-registration` | HTTP 400 bad request — no public (keyless) entity-registration search endpoint |
+| `https://www.sam.gov/` bulk extract (UI download) | login-gated |
+
+**Key needed:** `SAM_API_KEY` (an `api.data.gov` key), free and instant:
+<https://api.data.gov/signup/> (then `https://open.gsa.gov/api/entity-api/` for the endpoint contract;
+the website is the entity's own URL field in `entityInformation`).
+**What it would add:** websites for the ~10,000 `org` rows that have a UEI but no EIN — the
+government agencies, housing authorities and CoC lead agencies that never file a Form 990. Until then
+those orgs are only covered if they file a 990 or already carry a website in Wikidata.
+
+**Partial: IRS TEOS batch `2026_05A` and friends are Deflate64.** Some published batches are stored
+with zip compression method 9 (Deflate64), which Python's `zipfile` cannot inflate
+(`NotImplementedError: That compression method is not supported`). Handled, not blocked: those batches
+are unpacked with the system `unzip` (which does support method 9) and parsed from disk — see
+`_harvest()` in `ingest/domains/org_contacts.py`.
+
+**Not a blocker, recorded so nobody re-tries:** `https://s3.amazonaws.com/irs-form-990/<object_id>_public.xml`
+(the AWS Open Data mirror of individual 990 XMLs) lists as **empty** — `list-type=2` returns
+`KeyCount 0`, and a known object id answers `NoSuchKey`. Per-filing XML therefore has to come out of the
+annual bulk batches, and ProPublica's `download-xml?object_id=…` is HTTP 403 for this host (recorded by
+the `nonprofit` worker).

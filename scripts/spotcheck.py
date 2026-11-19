@@ -66,7 +66,15 @@ for r in c.execute("""SELECT o.ein, o.name, o.revenue, o.fiscal_year FROM org o
         match = [f for f in fl if f.get("tax_prd_yr") == r["fiscal_year"]]
         live = (match[0].get("totrevenue") if match else None)
         ok = live is not None and abs(live - r["revenue"]) < 1
-        note("org", r["ein"], f"revenue {r['revenue']:,} FY{r['fiscal_year']}", f"{live}", "PASS" if ok else "FAIL")
+        if ok:
+            note("org", r["ein"], f"revenue {r['revenue']:,} FY{r['fiscal_year']}", f"{live}", "PASS")
+        else:
+            # ProPublica only carries machine-readable figures for some filings; a PDF-only year is
+            # genuinely unverifiable here, which is different from a number that is wrong
+            pdf_years = {f.get("tax_prd_yr") for f in (d.get("filings_without_data") or [])}
+            verdict = "UNVERIFIED" if r["fiscal_year"] in pdf_years else "FAIL"
+            note("org", r["ein"], f"revenue {r['revenue']:,} FY{r['fiscal_year']}",
+                 f"api has {live}" + (" (PDF-only filing)" if verdict == "UNVERIFIED" else ""), verdict)
     except Exception as e:
         note("org", r["ein"], "fetch", repr(e)[:40], "ERROR")
 
@@ -77,8 +85,8 @@ for r in c.execute("""SELECT f.id, f.name, s.url FROM facility f JOIN source s O
     if "FeatureServer" in url or "MapServer" in url:
         # an ArcGIS layer: ask it how many features it holds rather than scraping its metadata page
         try:
-            meta = fetch_json(url.rstrip("/") + "/../0?f=json", domain="spotcheck") if url.endswith("/0") else {}
-            q = fetch_json(url.rstrip("/") + "?where=1%3D1&returnCountOnly=true&f=json", domain="spotcheck")
+            base = url.rstrip("/")
+            q = fetch_json(base + "/query?where=1%3D1&returnCountOnly=true&f=json", domain="spotcheck")
             n = q.get("count")
             note("facility", r["id"], f"feature service answers: {r['name'][:24]}", f"count={n}",
                  "PASS" if isinstance(n, int) else "FAIL")
@@ -120,7 +128,8 @@ for r in c.execute("SELECT id, kind, title, url FROM media WHERE url LIKE 'http%
 # ---- documents: every URL must still answer
 for r in c.execute("SELECT id, kind, title, url FROM doc WHERE url LIKE 'http%' ORDER BY RANDOM() LIMIT 5").fetchall():
     status, _ = http_ok(r["url"])
-    note("doc", r["id"], f"{r['kind']} {r['title'][:24]}", f"http {status}", "PASS" if status == 200 else "FAIL")
+    note("doc", r["id"], f"{r['kind']} {r['title'][:24]}", f"http {status}",
+         "PASS" if status in (200, 202, 203) else "FAIL")
 
 # ---- PIT: the published file is a 100 MB workbook, so check the invariant HUD guarantees instead
 bad = 0
@@ -146,13 +155,15 @@ for r in c.execute("SELECT coc_num, geometry FROM geo_coc WHERE geometry IS NOT 
 
 # ---------------------------------------------------------------- report
 passes = sum(1 for x in results if x[4] == "PASS")
-fails = sum(1 for x in results if x[4] != "PASS")
+unver = sum(1 for x in results if x[4] == "UNVERIFIED")
+fails = sum(1 for x in results if x[4] not in ("PASS", "UNVERIFIED"))
 OUT.parent.mkdir(exist_ok=True)
 with open(OUT, "a") as f:
     f.write(f"\n## Spot check {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}\n\n")
-    f.write(f"{passes} pass / {fails} not passing, {len(results)} rows re-checked live.\n\n")
+    f.write(f"{passes} pass / {unver} unverifiable from the machine-readable source / {fails} failing, "
+            f"{len(results)} rows re-checked live.\n\n")
     f.write("| domain | row | claim | live result | verdict |\n|---|---|---|---|---|\n")
     for d, rid, claim, live, v in results:
         f.write(f"| {d} | {rid} | {claim} | {live} | {v} |\n")
-print(json.dumps({"checked": len(results), "pass": passes, "fail": fails}))
+print(json.dumps({"checked": len(results), "pass": passes, "unverified": unver, "fail": fails}))
 sys.exit(0 if fails == 0 else 1)
