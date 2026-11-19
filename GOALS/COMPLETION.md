@@ -14,7 +14,7 @@ Audited against `GOALS/GOAL.md` on 2026-11-19. Evidence is command output, not i
 | 1 | Laws, budgets, overdose/mental-health/substance-use metrics, media | laws **1,164**; `metric` **32,424** (overdose by state/city, HUD obligated by program, city budgets, national SMI/SUD); media **1,953** (46 retired after failing live verification) | pass |
 | 1 | Every row provenance-linked (URL + retrieval date + licence) | `scripts/audit.py` → **AUDIT CLEAN**; includes plausibility rules that catch a citation from an unrelated source | pass |
 | 2 | `python3 scripts/verify.py` exits 0 with counts + coverage | exit code **0**, **22/22 gates pass** | pass |
-| 3 | Static site: global map, US heat map, state/CoC/city/org/facility/person/law pages, full-text search, banners | **41,547 pages**, 63,743 search records, MapLibre maps (state heat + 387 CoC polygons + 56k places + institutions), per-section banners | pass, with one caveat: the map is **US-only** — Canada, Australia and the UK are `PARKED` |
+| 3 | Static site: global map, US heat map, state/CoC/city/org/facility/person/law pages, full-text search, banners | **41,547 pages**, 63,743 search records, MapLibre maps (state heat + 387 CoC polygons + 56k places + institutions), per-section banners | pass — the map now carries a country selector and a world view with published figures for all four countries |
 | 3 | Mobile 390 px and desktop 1440 px | rendered and inspected at 430×932 and 1440×1000; 0 pages missing viewport meta; 0 pages without a search field | pass |
 | 4 | `reports/san-francisco.md`, citation for every numeric claim | **143 external citations**; derived figures carry † and their formula; sections that cannot be computed say so instead of printing a number | pass |
 
@@ -52,3 +52,25 @@ Audited against `GOALS/GOAL.md` on 2026-11-19. Evidence is command output, not i
 - officers: **106,897** rows, 48,844 distinct people, FY2013–FY2026.
 - institutions: 3,432 (347 closed). Media: 1,953 live, **46 retired** after failing a live check rather than left as broken claims.
 - site: 41,547 pages, 63,743 search records, 493 MB, built in ~80 s.
+
+## International phase (added after the US audit)
+
+| Country | Seriestored | Rows | Headline |
+|---|---|---|---|
+| United States | HUD PIT 2007–2025 | 623 national + 140k CoC/state metrics | 745,652 homeless (Jan 2025) |
+| Canada | Everyone Counts / Reaching Home PIT | 67 national + 431 community | 65,083 (2025) |
+| United Kingdom | England rough sleeping snapshot, statutory homelessness live tables, Wales/Scotland/NI | 89 national (4 nations) + 6,236 local-authority | 4,793 rough sleeping (England, autumn 2025) |
+| Australia | ABS census homelessness estimates, AIHW SHS | 33 national + 264 state + 1,092 LGA | 122,494 (2021 census) |
+
+The England snapshot and the Wales monthly count are **never added together** — different measures,
+different geographies — and the map and country page say so.
+
+## Defects caught by the international phase
+
+- The UK headline initially showed **164** (the Wales monthly figure for 2026) because the map took
+  "the latest row" without checking which nation it belonged to. The England snapshot (4,793) is now
+  selected explicitly and Wales is shown separately.
+- Two concurrent `build_site.py` runs (mine and the loop's) shared `site.staging` and interleaved into
+  a broken site — 21,601 pages, every one orphaned. Builds now take an exclusive lock.
+- That lock's first version crashed every loop build with `NameError: time` — caught in `logs/build.log`
+  and fixed.
