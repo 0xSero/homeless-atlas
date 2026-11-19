@@ -34,6 +34,9 @@ domains() { for f in queue/[0-9]*.md; do d=$(basename "$f" .md); echo "${d#*-}";
 
 open_items() { for d in $(domains); do [ "$(status_of "$d")" = OPEN ] && echo "$d"; done; }
 
+# DELEGATE = an external agent owns this domain; the loop must never touch it.
+# DONE / PARKED / BLOCKED are terminal for the loop.
+
 # ---------------------------------------------------------------- prompt assembly
 make_prompt() {
   local dom=$1 item=$2 out=$W/$1.prompt.txt
