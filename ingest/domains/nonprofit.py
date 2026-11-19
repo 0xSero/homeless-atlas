@@ -727,8 +727,11 @@ def _read_journal(pending: set):
                 rec = json.loads(line)
             except Exception:
                 continue
-            if rec.get("ein") in pending:
+            if rec.get("ein") in pending and rec.get("parsed"):
                 out.append(rec)
+            elif rec.get("ein") in pending and rec.get("error"):
+                out.append({"ein": rec["ein"], "url": rec.get("url"), "error": rec["error"],
+                            "cand": rec.get("cand") or {}})
     return out
 
 
@@ -744,6 +747,21 @@ def flush_pages(conn, cfg, keep_years=None):
     RAW_DIR.mkdir(parents=True, exist_ok=True)
     with PAGES_FLUSHED.open("a") as fok:
         for rec in _read_journal(pending):
+            if rec.get("error") and not rec.get("parsed"):
+                try:
+                    _retry(conn.execute,
+                           "UPDATE nonprofit_candidate SET page_done=2, page_ts=?, page_note=? WHERE ein=?",
+                           (now(), str(rec["error"])[:200], rec["ein"]))
+                    _commit(conn)
+                except Exception as e:
+                    print(f"[{DOMAIN}] flush(err) {rec.get('ein')}: {str(e)[:120]}", flush=True)
+                    errors += 1
+                    if errors >= 5:
+                        break
+                    continue
+                fok.write(rec["ein"] + "\n"); fok.flush()
+                done += 1
+                continue
             try:
                 added, note = _retry(_write_page, conn, rec, keep_years)
                 _commit(conn)

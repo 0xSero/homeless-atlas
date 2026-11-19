@@ -45,10 +45,13 @@ Sources actually used (every response cached under data/raw/laws/, 1 req/s via c
    State-specific bill facts with bill numbers (GA SB 62, KS HB 2430, MO HB 1606 struck down,
    MO SB 1336, IN/IA bills) and the states where criminalization bills were defeated.
 
-6. Cornell LII: *City of Grants Pass v. Johnson* (2024, No. 23-175),
-   24 CFR 578.7 (CoC Housing First requirement), 42 U.S.C. § 11302 (McKinney-Vento definition).
+6. Cornell LII: *City of Grants Pass v. Johnson* (2024, No. 23-175), 24 CFR 578.7 (what the CoC
+   program regulation actually requires -- written standards; note that Part 578 never uses the
+   words "Housing First": that requirement arrives through HUD's annual CoC NOFO), and
+   42 U.S.C. § 11302 (the McKinney-Vento definition of "homeless individual").
 
-7. NLIHC "Housing First" issue page -- the federal/state adoption summary (context row).
+7. NLIHC "Housing First" issue page -- the federal/state adoption summary (context row; the only
+   *sourced* statements about Housing First adoption in this dataset).
 
 Nothing here is scraped from behind a login. Blocked/absent sources are recorded in
 research/laws.md (with the reason) and BLOCKERS.md.
@@ -829,24 +832,30 @@ def federal(conn) -> int:
                    publisher="Supreme Court of the United States (via Cornell LII)", license=LIC_LII)
         txt = _flat(page)
         cite = None
-        m = re.search(r"(City of Grants Pass v\. Johnson[^,]{0,40}?(?:603 U\. ?S\.|\d{3} U\.S\.)"
-                      r"[^.]{0,40}20\d\d)", txt)
+        m = re.search(r"No\.?\s*23[\u2013\-]175\.?\s*Argued ([A-Z][a-z]+ \d{1,2}, \d{4})[\u2014\-]+Decided "
+                      r"([A-Z][a-z]+ \d{1,2}, \d{4})", txt)
+        argued = decided = None
         if m:
-            cite = _ws(m.group(1))
-        cite = cite or "City of Grants Pass v. Johnson, No. 23-175 (U.S. 2024)"
+            argued, decided = _ws(m.group(1)), _ws(m.group(2))
+        if decided:
+            cite = f"City of Grants Pass v. Johnson, No. 23-175 (U.S., decided {decided})"
+        else:
+            cite = "City of Grants Pass v. Johnson, No. 23-175 (U.S.)"
         hold = ""
         mh = re.search(r"(The (?:Eighth Amendment|Constitution)[^.]{40,420}\.)", txt)
         if mh:
             hold = _ws(mh.group(1))
         _law(conn, jurisdiction="US", topic="camping_ban", citation=cite,
              title="Outdoor-sleeping / camping ordinances are not barred by the Eighth Amendment",
-             summary=("Supreme Court of the United States, No. 23-175, decided 2024-06-28. "
-                      + (f"Opinion text: “{hold}” " if hold else "")
+             summary=("Supreme Court of the United States, No. 23-175"
+                      + (f", argued {argued}" if argued else "")
+                      + (f", decided {decided}" if decided else "")
+                      + ". " + (f"Opinion text: “{hold}” " if hold else "")
                       + "Effect: the Court reversed the Ninth Circuit and rejected the rule that "
                         "punishing people who sleep outdoors when no shelter is available is cruel "
                         "and unusual punishment, so state and municipal camping bans are "
                         "enforceable on federal Eighth Amendment grounds after this decision."),
-             status="enacted", year=2024, url=URL_GRANTS_PASS, sid=sid)
+             status="enacted", year=to_int((decided or "").split()[-1]), url=URL_GRANTS_PASS, sid=sid)
 
         mb = re.search(r"Martin v\. Boise,?\s*920\s*F\.\s*3d\s*584[^)]{0,40}", txt)
         if mb:
@@ -865,21 +874,28 @@ def federal(conn) -> int:
     except Exception as e:  # noqa: BLE001
         NOTES.append(f"Grants Pass fetch/parse failed: {repr(e)[:120]}")
 
-    # --- 24 CFR 578.7: Housing First + written standards for CoC-funded projects
+    # --- 24 CFR 578.7: what the CoC-program regulation actually says about written standards
+    #     (note: Part 578 does not use the words "Housing First"; that requirement arrives via
+    #     HUD's annual CoC NOFO, which is not reproduced here -- see research/laws.md)
     try:
         page = _fetch(URL_CFR_578_7, timeout=180).decode("utf-8", "replace")
         title = "24 CFR 578.7 -- Responsibilities of the continuum of care"
         sid = _sid(conn, URL_CFR_578_7, title=title,
                    publisher="Code of Federal Regulations (via Cornell LII)", license=LIC_LII)
         txt = _flat(page)
-        m = re.search(r"(Housing First[^.]{0,400}\.)", txt)
-        hf = _ws(m.group(1)) if m else ""
-        _law(conn, jurisdiction="US", topic="housing_first", citation="24 C.F.R. § 578.7",
-             title="Continuum of Care program: Housing First approach and written standards",
-             summary=("Federal rule for HUD Continuum of Care funding: recipients must use the "
-                      "Housing First approach and the CoC must maintain written standards. "
-                      + (f"Regulatory text as published: “{hf}”" if hf else "")),
-             status="enacted", year=2012, url=URL_CFR_578_7, sid=sid)
+        m = re.search(r"(\(9\) In consultation with recipients of Emergency Solutions Grants[^.]{0,400}\.)", txt)
+        ws_text = _ws(m.group(1)) if m else ""
+        credit = re.search(r"\[\s*(\d+)\s*FR\s*\d+\s*,\s*([A-Z][a-z]+ \d{1,2}, \d{4})[^\]]*\]", txt)
+        _law(conn, jurisdiction="US", topic="other", citation="24 C.F.R. § 578.7",
+             title="Continuum of Care responsibilities, including written standards for assistance",
+             summary=("Federal rule for HUD Continuum of Care program governance: the CoC must adopt "
+                      "and follow written standards for providing CoC assistance, and has the other "
+                      "operating duties listed at § 578.7(a). "
+                      + (f"Regulatory text as published: “{ws_text}”" if ws_text else "")
+                      + " The regulation's own text does not use the phrase 'Housing First'. "
+                      + (f"Source credit on the page: “{_ws(credit.group(0))}”." if credit else "")),
+             status="enacted", year=to_int(credit.group(2).split()[-1]) if credit else None,
+             url=URL_CFR_578_7, sid=sid)
     except Exception as e:  # noqa: BLE001
         NOTES.append(f"24 CFR 578.7 fetch/parse failed: {repr(e)[:120]}")
 
@@ -890,16 +906,17 @@ def federal(conn) -> int:
         sid = _sid(conn, URL_USC_11302, title=title,
                    publisher="U.S. Code (via Cornell LII)", license=LIC_LII)
         txt = _flat(page)
-        m = re.search(r"(For purposes of this chapter[^.]{0,300}\.)", txt)
+        m = re.search(r"(\(1\) an individual or family who lacks a fixed, regular, and adequate "
+                      r"nighttime residence)", txt)
         body = _ws(m.group(1)) if m else ""
-        credit = re.search(r"\(Pub\. L\. [^)]{0,120}?(\d{4})\)", txt)
+        credit = re.search(r"\(Pub\. L\. [^)]{0,160}?(\d{4})\)", txt)
         _law(conn, jurisdiction="US", topic="other", citation="42 U.S.C. § 11302",
              title="Statutory definition of a homeless individual (McKinney-Vento Act)",
              summary=("The definition of 'homeless individual' used by HUD, HHS and other federal "
-                      "homelessness programs. "
-                      + (f"Text as published: “{body}” " if body else "")
-                      + (f"Source credit on the page: “{_ws(credit.group(0))}”." if credit else "")),
-             status="enacted", year=to_int(credit.group(1)) if credit else 1987,
+                      "homelessness programs: “" + (body or "(text not parsed)") + "”. "
+                      + (f"Source credit on the page: “{_ws(credit.group(0))}”." if credit else
+                         "The LII page carried no source-credit line at fetch time.")),
+             status="enacted", year=to_int(credit.group(1)) if credit else None,
              url=URL_USC_11302, sid=sid)
     except Exception as e:  # noqa: BLE001
         NOTES.append(f"42 USC 11302 fetch/parse failed: {repr(e)[:120]}")
@@ -992,8 +1009,18 @@ def nlihc_htf(conn, states: dict[str, str]) -> int:
         elif names:
             citation = f"{st_abbr}: {names[0]}"
         else:
-            citation = f"NLIHC Housing Trust Fund Project — {sec_label}, section '{st_name}'"
-        years = [int(y) for y in re.findall(r"\b(19[5-9]\d|20[0-4]\d)\b", body)]
+            citation = f"NLIHC Housing Trust Fund Project, section '{st_name}'"
+        # the enactment year: only years that sit within 60 characters of an enactment verb,
+        # and only when the paragraph points at a single one (otherwise leave it None rather
+        # than guess which of several acts in the paragraph the row is about)
+        cand = set()
+        for ym in re.finditer(r"\b(19[5-9]\d|20[0-4]\d)\b", body):
+            win = body[max(0, ym.start() - 60): ym.end() + 60]
+            if re.search(r"\b(?:enact|pass|create|establish|adopt|amend|authoriz|approv)\w*", win, re.I) \
+                    and not re.search(r"(?:as of|As of|by|since)\s*$",
+                                      body[max(0, ym.start() - 12): ym.start()]):
+                cand.add(int(ym.group(1)))
+        years = [cand.pop()] if len(cand) == 1 else []
         _law(conn, jurisdiction=st_abbr, topic="funding", citation=citation,
              title=sec_title,
              summary=(f"{st_name}: “{body[:700]}”"),

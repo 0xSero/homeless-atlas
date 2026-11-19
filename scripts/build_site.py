@@ -664,7 +664,7 @@ def page_map(d, manifest_total):
     <button data-l="choro" class="on">State heat</button>
     <button data-l="coc" class="on">CoC areas</button>
     <button data-l="cities">Cities</button>
-    <button data-l="fac" class="on">Institutions</button>
+    <button data-l="fac">Institutions</button>
   </div>
   <div class="map tall" id="map"></div>
   <div class="legend">
@@ -677,6 +677,7 @@ def page_map(d, manifest_total):
 <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
 <script>
 var m=atlasMap.base('map',{zoom:3.2});
+window.__atlasMap=m;
 var loaded={};
 function loadLayer(name){
   if(loaded[name]) return loaded[name];
@@ -711,12 +712,15 @@ function apply(y){
     m.setPaintProperty('st-fill','fill-opacity',0.92);
   }
   current=String(y);
+  window.__atlasYear=current; window.__atlasRates=rates;
   var out=document.getElementById('yrout'); if(out) out.textContent=current;
   var lg=document.getElementById('yrlegend');
   if(lg) lg.innerHTML='<span class="dim">'+current+' · '+Object.keys(rates).length+' states reporting · dark = under 3 per 10,000, amber = 70+</span>';
 }
 m.on('load',function(){
-  loadLayer('coc'); loadLayer('fac');
+  loadLayer('coc'); loadLayer('fac').then(function(){
+    if(m.getLayer('fac')) m.setLayoutProperty('fac','visibility','none');
+  });
   loadLayer('choro').then(function(){
     return fetch('/data/map-years.json').then(r=>r.json());
   }).then(function(d){
