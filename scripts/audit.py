@@ -155,7 +155,19 @@ if FIX:
                      (f" Source dates conflict (opened {r['opened']}, closed {r['closed']}): "
                       f"verify before use.", r["id"]))
         fixed.append(f"facility {r['name']} ({r['id']}): closed {r['closed']} < opened {r['opened']} -> closed NULL, status unknown")
-    # 3) placeholder recipient names are real source values but must not rank as organisations
+    # 3) population figures must cite the population file, not a boundary shapefile a worker touched
+    pop = conn.execute("""SELECT id FROM source WHERE url LIKE '%sub-est%.csv' ORDER BY id LIMIT 1""").fetchone()
+    if pop:
+        for t, cond in (("geo_city", "pop IS NOT NULL"), ("geo_state", "pop IS NOT NULL")):
+            n = conn.execute(f"""SELECT COUNT(*) FROM {t} x JOIN source s ON s.id=x.source_id
+                                 WHERE {cond} AND s.domain NOT IN ('places','hud_pit')""").fetchone()[0]
+            if n:
+                conn.execute(f"""UPDATE {t} SET source_id=?
+                                 WHERE {cond} AND source_id IN (SELECT id FROM source WHERE domain NOT IN ('places','hud_pit'))""",
+                             (pop[0],))
+                fixed.append(f"{t}: repointed {n} population rows to the population source")
+
+    # 4) placeholder recipient names are real source values but must not rank as organisations
     for r in conn.execute("""SELECT id, name FROM facility WHERE 0""").fetchall():
         pass
     for r in conn.execute("""SELECT id, name FROM org

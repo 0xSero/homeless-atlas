@@ -44,3 +44,7 @@ Flagged `status='unknown'` and the impossible `closed` year removed (not silentl
 ### audit --fix pass
 
 - facility Wyoming State Penitentiary (378): closed 1980 < opened 2001 -> closed NULL, status unknown
+
+### audit --fix pass
+
+- geo_state: repointed 51 population rows to the population source
