@@ -50,7 +50,7 @@ def main() -> int:
     conn = sqlite3.connect(f"file:{DB}?mode=ro", uri=True)
     tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
     for table, sql, target, label in GATES:
-        tname = table.split("(")[0]
+        tname = table.split("(")[0].split()[0]
         if tname not in tables:
             rows.append({"gate": label, "value": 0, "target": target, "ok": False, "note": "table missing"})
             fails += 1

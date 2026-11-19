@@ -293,8 +293,8 @@ def load(conn):
                                FROM org o
                                LEFT JOIN award a ON a.org_id=o.id
                                LEFT JOIN org_person p ON p.org_id=o.id
-                               GROUP BY o.id HAVING amt IS NOT NULL OR o.revenue IS NOT NULL
-                               ORDER BY COALESCE(amt,0)+COALESCE(o.revenue,0) DESC LIMIT 2000""")
+                               GROUP BY o.id
+                               ORDER BY COALESCE(amt,0)+COALESCE(o.revenue,0) DESC LIMIT 40000""")
     d["people_top"] = q(conn, """SELECT p.*, o.state, o.website FROM org_person p LEFT JOIN org o ON o.id=p.org_id
                                  WHERE p.person IS NOT NULL
                                  ORDER BY COALESCE(p.comp,0) DESC, p.person LIMIT ?""", (PERSON_PAGE_MAX,))
@@ -360,7 +360,8 @@ def build_exports(d, conn):
             p2 = {"name": name, "abbr": abbr, "rate": round(rate, 3) if rate else 0,
                   "pit": (s or {}).get("pit"), "unshel": (s or {}).get("unshel"),
                   "pop": (s or {}).get("pop")}
-            p2["__html"] = (f'<b>{esc(name)}</b><br>homeless per 10k: <b>{rate:.2f}</b><br>'
+            rate_txt = f"{rate:.2f}" if rate else "no count yet"
+            p2["__html"] = (f'<b>{esc(name)}</b><br>homeless per 10k: <b>{rate_txt}</b><br>'
                             f'count: <b>{num((s or {}).get("pit"))}</b><br>'
                             f'unsheltered: <b>{num((s or {}).get("unshel"))}</b><br>'
                             f'<a href="/state/{esc(abbr)}.html">state page →</a>') if s else f"<b>{esc(name)}</b>"
@@ -647,8 +648,9 @@ def page_cities(d, manifest_total):
         rows.append([f'<a href="/city/{c["geoid"]}.html">{esc(c["name"])}</a>', "", c["name"],
                      esc(c.get("state") or ""), "", c.get("state") or "",
                      num(c.get("pop")), "r", c.get("pop") or 0,
-                     esc(c.get("coc_num") or "—"), "",
-                     f"{c.get('lat') and round(c['lat'],3) or ''}, {c.get('lon') and round(c['lon'],3) or ''}", "r", 0])
+                     esc(c.get("coc_num") or "—"), "", c.get("coc_num") or "",
+                     f"{round(c['lat'],3) if c.get('lat') else ''}, {round(c['lon'],3) if c.get('lon') else ''}", "r",
+                     c.get("lat") or 0])
     body = banner("Cities", "Places, populations and their Continuum of Care",
                   "Every US place above 25,000 people, with the CoC that plans its homelessness response. "
                   "Counts live on the CoC page because HUD counts by CoC, not by city limit.") + f"""
@@ -660,7 +662,7 @@ def page_cities(d, manifest_total):
 
 def page_orgs(d, manifest_total):
     rows = []
-    for o in d["top_orgs"]:
+    for o in d["top_orgs"][:2500]:
         rows.append([f'<a href="/org/{o["id"]}-{slug(o["name"])}.html">{esc(o["name"])}</a>', "", o["name"],
                      esc(o.get("state") or ""), "", o.get("state") or "",
                      money(o.get("amt")), "r", o.get("amt") or 0, money(o.get("revenue")), "r", o.get("revenue") or 0,
@@ -669,7 +671,7 @@ def page_orgs(d, manifest_total):
                   "Nonprofits, housing authorities and agencies that receive public money to address homelessness, "
                   "ranked by federal awards plus reported revenue.") + f"""
 <div class="wrap"><div style="margin-top:22px">
-<p class="muted">Filter: <input id="f" placeholder="type a name, state or EIN" style="background:var(--bg2);border:1px solid var(--line2);border-radius:9px;color:var(--fg);padding:7px 11px;font:inherit;min-width:260px"></p>
+<p class="muted"><a href="/org/index.html"><b>Browse all organizations A–Z →</b></a> · Filter: <input id="f" placeholder="type a name, state or EIN" style="background:var(--bg2);border:1px solid var(--line2);border-radius:9px;color:var(--fg);padding:7px 11px;font:inherit;min-width:260px"></p>
 {table([("Organization",""),("State",""),("Federal $","r"),("Revenue","r"),("Awards","r"),("People","r")], rows,
        note="Federal $ is obligated award value from USASpending. Revenue is the latest IRS Form 990 figure where filed.")}
 </div></div>
@@ -683,6 +685,28 @@ f.addEventListener('input',function(){{
 }});
 </script>"""
     return shell("", "Organizations", "orgs.html", body, manifest_total=manifest_total)
+
+
+def page_org_index(d, manifest_total):
+    groups = defaultdict(list)
+    for o in d["top_orgs"]:
+        groups[(o["name"] or "?")[0].upper()].append(o)
+    out = []
+    letters = "".join(f'<a class="tag" href="#L{k}">{k}</a>' for k in sorted(groups))
+    out.append(f'<p>{letters}</p>')
+    for k in sorted(groups):
+        rows = []
+        for o in sorted(groups[k], key=lambda x: (x["name"] or "").lower()):
+            rows.append([f'<a href="../org/{o["id"]}-{slug(o["name"])}.html">{esc(o["name"])}</a>', "", o["name"],
+                         esc(o.get("city") or ""), "", o.get("city") or "", esc(o.get("state") or ""), "",
+                         o.get("state") or "", money(o.get("amt")), "r", o.get("amt") or 0])
+        out.append(f'<h2 id="L{k}">{k} <span class="dim" style="font-size:.6em">{len(rows)}</span></h2>')
+        out.append(table([("Organization",""),("City",""),("State",""),("Federal $","r")], rows))
+    body = banner("Directory", f"All {num(len(d['top_orgs']))} organizations, A–Z",
+                  "The complete alphabetical index. Use search for anything faster — press / anywhere on this site.",
+                  crumbs='<a href="/index.html">Atlas</a> / Directory', small=True) + \
+        f'<div class="wrap" style="margin-top:18px">{"".join(out)}</div>'
+    return shell("../", "Organization directory", "", body, manifest_total=manifest_total)
 
 
 def page_people(d, manifest_total):
@@ -941,14 +965,16 @@ def page_sources(d, manifest_total):
 def page_report_sf(d, manifest_total):
     src = ROOT / "reports" / "san-francisco.md"
     if src.exists():
+        text = src.read_text()
+        text = re.sub(r"\A\s*#\s+.*\n", "", text, count=1)
         body = banner("Deep brief", "San Francisco", "The flagship case study: counts, contracts, organizations, institutions, law and cost.",
-                      crumbs='<a href="/index.html">Atlas</a> / Report') + \
-            f'<div class="wrap wrap-narrow" style="margin-top:22px">{md(src.read_text())}</div>'
+                      crumbs="Report") + \
+            f'<div class="wrap wrap-narrow" style="margin-top:22px">{md(text)}</div>'
     else:
         body = banner("Deep brief", "San Francisco", "Not written yet.") + (
             '<div class="wrap wrap-narrow"><p class="dim">The San Francisco brief is generated from the database by '
             '<code>scripts/sf_report.py</code>. It has not run yet.</p></div>')
-    return shell("", "San Francisco", "", body, manifest_total=manifest_total)
+    return shell("../", "San Francisco", "", body, manifest_total=manifest_total)
 
 
 # ---------- entity pages
@@ -1186,6 +1212,8 @@ def main():
     CONN = sqlite3.connect(f"file:{DB}?mode=ro", uri=True)
     CONN.row_factory = sqlite3.Row
     d = load(CONN)
+    if SITE.exists():
+        shutil.rmtree(SITE)
     SITE.mkdir(parents=True, exist_ok=True)
     (SITE / "assets").mkdir(exist_ok=True)
     for f in ("atlas.css", "app.js"):
@@ -1200,6 +1228,7 @@ def main():
     write("states.html", page_states(d, total))
     write("cities.html", page_cities(d, total))
     write("orgs.html", page_orgs(d, total))
+    write("org/index.html", page_org_index(d, total))
     write("people.html", page_people(d, total))
     write("facilities.html", page_facilities(d, total))
     write("budgets.html", page_budgets(d, total))
@@ -1220,7 +1249,7 @@ def main():
         if c.get("coc_num"):
             write(f"coc/{c['coc_num']}.html", page_coc(d, c, total)); n += 1
     if not FAST:
-        for c in d["cities"]:
+        for c in d["cities"][:3000]:
             write(f"city/{c['geoid']}.html", page_city(d, c, total)); n += 1
         for o in d["top_orgs"][:ORG_PAGE_MAX]:
             write(f"org/{o['id']}-{slug(o['name'])}.html", page_org(d, o, total)); n += 1

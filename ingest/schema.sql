@@ -21,7 +21,9 @@ CREATE TABLE IF NOT EXISTS geo_state (
   pop         INTEGER,
   lat         REAL,
   lon         REAL,
-  land_sqmi   REAL
+  land_sqmi   REAL,
+  source_id   INTEGER,
+  is_est      INTEGER DEFAULT 0
 );
 
 -- Continuum of Care (HUD homeless planning bodies)

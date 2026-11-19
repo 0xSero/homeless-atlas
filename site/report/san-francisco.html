@@ -5,14 +5,14 @@
 <meta name="description" content="Public-record atlas of homelessness in the United States: counts, contracts, organizations, institutions, laws, money.">
 <meta property="og:title" content="San Francisco · Homeless Atlas">
 <meta property="og:type" content="website">
-<link rel="stylesheet" href="assets/atlas.css">
+<link rel="stylesheet" href="../assets/atlas.css">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect rx='22' width='100' height='100' fill='%230b0e13'/><circle cx='50' cy='50' r='24' fill='%23ff7a45'/></svg>">
 
 </head><body>
 <a class="skip" href="#main">Skip to content</a>
 <header class="top"><div class="wrap">
   <div class="topbar">
-    <a class="brand" href="index.html"><span class="dot"></span>Homeless&nbsp;Atlas</a>
+    <a class="brand" href="../index.html"><span class="dot"></span>Homeless&nbsp;Atlas</a>
     <form class="searchbox" role="search" onsubmit="return goSearch(event)">
       <span class="ico">⌕</span>
       <input type="search" id="gq" placeholder="Search 100,000+ records — city, CoC, org, person, law…" aria-label="Search" autocomplete="off">
@@ -20,29 +20,53 @@
     </form>
     <button class="navbtn" aria-label="Menu">☰ Menu</button>
   </div>
-  <nav class="main"><a href="index.html">Overview</a><a href="map.html">Map</a><a href="search.html">Search</a><a href="states.html">States</a><a href="cities.html">Cities</a><a href="orgs.html">Organizations</a><a href="people.html">People</a><a href="facilities.html">Institutions</a><a href="budgets.html">Money</a><a href="laws.html">Laws</a><a href="media.html">Media</a><a href="docs.html">Docs</a>
-    <a href="about.html">About</a>
-    <a href="method.html">Method</a>
-    <a href="sources.html">Sources</a>
+  <nav class="main"><a href="../index.html">Overview</a><a href="../map.html">Map</a><a href="../search.html">Search</a><a href="../states.html">States</a><a href="../cities.html">Cities</a><a href="../orgs.html">Organizations</a><a href="../people.html">People</a><a href="../facilities.html">Institutions</a><a href="../budgets.html">Money</a><a href="../laws.html">Laws</a><a href="../media.html">Media</a><a href="../docs.html">Docs</a>
+    <a href="../about.html">About</a>
+    <a href="../method.html">Method</a>
+    <a href="../sources.html">Sources</a>
   </nav>
 </div></header>
 <main id="main"><section class="banner"><div class="wrap"><div class="inner">
-  
+  <div class="crumbs">Report</div>
   <div class="kicker">Deep brief</div>
   <h1>San Francisco</h1>
-  <p class="sub">Not written yet.</p>
-</div></div></section><div class="wrap wrap-narrow"><p class="dim">The San Francisco brief is generated from the database by <code>scripts/sf_report.py</code>. It has not run yet.</p></div></main>
+  <p class="sub">The flagship case study: counts, contracts, organizations, institutions, law and cost.</p>
+</div></div></section><div class="wrap wrap-narrow" style="margin-top:22px"><p><em>Generated from the Homeless Atlas database on 2026-11-19. Every number below is followed by the public source it came from; a dagger (†) marks a value this project derived rather than a published figure, and the formula is always stated. Nothing here is hand-typed.</em></p>
+<p>San Francisco is the case study because it is the most expensive and most documented homelessness system in the United States: a city-county of ~800,000 people that spends more per homeless resident than almost any other jurisdiction, inside a region with one of the highest unsheltered counts in the country.</p>
+<h2>1. How many people, and in what condition</h2>
+<p><em>Point-in-time data for CA-501/502/503 has not been ingested yet — section incomplete. This is recorded honestly rather than filled with a guess.</em></p>
+<h2>2. Which bodies are responsible</h2>
+<p>CoC records not yet ingested.</p>
+<h2>3. The money</h2>
+<p>The atlas holds <strong>0 federal awards</strong> with a San Francisco place of performance or a San Francisco recipient, worth <strong>$0 obligated</strong>.</p>
+<h2>4. Who receives it</h2>
+<h2>5. The people running it</h2>
+<h2>6. Beds: what exists, what was closed</h2>
+<p>Institution records for San Francisco are not yet ingested.</p>
+<h2>7. The law</h2>
+<h2>8. Health, crime and cost context</h2>
+<p>No national crime dataset records whether an offender was homeless. Area-level crime and overdose figures are context for a neighbourhood, never an attribution to the people counted in section 1. Studies that do measure incidents are listed below with their own methodology.</p>
+<h2>10. What it would cost to end it here</h2>
+<h2>11. What is still missing from this brief</h2>
+<ul>
+<li>HUD point-in-time series for CA-501/502/503</li>
+<li>federal award detail</li>
+<li>institution records (Laguna Honda, SFGH psychiatry, county jail mental health)</li>
+<li>city and state law rows</li>
+<li>overdose and mental-health metrics</li>
+</ul>
+<p><em>Generated 2026-11-19 by <code>scripts/sf_report.py</code> from <code>data/atlas.db</code>. 0 distinct sources cited.</em></p></div></main>
 <footer class="site"><div class="wrap">
   <div class="row">
-    <div><strong>Homeless Atlas</strong> · public-record research · generated 2026-11-19 · 1,163 indexed records</div>
-    <div><a href="method.html">Method &amp; caveats</a> · <a href="sources.html">Sources &amp; licences</a> · <a href="about.html">About</a></div>
+    <div><strong>Homeless Atlas</strong> · public-record research · generated 2026-11-19 · 19,062 indexed records</div>
+    <div><a href="../method.html">Method &amp; caveats</a> · <a href="../sources.html">Sources &amp; licences</a> · <a href="../about.html">About</a></div>
   </div>
   <p class="dim" style="margin-top:14px">Every figure links to a public source. Anything marked † is derived, not published.
   Crime and health figures are area-level context — no dataset attributes an offence to a homeless person, and we never claim otherwise.</p>
 </div></footer>
-<script src="assets/app.js"></script>
+<script src="../assets/app.js"></script>
 <script>
-function goSearch(e){e.preventDefault();var v=document.getElementById('gq').value.trim();if(v)location.href='search.html?q='+encodeURIComponent(v);return false;}
+function goSearch(e){e.preventDefault();var v=document.getElementById('gq').value.trim();if(v)location.href='../search.html?q='+encodeURIComponent(v);return false;}
 </script>
 
 </body></html>
