@@ -127,6 +127,55 @@ COUNTY_CUT = re.compile(
     r"\s+(COUNTY|PARISH|BOROUGH|CENSUS AREA|MUNICIPALITY|CITY AND BOROUGH|ISLAND)$", re.I)
 
 
+BUSY_TRIES = 40
+
+
+def _x(conn, sql, params=()):
+    """Execute a write with retry: other domain workers hold locks on atlas.db."""
+    import sqlite3 as _s
+    import time as _t
+    last = None
+    for i in range(BUSY_TRIES):
+        try:
+            return conn.execute(sql, params)
+        except _s.OperationalError as e:
+            if "locked" not in str(e) and "busy" not in str(e):
+                raise
+            last = e
+            _t.sleep(min(2 + i, 15))
+    raise last
+
+
+def _up(conn, table, row, keys):
+    import sqlite3 as _s
+    import time as _t
+    last = None
+    for i in range(BUSY_TRIES):
+        try:
+            return upsert(conn, table, row, keys)
+        except _s.OperationalError as e:
+            if "locked" not in str(e) and "busy" not in str(e):
+                raise
+            last = e
+            _t.sleep(min(2 + i, 15))
+    raise last
+
+
+def _commit(conn):
+    import sqlite3 as _s
+    import time as _t
+    last = None
+    for i in range(BUSY_TRIES):
+        try:
+            return conn.commit()
+        except _s.OperationalError as e:
+            if "locked" not in str(e) and "busy" not in str(e):
+                raise
+            last = e
+            _t.sleep(min(2 + i, 15))
+    raise last
+
+
 def _q(host, ds, soql, timeout=180):
     """Socrata SoQL GET, cached by common.fetch under data/raw/budgets/."""
     url = f"https://{host}/resource/{ds}.json?" + urllib.parse.urlencode(soql, safe="$,()'%")
@@ -171,10 +220,10 @@ def _done(conn, step):
 
 
 def _mark(conn, step, detail=""):
-    conn.execute("INSERT INTO budgets_progress(step,done_at,detail) VALUES(?,?,?) "
-                 "ON CONFLICT(step) DO UPDATE SET done_at=excluded.done_at, detail=excluded.detail",
-                 (step, now(), str(detail)[:400]))
-    conn.commit()
+    _x(conn, "INSERT INTO budgets_progress(step,done_at,detail) VALUES(?,?,?) "
+          "ON CONFLICT(step) DO UPDATE SET done_at=excluded.done_at, detail=excluded.detail",
+       (step, now(), str(detail)[:400]))
+    _commit(conn)
 
 
 def _source(conn, url, *, title, publisher, license, method="GET", payload=None):
@@ -184,8 +233,8 @@ def _source(conn, url, *, title, publisher, license, method="GET", payload=None)
     p = RAW / DOMAIN / f"{key}.bin"
     if p.exists():
         b = p.read_bytes()
-        conn.execute("UPDATE source SET bytes=?, sha256=?, retrieved_at=? WHERE id=?",
-                     (len(b), hashlib.sha256(b).hexdigest(), now(), sid))
+        _x(conn, "UPDATE source SET bytes=?, sha256=?, retrieved_at=? WHERE id=?",
+           (len(b), hashlib.sha256(b).hexdigest(), now(), sid))
     return sid
 
 
@@ -197,7 +246,7 @@ def _metric(conn, entity_type, entity_id, metric, value, unit, year, source_id,
     if value is None or entity_id is None:
         return
     WROTE[0] += 1
-    upsert(conn, "metric", {
+    _up(conn, "metric", {
         "entity_type": entity_type, "entity_id": str(entity_id), "metric": metric,
         "value": float(value), "unit": unit, "year": int(year) if year else None,
         "is_est": is_est, "note": note, "source_id": source_id,
@@ -237,7 +286,7 @@ def _state_federal(conn, stats):
             stats["federal_state_calls"] += 1
             stats["federal_state_rows"] += n
 
-    conn.commit()
+    _commit(conn)
 
     # state totals + derived per-capita / per-homeless
     pit = _state_pit(conn)
@@ -260,7 +309,7 @@ def _state_federal(conn, stats):
                     total / ptot, "USD/person", fy, sid, is_est=1,
                     note="formula: HUD homeless-assistance obligations FY%d / HUD PIT count for the "
                          "state in %s (%s people, sum of the state's CoC PIT totals)" % (fy, py, f"{ptot:,}"))
-    conn.commit()
+    _commit(conn)
     stats["state_metric_rows"] += n_tot
     return sid
 
@@ -366,7 +415,7 @@ def _coc_from_county(conn, stats):
                     fy, sid, is_est=1,
                     note="formula: county-attributed HUD CoC+ESG obligations FY%d / HUD PIT count for the "
                          "CoC in %s (%s people)" % (fy, py, f"{ptot:,}"))
-    conn.commit()
+    _commit(conn)
     stats["coc_rows"] = n
     stats["coc_county_match"] = (matched, seen)
     return n
@@ -422,7 +471,7 @@ def _city_budgets(conn, stats):
                 continue
             total += amt
             kept += 1
-            upsert(conn, "budgets_city_line", {
+            _up(conn, "budgets_city_line", {
                 "city": city, "state": state, "fy": fy_label, "label": label[:300],
                 "amount": amt, "dataset": f"{spec['host']}/{spec['ds']}", "source_id": sid,
             }, ["city", "state", "fy", "label"])
@@ -443,9 +492,9 @@ def _city_budgets(conn, stats):
                     continue
                 total += amt
                 kept += 1
-            conn.execute("DELETE FROM budgets_city_line WHERE city=? AND state=? AND fy=?",
-                         (city, state, fy_label))
-            upsert(conn, "budgets_city_line", {
+            _x(conn, "DELETE FROM budgets_city_line WHERE city=? AND state=? AND fy=?",
+               (city, state, fy_label))
+            _up(conn, "budgets_city_line", {
                 "city": city, "state": state, "fy": fy_label,
                 "label": f"all agencies matching filter (publication {newest})",
                 "amount": total, "dataset": f"{spec['host']}/{spec['ds']}", "source_id": sid,
@@ -474,7 +523,7 @@ def _city_budgets(conn, stats):
                         year, sid, is_est=1,
                         note="formula: %s / HUD PIT %d count for CoC %s (%s people)"
                              % (metric, pr["year"], pop_row["coc_num"], f"{pr['total']:,}"))
-        conn.commit()
+        _commit(conn)
         stats["city_rows"] += 1
         stats["cities"].append(city)
 
@@ -495,7 +544,7 @@ def run(conn, cfg=None):
     _city_budgets(conn, stats)
     _mark(conn, "city_budgets", f"{stats['city_rows']} cities: {', '.join(stats['cities'])}")
 
-    conn.commit()
+    _commit(conn)
     rows = WROTE[0]
     notes = ("state=federal obligations per state/FY (HUD ESG/CoC/YHDP/HOPWA via USASpending), "
              f"coc={stats['coc_rows']} (county-attributed, matched {stats['coc_county_match'][0]}/"

@@ -198,7 +198,7 @@ short of HUD's published national total.
 | `metric` entity_type `us` | 270 (15 series × 2007–2025 where published) |
 | `metric` entity_type `coc` | 7,431 (`pit_family_households`) |
 | `metric` entity_type `city` | 3,000 (`pit_total`/`pit_sheltered`/`pit_unsheltered`, newest year, is_est=1) |
-| sources / logs | 5 source rows registered, `logs/ingest-hud_pit.jsonl` |
+| sources / logs | 7 source rows registered, `logs/ingest-hud_pit.jsonl` |
 
 ## Reproduction
 

@@ -292,6 +292,13 @@ def load(conn):
         d["nat_prev"] = one(conn, "SELECT SUM(total) total FROM pit WHERE year=?", (y - 1,), {}) or {}
         d["nat_series"] = q(conn, """SELECT year, SUM(total) total, SUM(sheltered) shel, SUM(unsheltered) unshel
                                      FROM pit WHERE total IS NOT NULL GROUP BY year ORDER BY year""")
+        # HUD publishes SMI/SUD per CoC only in PDFs; the national series lives in metric
+        d["nat_smi"] = (one(conn, """SELECT value, year FROM metric WHERE entity_type='us' AND metric='pit_smi'
+                                     ORDER BY year DESC LIMIT 1""", (), {}) or {}).get("value")
+        d["nat_sud"] = (one(conn, """SELECT value, year FROM metric WHERE entity_type='us' AND metric='pit_sud'
+                                     ORDER BY year DESC LIMIT 1""", (), {}) or {}).get("value")
+        d["nat_chronic"] = (one(conn, """SELECT value, year FROM metric WHERE entity_type='us' AND metric='pit_chronic'
+                                     ORDER BY year DESC LIMIT 1""", (), {}) or {}).get("value")
     else:
         d["latest"], d["nat"], d["nat_prev"], d["nat_series"] = None, {}, {}, []
 
@@ -540,8 +547,8 @@ def page_index(d, manifest_total):
         kpi(pct(n["unshel"] / n["total"] * 100) if (n.get("unshel") and n.get("total")) else "—",
             "unsheltered share", "on the street, not in shelter", "b"),
         kpi(money(a.get("amt")), "federal money mapped", f"{num(a.get('n'))} awards → {num(a.get('orgs'))} orgs", "c"),
-        kpi(num(n.get("smi")), "severely mentally ill", "counted in the same PIT", "d"),
-        kpi(num(n.get("sud")), "substance use disorder", "counted in the same PIT"),
+        kpi(num(d.get("nat_smi")), "seriously mentally ill adults", "HUD count, same night, national", "d"),
+        kpi(num(d.get("nat_sud")), "adults with substance use disorder", "HUD count, same night, national"),
         kpi(num(d["meta"]["counts"]["org"]), "organizations", "nonprofits, agencies, housing authorities"),
         kpi(num(d["meta"]["counts"]["org_person"]), "named people", "officers and directors from public filings"),
         kpi(num(d["meta"]["counts"]["facility"]), "institutions", "psychiatric hospitals, prisons, jails"),
@@ -862,6 +869,119 @@ def page_budgets(d, manifest_total):
     return shell("", "Money", "budgets.html", body, manifest_total=manifest_total)
 
 
+def page_costs(d, manifest_total):
+    """What institutional and housing capacity actually costs, every figure sourced or marked derived."""
+    facs = d["facilities"]
+    metrics = q(CONN, """SELECT entity_type, entity_id, metric, value, year, is_est, note, source_id
+                         FROM metric WHERE metric IN ('cost_per_bed_year','facility_annual_budget',
+                         'hud_homeless_obligated_per_homeless','overdose_deaths','overdose_rate')
+                         ORDER BY metric, value DESC""")
+    by_metric = defaultdict(list)
+    for m in metrics:
+        by_metric[m["metric"]].append(m)
+
+    # per-bed cost, published or derived from budget / beds
+    costed = []
+    for f in facs:
+        cpb = f.get("annual_cost_per_bed")
+        derived = False
+        if cpb is None and f.get("budget") and f.get("beds"):
+            cpb = f["budget"] / f["beds"]
+            derived = True
+        if cpb:
+            costed.append({"f": f, "cpb": cpb, "derived": derived})
+    for m in by_metric["cost_per_bed_year"]:
+        if m["entity_type"] == "facility":
+            for c in costed:
+                if str(c["f"]["id"]) == str(m["entity_id"]) and m["value"]:
+                    c["cpb"] = m["value"]
+                    c["derived"] = bool(m.get("is_est"))
+    costed.sort(key=lambda x: -x["cpb"])
+    crows = []
+    for c in costed[:40]:
+        f = c["f"]
+        crows.append([
+            f'<a href="facility/{f["id"]}.html">{esc(f["name"])}</a>', "", f["name"],
+            esc((f.get("kind") or "").replace("_", " ")), "", f.get("kind") or "",
+            esc(f.get("state") or ""), "", f.get("state") or "",
+            num(f.get("beds")), "r", f.get("beds") or 0,
+            money(c["cpb"]) + ("†" if c["derived"] else ""), "r", c["cpb"],
+            num(f.get("staff")), "r", f.get("staff") or 0,
+        ])
+    med = None
+    vals = sorted(c["cpb"] for c in costed)
+    if vals:
+        med = vals[len(vals) // 2]
+
+    # closed vs open beds by state
+    st = defaultdict(lambda: {"closed": 0, "open": 0, "cclosed": 0, "copen": 0})
+    for f in facs:
+        s_ = (f.get("state") or "?")
+        if f.get("status") == "closed":
+            st[s_]["closed"] += f.get("beds") or 0
+            st[s_]["cclosed"] += 1
+        elif f.get("status") == "open":
+            st[s_]["open"] += f.get("beds") or 0
+            st[s_]["copen"] += 1
+    srows = []
+    for s_, v in sorted(st.items(), key=lambda kv: -(kv[1]["closed"])):
+        if not (v["closed"] or v["open"]):
+            continue
+        est = v["closed"] * (med or 0)
+        srows.append([
+            f'<a href="state/{esc(s_)}.html">{esc(s_)}</a>', "", s_,
+            num(v["open"]), "r", v["open"], num(v["closed"]), "r", v["closed"],
+            num(v["cclosed"]), "r", v["cclosed"],
+            (money(est) + "†") if est else "—", "r", est,
+        ])
+
+    ph = by_metric["hud_homeless_obligated_per_homeless"]
+    prow = [[f'<a href="state/{esc(m["entity_id"])}.html">{esc(m["entity_id"])}</a>', "", m["entity_id"],
+             f'${m["value"]:,.0f}', "r", m["value"] or 0, num(m.get("year")), "r", m.get("year") or 0]
+            for m in ph[:55]]
+    od = [m for m in by_metric["overdose_rate"]]
+
+    body = banner("Money", "What it costs — and what rebuilding capacity would cost",
+                  "Published per-bed costs where they exist, derived figures marked † with their formula, and the "
+                  "closed capacity each state would have to rebuild.") + f"""
+<div class="wrap">
+  <div class="kpis">
+    {kpi(num(len(d["facilities"])), "institutions recorded")}
+    {kpi(num(sum(1 for f in facs if f.get("status") == "closed")), "closed", "hospitals, prisons, jails", "b")}
+    {kpi(num(sum(f.get("beds") or 0 for f in facs if f.get("status") == "closed")), "beds in closed institutions", "", "c")}
+    {kpi(money(med) + "†" if med else "—", "median cost per bed-year", "median of sourced facility costs", "d")}
+  </div>
+
+  <h2>Published cost per bed-year</h2>
+  <p class="muted">Where an operator publishes a budget and a licensed-bed count, that is a sourced cost. Where we divide a
+  published budget by published beds, the figure carries a † and is a division, not a published number.</p>
+  {table([("Institution",""),("Kind",""),("State",""),("Beds","r"),("Cost per bed-year","r"),("Staff","r")], crows,
+         note="† = budget ÷ beds. Blank staff means the operator does not publish a staffing figure.")}
+
+  <h2>Open versus closed capacity, by state</h2>
+  {table([("State",""),("Beds open","r"),("Beds closed","r"),("Closed institutions","r"),("Annual cost to reopen†","r")], srows,
+         note="† reopen cost = closed beds × the median sourced cost per bed-year above. It is an order-of-magnitude "
+              "figure for comparison, not a budget: it excludes capital repair, licensing and workforce costs.")}
+
+  <h2>Federal homelessness money per homeless person, by state</h2>
+  {table([("State",""),("$ per homeless person†","r"),("Year","r")], prow,
+         note="† obligated federal awards whose place of performance is the state, divided by the latest point-in-time count. "
+              "Obligated is not spent; place of performance is not where the money lands.")}
+
+  <h2>Staffing</h2>
+  <p>The authoritative staffing answer is a ratio, and almost no operator publishes one. Where a facility publishes both
+  staff and beds we show both columns above so the ratio can be read directly. For planning, the defensible published
+  benchmarks are 1.0–2.5 direct-care FTE per psychiatric bed depending on acuity; anything in that range is a planning
+  assumption, not a measurement, and this project does not store it as data.</p>
+
+  <h2>Comparison: harm versus spend</h2>
+  <p>Overdose deaths and homeless counts sit side by side on state pages; the overdose series is in <code>metric</code>
+  ({num(len(by_metric['overdose_deaths']))} rows). Neither dataset attributes a death to homelessness, and we do not
+  compute a ratio that implies it.</p>
+</div>"""
+    return shell("", "Costs", "costs.html", body, manifest_total=manifest_total)
+
+
 def page_laws(d, manifest_total):
     rows = []
     for l in d["laws"][:4000]:
@@ -1128,7 +1248,9 @@ def page_coc(d, c, manifest_total):
   </div>
   <h2>Every reported year</h2>
   {table([("Year",""),("Total","r"),("Sheltered","r"),("Unsheltered","r"),("Chronic","r"),("SMI","r"),("SUD","r"),("Veterans","r")], srow,
-         note="Blank cells are years or subpopulations HUD did not publish for this CoC. We never interpolate inside this table.")}
+         note="Blank cells are years or subpopulations HUD did not publish for this CoC. SMI and SUD are blank for every "
+              "CoC because HUD publishes those two only in per-CoC PDF reports and nationally; the national figures are in "
+              "the headline numbers. We never interpolate inside this table.")}
   <h2>Organizations associated with this CoC</h2>
   {table([("Organization",""),("City",""),("Federal $","r"),("Revenue","r")], orow)}
 </div>"""
@@ -1357,6 +1479,7 @@ def main():
     write("people.html", page_people(d, total))
     write("facilities.html", page_facilities(d, total))
     write("budgets.html", page_budgets(d, total))
+    write("costs.html", page_costs(d, total))
     write("laws.html", page_laws(d, total))
     write("media.html", page_media(d, total))
     write("docs.html", page_docs(d, total))

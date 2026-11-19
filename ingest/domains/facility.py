@@ -105,8 +105,11 @@ def _num(v):
     s = str(v).strip()
     if not s or s.upper() == "NOT AVAILABLE":
         return None
+    m = re.search(r"-?\d[\d,]*(?:\.\d+)?", s)
+    if not m:
+        return None
     try:
-        n = int(float(re.sub(r"[^0-9.\-]", "", s) or "0"))
+        n = int(round(float(m.group(0).replace(",", ""))))
     except ValueError:
         return None
     return None if n <= -900 else (n or None)
@@ -500,6 +503,31 @@ def _wiki(params):
     return fetch_json(url, domain=DOMAIN)
 
 
+_INST_RE = {
+    "prison": r"prison|correctional|penitentiar|detention|workhouse|penal|stockade|"
+              r"reformator|\bunit\b|cent(er|re)|institute|facility|camp|barracks|annex|"
+              r"farm|house of correction|jail|academy",
+    "jail": r"jail|detention|workhouse|correctional|prison|lockup|lock-up|holding|"
+            r"sheriff|cent(er|re)|facility",
+    "state_psychiatric": r"hospital|asylum|sanitari|psychiatric|mental|insane|"
+                         r"developmental|institute|cent(er|re)|retreat|home|school|colony|"
+                         r"infirmary|ward",
+}
+_BAD_TITLE_RE = re.compile(
+    r"^(List of|History of|Timeline|Incarceration|Capital punishment|Prison abolition|"
+    r"Prison officer|Prison gang|Category:)|(?i:library|museum|disease|cemetery|memorial|"
+    r"sheriff's office|police department|historical society|national register)", re.I)
+
+
+def _plausible(title, kind):
+    if not title or _BAD_TITLE_RE.search(title):
+        return False
+    pat = _INST_RE.get(kind)
+    if not pat:
+        return True
+    return bool(re.search(pat, title, re.I))
+
+
 def wiki_categories(conn):
     """Harvest institution article titles + hints from per-state Wikipedia categories."""
     patterns = [
@@ -513,6 +541,8 @@ def wiki_categories(conn):
 
     def add(title, kind, state, defunct):
         if not title or title.startswith("Category:") or title.startswith("List of"):
+            return
+        if not _plausible(title, kind):
             return
         if title not in hints:
             hints[title] = {"kind": kind, "state": state, "defunct": defunct}
@@ -788,15 +818,31 @@ FILL_FIELDS = ["opened", "closed", "beds", "beds_year", "staff", "staff_year", "
                "city", "state"]
 
 
+_NAME_PREFIX_RE = re.compile(
+    r"^(department of state hospitals?|department of state hospital|dsh|texas department of "
+    r"criminal justice|tdcj|department of corrections|doc)\s*[-–:]?\s*", re.I)
+
+
+def _match_name(name: str) -> str:
+    """Name used only for cross-source matching (not stored)."""
+    n = name_norm(name)
+    n = _NAME_PREFIX_RE.sub("", n)
+    n = re.sub(r"\b(CAMPUS|FACILITY|COMPLEX)\b", " ", n)
+    return re.sub(r"\s+", " ", n).strip()
+
+
 def _key(rec):
-    return (name_norm(rec.get("name")), (rec.get("state") or "").upper(),
+    return (_match_name(rec.get("name")), (rec.get("state") or "").upper(),
             name_norm(rec.get("city")))
 
 
 def _similar(a, b):
     if not a or not b:
         return 0.0
-    return difflib.SequenceMatcher(None, a, b).ratio()
+    direct = difflib.SequenceMatcher(None, a, b).ratio()
+    ta, tb = set(a.split()), set(b.split())
+    jac = len(ta & tb) / max(1, len(ta | tb))
+    return max(direct, jac)
 
 
 def _merge_into(cur, rec):
@@ -821,6 +867,88 @@ def _merge_into(cur, rec):
         cur["source_id"] = rec["source_id"]
     if rec.get("wiki_title"):
         cur.setdefault("wiki_titles", []).append(rec["wiki_title"])
+
+
+_GENERIC_TOKENS = {
+    "STATE", "HOSPITAL", "PRISON", "FACILITY", "CENTER", "CENTRE", "CORRECTIONAL",
+    "INSTITUTION", "INSTITUTE", "UNIT", "COMPLEX", "CAMPUS", "DEPARTMENT", "JAIL", "PRISON",
+    "PSYCHIATRIC", "MENTAL", "HEALTH", "DSH", "COUNTY", "CITY", "REGIONAL", "MEDICAL",
+    "TREATMENT", "COMMUNITY", "SECURITY", "ADULT", "JUVENILE", "DETENTION", "FEDERAL",
+    "WORK", "CENTER", "REENTRY", "RE", "ENTRY", "CARE", "SERVICES", "SERVICE", "OF", "THE",
+    "AND", "FOR", "AT", "IN", "ON", "NEW", "OLD", "NORTH", "SOUTH", "EAST", "WEST", "CENTRAL",
+    "ANNEX", "CAMP", "SCHOOL", "HOME", "HOUSE", "PROGRAM", "PROCESSING", "RECEPTION",
+}
+
+
+def _distinctive(name: str):
+    toks = {t for t in name_norm(name).split() if len(t) >= 4 and t not in _GENERIC_TOKENS}
+    return toks
+
+
+def geo_consolidate(merger, radius_km=3.0):
+    """Merge records that are the same physical institution under different names
+    (e.g. HIFLD's 'DEPARTMENT OF STATE HOSPITALS - ATASCADERO' vs Wikipedia's
+    'Atascadero State Hospital'): co-located, same kind, identical distinctive name tokens."""
+    keys = [k for k, r in merger.recs.items()
+            if r.get("lat") is not None and r.get("lon") is not None]
+    parent = {k: k for k in keys}
+
+    def find(x):
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    def union(a, b):
+        ra, rb = find(a), find(b)
+        if ra != rb:
+            parent[rb] = ra
+
+    grid = {}
+    for k in keys:
+        r = merger.recs[k]
+        grid.setdefault((round(math.floor(r["lat"] / 0.05)),
+                         round(math.floor(r["lon"] / 0.05))), []).append(k)
+    for (gy, gx), ks in grid.items():
+        cand = list(ks)
+        for dy in (-1, 0, 1):
+            for dx in (-1, 0, 1):
+                cand.extend(grid.get((gy + dy, gx + dx), []))
+        for i, a in enumerate(ks):
+            ra = merger.recs[a]
+            ta = _distinctive(ra.get("name") or "")
+            if not ta:
+                continue
+            for b in cand:
+                if b <= a:
+                    continue
+                rb = merger.recs[b]
+                if (ra.get("kind") or "") != (rb.get("kind") or ""):
+                    continue
+                if _distinctive(rb.get("name") or "") != ta:
+                    continue
+                if _km(ra["lat"], ra["lon"], rb["lat"], rb["lon"]) <= radius_km:
+                    union(a, b)
+
+    clusters = {}
+    for k in keys:
+        clusters.setdefault(find(k), []).append(k)
+    merged = 0
+    for root, ks in clusters.items():
+        if len(ks) < 2:
+            continue
+        recs = [merger.recs[k] for k in ks]
+        recs.sort(key=lambda r: (0 if (r.get("provenance") or "").startswith("hifld") else 1,
+                                 r.get("status") not in ("open", "closed", "partial"),
+                                 -(r.get("beds") or 0)))
+        base = recs[0]
+        for other in recs[1:]:
+            _merge_into(base, other)
+            merged += 1
+        for k in ks:
+            if merger.recs.get(k) is not base:
+                merger.recs.pop(k, None)
+    return merged
 
 
 def consolidate(merger):
@@ -893,10 +1021,12 @@ class Merger:
                     other = self.recs.get(kk)
                     if not other or rec.get("state") != other.get("state"):
                         continue
+                    if (rec.get("kind") or "") != (other.get("kind") or ""):
+                        continue
                     d = _km(rec["lat"], rec["lon"], other["lat"], other["lon"])
                     if d > 1.2:
                         continue
-                    if d <= 0.25 or _similar(k[0], kk[0]) >= 0.55:
+                    if d <= 0.6 or _similar(k[0], kk[0]) >= 0.5:
                         return kk
         return None
 
@@ -1149,6 +1279,15 @@ def run(conn, cfg):
                 continue
         seen_names[nk] = k
 
+    # 5a. drop aggregate (non-facility) rows harvested from table totals ------------------
+    agg_re = re.compile(r"^(system[- ]?wide|statewide|total|all (state )?(facilities|"
+                        r"institutions|prisons)|department total|overall)\b", re.I)
+    for k in [k for k, r in merger.recs.items() if agg_re.match(r.get("name") or "")]:
+        merger.recs.pop(k, None)
+    merger.grid = {}
+    for k, r in merger.recs.items():
+        merger._register_grid(r, k)
+
     # 5b. backfill missing states from nearby facilities with a known state ---------------
     refs = [(r["lat"], r["lon"], r["state"]) for r in merger.recs.values()
             if r.get("state") and r.get("lat") is not None and r.get("lon") is not None]
@@ -1175,7 +1314,9 @@ def run(conn, cfg):
                     f"{_km(la, lo, best[0], best[1]):.0f} km away)")
                 filled += 1
     notes.append(f"states_backfilled={filled}")
+    geo_merged = geo_consolidate(merger)
     collapsed = consolidate(merger)
+    notes.append(f"geo_merged_records={geo_merged}")
     notes.append(f"merged_duplicate_records={collapsed}")
 
     # 5c. scope check: psychiatric facilities with no government operator evidence --------

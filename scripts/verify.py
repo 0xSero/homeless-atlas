@@ -35,7 +35,7 @@ GATES = [
 
 SITE_ROUTES = [
     "index.html", "map.html", "search.html", "states.html", "cities.html", "orgs.html",
-    "people.html", "facilities.html", "laws.html", "budgets.html", "media.html", "docs.html",
+    "people.html", "facilities.html", "laws.html", "budgets.html", "costs.html", "media.html", "docs.html",
     "about.html", "method.html", "sources.html", "report/san-francisco.html",
     "data/search-index.json", "data/map-places.geojson", "data/map-cocs.geojson",
 ]

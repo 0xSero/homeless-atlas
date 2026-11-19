@@ -264,64 +264,80 @@ def step_vsrr_state(conn) -> tuple[int, str]:
 
 # ------------------------------------------------------- 3. VSRR provisional county counts
 def step_vsrr_county(conn, years=("2023", "2024")) -> tuple[int, str]:
+    """NCHS publishes county cells as *12-month-ending* rolling counts, one row per month.
+
+    The annual figure for a county-year is therefore the last month-ending value published for
+    that year (December, or the latest month with an unsuppressed cell), not a sum of months.
+    """
     county_pop = _county_pops(conn)
     known = {r[0] for r in conn.execute("SELECT geoid FROM geo_city WHERE kind='county'")}
     sid = _sid(conn, "vsrr_county")
-    n, counties, unmatched = 0, set(), 0
-    for y in years:
-        rows = _socrata("vsrr_county", {
-            "$select": ("fips,st_abbrev,countyname,year,sum(provisional_drug_overdose::number) AS deaths,"
-                        "count(provisional_drug_overdose) AS months_reported"),
-            "$group": "fips,st_abbrev,countyname,year",
-            "$where": f"year='{y}'", "$limit": 50000})
-        for r in rows:
-            fips = clean(r.get("fips")) or ""
-            fips = fips.zfill(5)
-            deaths = _f(r.get("deaths"))
-            if deaths is None or deaths <= 0:
-                continue
-            if fips not in known:
-                unmatched += 1
-                continue
-            months = to_int(r.get("months_reported"))
-            note = (f"NCHS VSRR provisional county counts summed over {months or 0} month(s) of {y}; "
-                    "counties with 1-9 deaths in a month are suppressed by NCHS, so the total is a "
-                    "floor, not a complete count")
-            n += _metric(conn, "city", fips, "overdose_deaths", deaths, "deaths", y, sid, is_est=1,
-                         note=note)
-            if county_pop.get(fips):
-                n += _metric(conn, "city", fips, "overdose_rate", _rate(deaths, county_pop[fips]),
-                             "per 100k (crude)", y, sid, is_est=1,
-                             note="crude rate from the provisional county count above divided by the "
-                                  "Census 2024 county population in geo_city")
-            counties.add(fips)
-    return n, f"vsrr_county years={','.join(years)} counties={len(counties)} unmatched_fips={unmatched}"
+    rows = _socrata("vsrr_county", {
+        "$select": "fips,st_abbrev,countyname,year,month,monthendingdate,provisional_drug_overdose",
+        "$where": "year in ('" + "','".join(years) + "')",
+        "$order": "fips,year,month", "$limit": 50000})
+    best: dict[tuple[str, int], tuple[int, float, str]] = {}
+    for r in rows:
+        fips = (clean(r.get("fips")) or "").zfill(5)
+        if fips not in known:
+            continue
+        y = to_int(r.get("year"))
+        m = to_int(r.get("month"))
+        v = _f(r.get("provisional_drug_overdose"))
+        if y is None or m is None or v is None:
+            continue
+        k = (fips, y)
+        if k not in best or m > best[k][0]:
+            best[k] = (m, v, clean(r.get("monthendingdate")) or "")
+    n, counties = 0, set()
+    for (fips, y), (m, v, _asof) in sorted(best.items()):
+        note = (f"NCHS VSRR provisional 12-month-ending count for the 12 months ending month {m:02d} "
+                f"of {y} (the last month of {y} with an unsuppressed cell); counties with 1-9 deaths "
+                "in a month are suppressed by NCHS")
+        n += _metric(conn, "city", fips, "overdose_deaths", v, "deaths", y, sid, is_est=1, note=note)
+        if county_pop.get(fips):
+            n += _metric(conn, "city", fips, "overdose_rate", _rate(v, county_pop[fips]),
+                         "per 100k (crude)", y, sid, is_est=1,
+                         note="crude rate from the provisional 12-month-ending county count above "
+                              "divided by the Census 2024 county population in geo_city")
+        counties.add(fips)
+    return n, f"vsrr_county years={','.join(years)} county_cells={len(rows)} counties={len(counties)}"
 
 
 # --------------------------------------------------------------- 4. San Francisco (city DPH)
 def step_sf(conn) -> tuple[int, str]:
+    """SF DPH republishes the same month several times as the OCME revises it: one row per
+    (year, month) per release. Keep the row with the latest `data_as_of` before summing."""
     rows = _socrata("sf_dph", {"$order": "year,month", "$limit": 20000})
     sid = _sid(conn, "sf_dph")
-    per_year: dict[int, float] = {}
+    latest: dict[tuple[int, str], tuple[str, float]] = {}
     for r in rows:
         y = to_int(r.get("year"))
+        mon = clean(r.get("month")) or ""
         v = _f(r.get("total_deaths"))
-        if y is None or v is None:
+        if y is None or not mon or v is None:
             continue
-        per_year[y] = per_year.get(y, 0.0) + v
+        as_of = clean(r.get("data_as_of")) or ""
+        k = (y, mon)
+        if k not in latest or as_of > latest[k][0]:
+            latest[k] = (as_of, v)
+    per_year: dict[int, list[tuple[str, float]]] = {}
+    for (y, mon), (_as_of, v) in latest.items():
+        per_year.setdefault(y, []).append((mon, v))
     pop = conn.execute("SELECT pop FROM geo_city WHERE geoid='0667000'").fetchone()
     pop = pop[0] if pop else None
     n = 0
-    for y, v in sorted(per_year.items()):
-        n += _metric(conn, "city", "0667000", "overdose_deaths", round(v), "deaths", y, sid, is_est=1,
-                     note="San Francisco DPH preliminary unintentional drug overdose deaths; "
-                          "sum of the 12 monthly counts published in the dataset")
+    for y, months in sorted(per_year.items()):
+        total = round(sum(v for _m, v in months))
+        n += _metric(conn, "city", "0667000", "overdose_deaths", total, "deaths", y, sid, is_est=1,
+                     note=f"San Francisco DPH preliminary unintentional drug overdose deaths, sum of the "
+                          f"{len(months)} monthly counts published for {y} (latest revision of each month)")
         if pop:
-            n += _metric(conn, "city", "0667000", "overdose_rate", _rate(v, pop),
+            n += _metric(conn, "city", "0667000", "overdose_rate", _rate(total, pop),
                          "per 100k (crude)", y, sid, is_est=1,
                          note=f"crude rate from the SF DPH monthly counts divided by the Census 2024 "
                               f"city population in geo_city ({pop:,})")
-    return n, f"sf_dph months={len(rows)} years={len(per_year)}"
+    return n, f"sf_dph rows={len(rows)} distinct_months={len(latest)} years={len(per_year)}"
 
 
 # ----------------------------------------------------------- 5. Connecticut towns (city rows)
@@ -376,17 +392,31 @@ NYC_COUNTIES = ("36005", "36047", "36061", "36081", "36085")
 
 
 def step_city_from_county(conn, year: int = 2024) -> tuple[int, str]:
-    """County-level counts -> city rows for city-county equivalents, plus the NYC five-county sum."""
+    """County-level counts -> city rows for city-county equivalents, plus the NYC five-county sum.
+
+    A city that already has a count from a city-level publisher (e.g. San Francisco DPH,
+    CT OCME) is left alone: the county value must not overwrite a more specific one.
+    """
     rows = conn.execute("""SELECT entity_id, value, note, is_est, source_id FROM metric
                            WHERE entity_type='city' AND metric='overdose_deaths' AND year=?
                              AND length(entity_id)=5""", (year,)).fetchall()
     counties = {r[0]: r for r in rows}
+    csrc = conn.execute("""SELECT source_id FROM metric WHERE entity_type='city'
+                          AND metric='overdose_deaths' AND year=? AND length(entity_id)=5
+                          LIMIT 1""", (year,)).fetchone()
+    county_sid = csrc[0] if csrc else None
+
+    def _has_other_source(geoid: str) -> bool:
+        r = conn.execute("""SELECT source_id FROM metric WHERE entity_type='city' AND entity_id=?
+                            AND metric='overdose_deaths' AND year=?""", (geoid, year)).fetchone()
+        return bool(r and r[0] != county_sid)
+
     places: dict[tuple[str, str], list] = {}
     for p in conn.execute("""SELECT geoid, name, state, pop FROM geo_city
                              WHERE kind IN ('place','city') AND pop IS NOT NULL"""):
         places.setdefault((p["state"] or "", name_norm(CITY_SUFFIX.sub("", p["name"] or ""))),
                           []).append(p)
-    n, matched = 0, []
+    n, matched, skipped = 0, [], 0
     for c in conn.execute("""SELECT geoid, name, state, pop FROM geo_city
                              WHERE kind='county' AND pop IS NOT NULL"""):
         crow = counties.get(c["geoid"])
@@ -395,6 +425,9 @@ def step_city_from_county(conn, year: int = 2024) -> tuple[int, str]:
         base = name_norm(COUNTY_SUFFIX.sub("", c["name"] or ""))
         for p in places.get((c["state"] or "", base), []):
             if not p["pop"] or abs(p["pop"] - c["pop"]) > max(1, 0.005 * c["pop"]):
+                continue
+            if _has_other_source(p["geoid"]):
+                skipped += 1
                 continue
             n += _metric(conn, "city", p["geoid"], "overdose_deaths", crow[1], "deaths", year,
                          crow[4], is_est=1,
@@ -417,7 +450,8 @@ def step_city_from_county(conn, year: int = 2024) -> tuple[int, str]:
                          "per 100k (crude)", year, nyc[0][4], is_est=1,
                          note=f"crude rate from the five-county sum divided by the Census 2024 NYC "
                               f"population in geo_city ({pop:,})")
-    return n, f"coextensive_cities={len(matched)} nyc={'yes' if len(nyc) == len(NYC_COUNTIES) else 'no'}"
+    return n, (f"coextensive_cities={len(matched)} skipped_had_city_source={skipped} "
+               f"nyc={'yes' if len(nyc) == len(NYC_COUNTIES) else 'no'}")
 
 
 # ------------------------------- 7. BRFSS state prevalence (mental illness / substance use proxy)
@@ -428,7 +462,7 @@ def step_brfss_state(conn) -> tuple[int, str]:
     only published by SAMHSA, which is blocked from this host (BLOCKERS.md `## health`).
     """
     sid = _sid(conn, "brfss")
-    by_abbr, _, _, _ = _state_maps(conn)
+    _, by_abbr, _, _ = _state_maps(conn)
     n, years, meas = 0, set(), 0
     specs = [("Depression", "form of depression", "depression_prevalence",
               "adults ever told they have a form of depression"),
@@ -439,25 +473,27 @@ def step_brfss_state(conn) -> tuple[int, str]:
             "$where": (f"break_out='Overall' AND topic='{topic}' AND response='Yes' "
                        "AND data_value_type='Crude Prevalence'"),
             "$order": "year", "$limit": 50000})
-        latest = max((to_int(r.get("year")) or 0) for r in rows) if rows else None
-        if not latest:
+        if not rows:
             continue
-        years.add(latest)
+        # newest published year per state (a few states have no cell in the newest release)
+        best: dict[str, tuple[int, float]] = {}
         for r in rows:
-            if to_int(r.get("year")) != latest:
-                continue
             if needle not in (clean(r.get("question")) or "").lower():
                 continue
             abbr = (clean(r.get("locationabbr")) or "").upper()
-            fips = by_abbr.get(abbr)
+            y = to_int(r.get("year"))
             v = _f(r.get("data_value"))
-            if not fips or v is None:
+            if not by_abbr.get(abbr) or y is None or v is None:
                 continue
+            if abbr not in best or y > best[abbr][0]:
+                best[abbr] = (y, v)
+        for abbr, (y, v) in best.items():
+            years.add(y)
             meas += 1
-            n += _metric(conn, "state", fips, metric, v, "percent of adults (crude prevalence)",
-                         latest, sid, is_est=0,
-                         note=f"BRFSS state prevalence: {label}, {latest} (self-reported survey, "
-                              "crude prevalence, overall breakout)")
+            n += _metric(conn, "state", by_abbr[abbr], metric, v,
+                         "percent of adults (crude prevalence)", y, sid, is_est=0,
+                         note=f"BRFSS state prevalence: {label}, {y} (self-reported survey, "
+                              "crude prevalence, overall breakout); newest year this state published")
     return n, f"brfss states={meas} years={sorted(years)}"
 
 

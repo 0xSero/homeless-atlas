@@ -36,6 +36,7 @@ import sqlite3
 import sys
 import time
 import urllib.parse
+from pathlib import Path
 
 from ingest.common import (clean, db, fetch, main, name_norm, now, save_raw,
                            selftest_report, source_id_for, to_int, upsert)
@@ -43,6 +44,9 @@ from ingest.common import (clean, db, fetch, main, name_norm, now, save_raw,
 DOMAIN = "nonprofit"
 
 BMF_URLS = [f"https://www.irs.gov/pub/irs-soi/eo{i}.csv" for i in (1, 2, 3, 4)]
+RAW_DIR = Path(__file__).resolve().parent.parent.parent / "data" / "raw" / "nonprofit"
+PAGES_JOURNAL = RAW_DIR / "pages.jsonl"      # fetched+parsed filing pages (no DB needed)
+PAGES_FLUSHED = RAW_DIR / "pages_flushed.txt"  # eins whose journal row reached the DB
 PP_BASE = "https://projects.propublica.org/nonprofits"
 SEARCH_URL = PP_BASE + "/api/v2/search.json"
 ORG_URL = PP_BASE + "/organizations/{ein}"
@@ -230,6 +234,10 @@ def _is_homeless_org(name, ntee) -> bool:
 # tables + progress
 # --------------------------------------------------------------------------
 def _ensure_tables(conn):
+    try:
+        conn.execute("PRAGMA busy_timeout=90000")
+    except Exception:
+        pass
     conn.executescript(
         """
         CREATE TABLE IF NOT EXISTS nonprofit_candidate (
@@ -500,7 +508,11 @@ def phase_orgs(conn, cfg):
            FROM nonprofit_candidate c"""
     ).fetchall()
     n_new = 0
+    skipped = 0
     for c in rows:
+        if c["has_org"]:
+            skipped += 1
+            continue
         ntee = c["ntee"]
         row = {
             "name": c["name"], "name_norm": name_norm(c["name"]), "ein": c["ein"],
@@ -638,20 +650,26 @@ def _parse_filing_page(blob):
     return out
 
 
-def _write_page(conn, cand, parsed, sid, keep_years):
-    """All DB writes for one filing page (retried as a unit on lock contention)."""
-    ein = cand["ein"]
+def _write_page(conn, rec, keep_years):
+    """All DB writes for one journaled filing page."""
+    cand = rec["cand"]
+    parsed = rec["parsed"]
+    ein = rec["ein"]
+    url = rec["url"]
+    sid = _sid(conn, url, None, title=f"Form 990 filing summary for EIN {ein}",
+               publisher="ProPublica Nonprofit Explorer / IRS",
+               license="public data (IRS Form 990)")
     m = parsed["meta"]
-    name = m.get("name") or cand["name"]
+    name = m.get("name") or cand.get("name")
     org_row = {
         "name": name, "name_norm": name_norm(name), "ein": ein, "org_type": "nonprofit",
-        "address1": m.get("address1") or cand["address1"],
-        "city": m.get("city") or cand["city"], "state": m.get("state") or cand["state"],
-        "zip": m.get("zip") or cand["zip"], "ntee": m.get("ntee") or cand["ntee"],
-        "status": "active" if (cand["bmf_status"] or "") == "01" else None,
+        "address1": m.get("address1") or cand.get("address1"),
+        "city": m.get("city") or cand.get("city"), "state": m.get("state") or cand.get("state"),
+        "zip": m.get("zip") or cand.get("zip"), "ntee": m.get("ntee") or cand.get("ntee"),
+        "status": "active" if (cand.get("bmf_status") or "") == "01" else None,
         "source_id": sid,
     }
-    filings = [f for f in parsed["filings"] if f.get("revenue") is not None]
+    filings = [f for f in parsed.get("filings") or [] if f.get("revenue") is not None]
     if filings:
         lat = max(filings, key=lambda f: f["year"])
         org_row["revenue"] = lat.get("revenue")
@@ -661,74 +679,140 @@ def _write_page(conn, cand, parsed, sid, keep_years):
     org_id, _ = _merge_org(conn, org_row)
     canonical_name = conn.execute("SELECT name FROM org WHERE id=?", (org_id,)).fetchone()["name"]
 
-    years_with_people = sorted({p["year"] for p in parsed["people"]}, reverse=True)[:keep_years]
+    people = parsed.get("people") or []
+    years_with_people = sorted({p["year"] for p in people}, reverse=True)[:keep_years]
     keepset = set(years_with_people)
     added = 0
-    for p in parsed["people"]:
+    for p in people:
         if p["year"] not in keepset:
             continue
         added += _add_person(conn, org_id, canonical_name, p["person"], p["title"],
                              p["comp"], p["year"], role_class(p["title"]), sid)
-    if not parsed["filings"] and not parsed["people"]:
-        note, empty = "no-form-990-data (pdf-only or no filings)", True
+    if not filings and not people:
+        note = "no-form-990-data (pdf-only or no filings)"
     else:
-        note, empty = f"filings={len(parsed['filings'])} people={len(parsed['people'])}", False
+        note = f"filings={len(filings)} people={len(people)}"
     conn.execute(
         "UPDATE nonprofit_candidate SET page_done=1, page_ts=?, page_note=? WHERE ein=?",
         (now(), note[:200], ein),
     )
-    return added, empty
+    return added, note
+
+
+def _journal_eins() -> set:
+    seen = set()
+    if PAGES_JOURNAL.exists():
+        with PAGES_JOURNAL.open() as f:
+            for line in f:
+                try:
+                    seen.add(json.loads(line)["ein"])
+                except Exception:
+                    continue
+    return seen
+
+
+def _flushed_eins() -> set:
+    if not PAGES_FLUSHED.exists():
+        return set()
+    return {ln.strip() for ln in PAGES_FLUSHED.read_text().splitlines() if ln.strip()}
+
+
+def _read_journal(pending: set):
+    out = []
+    if not PAGES_JOURNAL.exists():
+        return out
+    with PAGES_JOURNAL.open() as f:
+        for line in f:
+            try:
+                rec = json.loads(line)
+            except Exception:
+                continue
+            if rec.get("ein") in pending:
+                out.append(rec)
+    return out
+
+
+def flush_pages(conn, cfg, keep_years=None):
+    """Move journaled pages into org/org_person. Safe to call repeatedly."""
+    keep_years = int(keep_years or cfg.get("person_years") or
+                     os.environ.get("NONPROFIT_PERSON_YEARS", "3"))
+    flushed = _flushed_eins()
+    pending = _journal_eins() - flushed
+    if not pending:
+        return {"pages": 0, "persons": 0, "errors": 0}
+    done = persons = errors = 0
+    RAW_DIR.mkdir(parents=True, exist_ok=True)
+    with PAGES_FLUSHED.open("a") as fok:
+        for rec in _read_journal(pending):
+            try:
+                added, note = _retry(_write_page, conn, rec, keep_years)
+                _commit(conn)
+            except Exception as e:
+                errors += 1
+                print(f"[{DOMAIN}] flush failed for {rec.get('ein')}: {str(e)[:160]}", flush=True)
+                if errors >= 3:
+                    break
+                continue
+            fok.write(rec["ein"] + "\n")
+            fok.flush()
+            persons += added
+            done += 1
+    return {"pages": done, "persons": persons, "errors": errors}
 
 
 def phase_pages(conn, cfg):
+    """Fetch + parse filing pages into the local journal (no DB locks needed)."""
     max_pages = int(cfg.get("max_pages", os.environ.get("NONPROFIT_MAX_PAGES", "2000")))
     budget = float(cfg.get("budget_seconds", os.environ.get("NONPROFIT_BUDGET", "1700")))
-    keep_years = int(cfg.get("person_years", os.environ.get("NONPROFIT_PERSON_YEARS", "3")))
     t0 = time.time()
-    done = persons = 0
-    empty = 0
-    errors = 0
+    have = _journal_eins()
     rows = conn.execute(
         """SELECT * FROM nonprofit_candidate WHERE page_done=0
            ORDER BY COALESCE(bmf_income,0) DESC, ein"""
     ).fetchall()
-    for c in rows:
-        if done >= max_pages or (time.time() - t0) > budget:
-            break
-        ein = c["ein"]
-        url = ORG_URL.format(ein=ein)
-        try:
-            blob = fetch(url, domain=DOMAIN)
-        except Exception as e:
-            note = str(e)[:200]
-            _retry(conn.execute,
-                   "UPDATE nonprofit_candidate SET page_done=2, page_ts=?, page_note=? WHERE ein=?",
-                   (now(), note, ein))
-            _commit(conn)
-            errors += 1
-            continue
-        try:
-            parsed = _parse_filing_page(blob)
-        except Exception as e:
-            _retry(conn.execute,
-                   "UPDATE nonprofit_candidate SET page_done=3, page_ts=?, page_note=? WHERE ein=?",
-                   (now(), f"parse {e}"[:200], ein))
-            _commit(conn)
-            errors += 1
-            continue
-        sid = _sid(conn, url, blob, title=f"Form 990 filing summary for EIN {ein}",
-                   publisher="ProPublica Nonprofit Explorer / IRS",
-                   license="public data (IRS Form 990)")
-        added, was_empty = _retry(_write_page, conn, c, parsed, sid, keep_years)
-        _commit(conn)
-        persons += added
-        empty += 1 if was_empty else 0
-        done += 1
-        if done % 25 == 0:
-            print(f"[{DOMAIN}] pages={done} persons={persons} "
-                  f"({round(time.time()-t0)}s)", flush=True)
-    _commit(conn)
-    return {"pages": done, "persons": persons, "empty": empty, "errors": errors,
+    fetched = empty = errors = 0
+    RAW_DIR.mkdir(parents=True, exist_ok=True)
+    with PAGES_JOURNAL.open("a") as f:
+        for c in rows:
+            if fetched >= max_pages or (time.time() - t0) > budget:
+                break
+            ein = c["ein"]
+            if ein in have:
+                continue
+            url = ORG_URL.format(ein=ein)
+            try:
+                blob = fetch(url, domain=DOMAIN)
+            except Exception as e:
+                errors += 1
+                f.write(json.dumps({"ein": ein, "url": url, "error": str(e)[:200],
+                                    "cand": {"name": c["name"]}}) + "\n")
+                f.flush()
+                have.add(ein)
+                continue
+            try:
+                parsed = _parse_filing_page(blob)
+            except Exception as e:
+                errors += 1
+                f.write(json.dumps({"ein": ein, "url": url, "error": f"parse {e}"[:200],
+                                    "cand": {"name": c["name"]}}) + "\n")
+                f.flush()
+                have.add(ein)
+                continue
+            if not parsed["filings"] and not parsed["people"]:
+                empty += 1
+            f.write(json.dumps({
+                "ein": ein, "url": url, "parsed": parsed,
+                "cand": {"name": c["name"], "city": c["city"], "state": c["state"],
+                         "zip": c["zip"], "address1": c["address1"], "ntee": c["ntee"],
+                         "bmf_status": c["bmf_status"]},
+            }, default=str) + "\n")
+            f.flush()
+            have.add(ein)
+            fetched += 1
+            if fetched % 50 == 0:
+                print(f"[{DOMAIN}] fetched={fetched} empty={empty} "
+                      f"err={errors} ({round(time.time()-t0)}s)", flush=True)
+    return {"fetched": fetched, "empty": empty, "errors": errors,
             "seconds": round(time.time() - t0, 1)}
 
 
@@ -795,20 +879,35 @@ def phase_wikidata(conn, cfg):
 # --------------------------------------------------------------------------
 def run(conn, cfg):
     cfg = cfg or {}
-    cfg.setdefault("domain", DOMAIN)
     t0 = time.time()
     _ensure_tables(conn)
     _commit(conn)
+    warned = []
 
-    n_bmf = phase_bmf(conn, cfg)
-    _commit(conn)
-    n_search, s_pages = phase_search(conn, cfg)
-    _commit(conn)
-    n_orgs = phase_orgs(conn, cfg)
-    _commit(conn)
+    def _safe(label, fn, *a):
+        try:
+            return fn(*a)
+        except sqlite3.OperationalError as e:
+            warned.append(f"{label}:{str(e)[:80]}")
+            print(f"[{DOMAIN}] {label} deferred (db locked): {str(e)[:120]}", flush=True)
+            return None
+
+    # 1. drain anything already fetched (journal -> DB)
+    f0 = _safe("flush_before", flush_pages, conn, cfg) or {"pages": 0, "persons": 0, "errors": 0}
+
+    # 2. make sure the org universe exists (skips work that is already recorded)
+    n_bmf = _safe("bmf", phase_bmf, conn, cfg) or 0
+    sres = _safe("search", phase_search, conn, cfg) or (0, 0)
+    n_search, s_pages = sres
+    n_orgs = _safe("orgs", phase_orgs, conn, cfg) or 0
+
+    # 3. fetch + parse filing pages (network only, no DB writes -> lock free)
     page_stats = phase_pages(conn, cfg)
-    _commit(conn)
-    n_wiki = phase_wikidata(conn, cfg)
+
+    # 4. flush the journal into org / org_person
+    f1 = _safe("flush_after", flush_pages, conn, cfg) or {"pages": 0, "persons": 0, "errors": 0}
+
+    n_wiki = _safe("wikidata", phase_wikidata, conn, cfg) or 0
     _commit(conn)
 
     remaining = conn.execute(
@@ -817,15 +916,19 @@ def run(conn, cfg):
     with_fin = conn.execute(
         "SELECT COUNT(*) FROM org WHERE org_type='nonprofit' AND revenue IS NOT NULL").fetchone()[0]
     persons = conn.execute("SELECT COUNT(*) FROM org_person").fetchone()[0]
+    journal_pending = len(_journal_eins() - _flushed_eins())
     notes = (f"bmf_candidates={n_bmf} search_orgs={n_search} search_pages={s_pages} "
-             f"pages={page_stats['pages']} persons+={page_stats['persons']} "
+             f"pages_fetched={page_stats['fetched']} pages_flushed={f0['pages'] + f1['pages']} "
+             f"persons+={f0['persons'] + f1['persons']} "
              f"pdf_only={page_stats['empty']} page_err={page_stats['errors']} "
-             f"wiki_filled={n_wiki} queued_pages={remaining} "
+             f"wiki_filled={n_wiki} queued_pages={remaining} journal_pending={journal_pending} "
              f"org_nonprofit_rows={orgs} orgs_with_financials={with_fin} org_person={persons} "
              f"seconds={round(time.time()-t0,1)}")
+    if warned:
+        notes += " warnings=" + "|".join(warned)
     print(f"[{DOMAIN}] {notes}")
     return {
-        "rows": page_stats["persons"] + page_stats["pages"],
+        "rows": f0["persons"] + f1["persons"] + f0["pages"] + f1["pages"],
         "notes": notes,
         "sources": [(u, "public domain (US federal government)") for u in BMF_URLS]
                    + [(SEARCH_URL, "public data (IRS BMF + Form 990)"),
