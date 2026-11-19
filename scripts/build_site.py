@@ -1473,7 +1473,8 @@ def page_sources(d, manifest_total):
     for s in d["sources"][:4000]:
         u = s.get("url") or ""
         rows.append([esc(s.get("domain") or ""), "", s.get("domain") or "",
-                     f'<a href="{esc(u)}" rel="noopener">{esc((s.get("title") or u)[:90])}</a>', "", s.get("title") or u,
+                     (f'<a href="{esc(u)}" rel="noopener">{esc((s.get("title") or u)[:90])}</a>'
+                      if u.startswith("http") else esc((s.get("title") or u)[:90])), "", s.get("title") or u,
                      esc(s.get("publisher") or ""), "", s.get("publisher") or "",
                      esc(s.get("license") or ""), "", s.get("license") or "",
                      esc((s.get("retrieved_at") or "")[:10]), "", s.get("retrieved_at") or ""])

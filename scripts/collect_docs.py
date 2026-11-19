@@ -89,7 +89,8 @@ def main():
             print(f"query failed: {query}: {e}", flush=True)
             continue
         results = (d.get("web") or {}).get("results") or []
-        src = source_id_for(c, f"brave:{query}", DOMAIN,
+        api_url = f"{BRAVE}?q={urllib.parse.quote(query)}&count=20&country=us"
+        src = source_id_for(c, api_url, DOMAIN,
                             title=f"Brave web search: {query}", publisher="Brave Search API",
                             license="search index; documents belong to their publishers")
         c.commit()
