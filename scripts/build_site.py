@@ -56,6 +56,19 @@ def money(v, dash="—"):
             return f"${v/div:,.2f}{suf}"
     return f"${v:,.0f}"
 
+def cite(source_id, dash="—"):
+    """Inline link to the source row a figure came from."""
+    if source_id is None:
+        return dash
+    r = one(CONN, "SELECT url, publisher, title FROM source WHERE id=?", (source_id,), {}) or {}
+    url = r.get("url") or ""
+    if not url.startswith("http"):
+        return dash
+    label = (r.get("publisher") or r.get("title") or "source")
+    label = str(label).split("—")[0].strip()[:40]
+    return f'<a href="{esc(url)}" rel="noopener">{esc(label)}</a>'
+
+
 def yr(v, dash="—"):
     """Years print as 2025, never 2,025."""
     if v is None or v == "":
@@ -106,7 +119,7 @@ NAV = [
     ("/index.html", "Overview"), ("/map.html", "Map"), ("/search.html", "Search"),
     ("/states.html", "States"), ("/cities.html", "Cities"), ("/orgs.html", "Organizations"),
     ("/people.html", "People"), ("/facilities.html", "Institutions"), ("/budgets.html", "Money"),
-    ("/rankings.html", "Rankings"), ("/costs.html", "Costs"), ("/laws.html", "Laws"), ("/media.html", "Media"), ("/docs.html", "Docs"),
+    ("/country/us.html", "Countries"), ("/rankings.html", "Rankings"), ("/costs.html", "Costs"), ("/laws.html", "Laws"), ("/media.html", "Media"), ("/docs.html", "Docs"),
 ]
 
 # ---------------------------------------------------------------- shell
@@ -1116,6 +1129,71 @@ def page_rankings(d, manifest_total):
     return shell("", "Rankings", "rankings.html", body, manifest_total=manifest_total)
 
 
+COUNTRIES = [("us", "United States", "US", "point-in-time count"),
+             ("uk", "United Kingdom", "GB", "rough sleeping snapshot"),
+             ("canada", "Canada", "CA", "point-in-time count"),
+             ("australia", "Australia", "AU", "census estimate")]
+
+
+def page_country(country, manifest_total):
+    """A country page driven entirely by whatever metrics that country's ingestor produced."""
+    etype, name, code, label = country
+    nation = q(CONN, """SELECT metric, value, unit, year, is_est, note, source_id FROM metric
+                        WHERE entity_type=? ORDER BY year DESC, metric""", (etype,))
+    sub_types = {"uk": ("uk_la",), "canada": ("ca_city",), "australia": ("au_state", "au_lga")}.get(etype, ())
+    subs = []
+    for st in (etype,):
+        pass
+    for st in sub_types:
+        subs += q(CONN, """SELECT entity_type, entity_id, metric, value, unit, year, is_est, source_id
+                           FROM metric WHERE entity_type=? AND value IS NOT NULL
+                           ORDER BY year DESC, value DESC LIMIT 400""", (st,))
+    if not nation and not subs:
+        body = banner(name, f"{name} — not yet ingested",
+                      "Nothing is shown rather than an empty or estimated figure. The queue item for this "
+                      "country is open; this page fills in when its ingestor lands.",
+                      crumbs=f'<a href="/index.html">Atlas</a> / {name}', small=True) + \
+            '<div class="wrap wrap-narrow" style="margin-top:20px"><p class="dim">' \
+            'See <a href="/method.html">Method</a> for how the US figures are produced, and ' \
+            '<a href="/sources.html">Sources</a> for the datasets already in use.</p></div>'
+        return shell("../", name, "", body, manifest_total=manifest_total)
+
+    kpis = ""
+    if nation:
+        latest = {}
+        for r in nation:
+            latest.setdefault(r["metric"], r)
+        top = [("rough_sleeping", "people rough sleeping"), ("pit_total", "people homeless"),
+               ("census_homeless_estimate", "people estimated homeless"),
+               ("statutory_homeless_households", "households owed a duty"),
+               ("shs_clients", "specialist homelessness clients")]
+        for key, lbl in top:
+            if key in latest:
+                kpis += kpi(num(latest[key]["value"]) + ("†" if latest[key]["is_est"] else ""), lbl,
+                            f"{latest[key]['year']} · {label}", "")
+    nrow = [[esc((r["metric"] or "").replace("_", " ")), "", r["metric"] or "",
+             num(r["value"]) + ("†" if r["is_est"] else ""), "r", r["value"] or 0,
+             esc(r.get("unit") or ""), "", r["unit"] or "", yr(r["year"]), "", r["year"] or 0,
+             cite(r.get("source_id"), "—"), "", ""] for r in nation[:120]]
+    srow = [[esc(r["entity_type"]), "", r["entity_type"], esc(str(r["entity_id"])), "", str(r["entity_id"]),
+             esc((r["metric"] or "").replace("_", " ")), "", r["metric"] or "",
+             num(r["value"]) + ("†" if r["is_est"] else ""), "r", r["value"] or 0,
+             yr(r["year"]), "", r["year"] or 0] for r in subs[:400]]
+    body = banner(name, f"{name}", f"Every figure on this page comes from {name}'s own statistics agency or "
+                  f"funding department, retrieved by an ingestor and cited per row.",
+                  crumbs=f'<a href="/index.html">Atlas</a> / {name}', small=True) + f"""
+<div class="wrap">
+  <div class="kpis">{kpis or '<div class="kpi"><div class="v">—</div><div class="l">no national figure yet</div></div>'}</div>
+  <h2>National series</h2>
+  {table([("Measure",""),("Value","r"),("Unit",""),("Year",""),("Source","")], nrow,
+         note="† derived. National series are as published by the country's statistics agency or funding department.")}
+  <h2>Subnational detail</h2>
+  {table([("Geography level",""),("Area",""),("Measure",""),("Value","r"),("Year","r")], srow,
+         note="Local-authority, community or state rows, exactly as the source publishes them.")}
+</div>"""
+    return shell("../", name, "", body, manifest_total=manifest_total)
+
+
 def page_costs(d, manifest_total):
     """What institutional and housing capacity actually costs, every figure sourced or marked derived."""
     facs = d["facilities"]
@@ -1733,6 +1811,8 @@ def main():
     write("people.html", page_people(d, total))
     write("facilities.html", page_facilities(d, total))
     write("budgets.html", page_budgets(d, total))
+    for _c in COUNTRIES:
+        write(f"country/{_c[0]}.html", page_country(_c, total))
     write("rankings.html", page_rankings(d, total))
     write("costs.html", page_costs(d, total))
     write("laws.html", page_laws(d, total))

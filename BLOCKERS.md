@@ -145,3 +145,33 @@ service or CSV) that shows the homelessness department/programme line.
 "housing and community development" expenditure, but keyless calls now return the *Missing Key*
 page (see the `CENSUS_API_KEY` entry above); it is also a housing function, not homelessness, so
 it was not used as a state-budget proxy.
+
+## uk
+
+**Not blocked, but one host is unusable: `www.nihe.gov.uk` answers `403.2 Forbidden` (15 bytes) to
+every path, with a plain UA and with a full browser UA/header set, from this host.** It is the
+Northern Ireland Housing Executive, the publisher of the *Northern Ireland Homelessness Bulletin*.
+There is **no API key and no signup** involved — it is a WAF/IP block, so nothing can be
+"requested"; the only unblock is allowlisting this host's egress IP or fetching the bulletin
+workbook by hand into `data/raw/uk/`.
+
+Worked around, not lost: the same bulletin is published by the Northern Ireland **Department for
+Communities**, whose tables XLSX is reachable — with two quirks that had to be reverse-engineered:
+
+| URL | plain request | browser UA + `Accept: */*` | + `Accept-Encoding: gzip, deflate` |
+|---|---|---|---|
+| `https://www.nihe.gov.uk/` | 403 | 403 | 403 |
+| `https://www.nihe.gov.uk/Working-With-Us/Research/Homelessness-statistics` | 403 | 403 | 403 |
+| `https://www.communities-ni.gov.uk/topics/housing-statistics` | 403 | 403 | **200** |
+| `https://www.communities-ni.gov.uk/system/files/2026-06/ni-homelessness-bulletin-oct-mar-2026-tables.xlsx` | 403 | 403 | **200** (1,507,427 B) |
+
+Note that adding `br` to `Accept-Encoding` puts `communities-ni.gov.uk` **back** to 403, so the
+ingestor sends exactly `gzip, deflate`. Data captured: NI presentations, acceptances and temporary
+accommodation placements by the 11 local government districts plus the NI total, October 2025 –
+March 2026.
+
+Also worth recording for the next UK worker: **there is no keyless JSON API on StatsWales any
+more** (`statswales.gov.wales/api/v1/...` was retired with the move to `stats.gov.wales`), and
+`data.nisra.gov.uk` is a PxStat instance whose REST paths (`/api/v1/...`) all answer 404, so
+neither is usable for a scripted pull; StatsWales CSVs come from a form POST instead (see
+`research/uk.md`).
