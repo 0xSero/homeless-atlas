@@ -1,24 +1,34 @@
 """budgets — what each level of government spends on homelessness.
 
-Federal level
-  * HUD McKinney-Vento program obligations per state, from the USASpending.gov
-    `spending_by_geography` API (CFDA 14.231 ESG, 14.267 CoC, 14.276 YHDP,
-    14.241 HOPWA), scope = place_of_performance, geo_layer = state, one call
-    per program per fiscal year.
-  * the same, at geo_layer = county, attributed to the CoC that covers the
-    county (county name -> geo_coc.name / geo_coc.cities, same state only).
-  * derived metrics: obligations per resident and per person counted homeless
-    (HUD PIT, latest year per state) with is_est=1 and the formula in `note`.
+Four layers, every number traceable to a cached response under `data/raw/budgets/`:
 
-City level
-  * city open-data budget/appropriation datasets (Socrata SoQL) for the city
-    homelessness department / program line. One row per dataset line in the
-    private table budgets_city_line, one rolled-up metric per city-year.
-  * derived: per resident and per homeless person, is_est=1 + formula.
+1. **Federal dollars per state, two independent ways**
+   a. `award` — the rows the `usaspending` domain already ingested from the
+      USASpending.gov v2 search API for HUD's homelessness Assistance Listings
+      (14.231 ESG, 14.235 SHP, 14.267 CoC, 14.276 YHDP, 14.241 HOPWA) are
+      aggregated by (place_state, fiscal year, program).
+   b. USASpending `/api/v2/search/spending_by_geography/`, scope
+      place_of_performance, geo_layer=state, one call per program per FY — the
+      cross-check on (a) for the two most recent complete fiscal years.
 
-Every number here comes from a response cached under data/raw/budgets/.
-Nothing is typed in by hand: the city configs name a dataset, a label filter and
-an amount column, and the amounts are whatever the API returns.
+2. **Federal dollars per CoC**
+   a. county-level spending_by_geography rows are attributed to the CoC whose
+      name/city list contains the county name (same state, unique match only);
+   b. `award` rows are attributed to a CoC when the recipient name contains the
+      name of a city that `geo_city` assigns to that CoC.
+   Both are modelled (`is_est=1`) and both carry the formula in `note`.
+
+3. **State's own money** — appropriation rows in a state budget dataset whose
+   programme/unit/sub-programme name contains "homeless" (Maryland operating
+   budget now; the loader is generic, see STATE_OWN).
+
+4. **City / county budgets** — each jurisdiction's own open-data budget or
+   expenditure table, filtered to the published lines that name homelessness
+   (see CITY_BUDGETS). One row per published line in `budgets_city_line`, one
+   rolled-up metric per jurisdiction-year.
+
+Derived metrics (`is_est=1`, formula in `note`): spend per resident and spend
+per person counted homeless (HUD PIT, latest year for that CoC/state).
 
 Interface: `def run(conn, cfg) -> dict`
 """
@@ -27,7 +37,9 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import sqlite3
 import sys
+import time
 import urllib.parse
 
 from ingest.common import (
@@ -42,169 +54,170 @@ from ingest.common import (
 
 DOMAIN = "budgets"
 
-USASPENDING_GEO = "https://api.usaspending.gov/api/v2/search/spending_by_geography/"
+USA_GEO = "https://api.usaspending.gov/api/v2/search/spending_by_geography/"
+USA_AWARD = "https://api.usaspending.gov/api/v2/search/spending_by_award/"
+PUB_TREASURY = "U.S. Department of the Treasury, Bureau of the Fiscal Service (USASpending.gov)"
+LIC_FED = "US Government work, public domain"
 
-# CFDA -> (metric stem, program name). Program numbers as published in the
-# USASpending program_numbers filter (they are the CFDA numbers).
-PROGRAMS = {
-    "14.231": ("hud_esg", "Emergency Solutions Grant (ESG)"),
-    "14.267": ("hud_coc", "Continuum of Care (CoC)"),
-    "14.276": ("hud_yhdp", "Youth Homelessness Demonstration Program (YHDP)"),
-    "14.241": ("hud_hopwa", "Housing Opportunities for Persons with AIDS (HOPWA)"),
+# Assistance Listing (CFDA) -> (metric stem, program name)
+AWARD_PROGRAMS = {
+    "14.231": ("esg", "Emergency Solutions Grant (ESG)"),
+    "14.235": ("shp", "Supportive Housing Program (legacy CoC program, pre-2012)"),
+    "14.267": ("coc", "Continuum of Care (CoC)"),
+    "14.276": ("yhdp", "Youth Homelessness Demonstration Program (YHDP)"),
+    "14.241": ("hopwa", "Housing Opportunities for Persons With AIDS (HOPWA)"),
 }
 
-# federal fiscal years to pull: (label used in metric.year, start, end)
+# fiscal years pulled from the geography API (start, end)
 FYS = [
     (2024, "2023-10-01", "2024-09-30"),
     (2023, "2022-10-01", "2023-09-30"),
 ]
 
 # ---------------------------------------------------------------------------
-# City homelessness budget lines, from each city's own open-data budget table.
-#   host, dataset id, label filter (SoQL $where), amount column, metric basis,
-#   human page, licence note.
-# The label filters are keyword matches on the published line-item labels, so
-# they are reproducible from the same dataset by anyone.
+# Jurisdiction budgets from each government's own open-data budget table.
+#   where      SoQL filter over the published line labels/columns
+#   amount     money column in that table
+#   group      columns that identify a line (kept in budgets_city_line)
+#   year       fiscal year written to metric.year (or fy_col = derive it)
+#   basis      plain-English description of what the filter selects
 # ---------------------------------------------------------------------------
 CITY_BUDGETS = [
     dict(
-        city="San Francisco", state="CA", host="data.sfgov.org", ds="xdgd-c79v",
-        where="fiscal_year='2025' AND revenue_or_spending='Spending' "
-              "AND lower(department) like '%homelessness%'",
-        amount_col="budget", group_cols=["department"], fy="2025",
-        basis="adopted budget, all funds, department line (sum of object-level rows)",
-        page="https://data.sfgov.org/d/xdgd-c79v",
+        city="San Francisco", state="CA", kind="place", host="data.sfgov.org", ds="xdgd-c79v",
+        where="fiscal_year='2025' AND revenue_or_spending='Spending' AND lower(department) like '%homeless%'",
+        amount="budget", group=["department"], year=2025,
+        basis="adopted budget, all funds: every department line whose name contains 'Homeless'",
     ),
     dict(
-        city="New York", state="NY", host="data.cityofnewyork.us", ds="mwzb-yiwb",
+        city="New York", state="NY", kind="place", host="data.cityofnewyork.us", ds="mwzb-yiwb",
         where="fiscal_year='2025' AND agency_name='DEPARTMENT OF HOMELESS SERVICES'",
-        amount_col="adopted_budget_amount", group_cols=["publication_date"], fy="2025",
-        dedupe_newest="publication_date",
-        basis="adopted expense budget for the Department of Homeless Services (latest publication for the FY)",
-        page="https://data.cityofnewyork.us/d/mwzb-yiwb",
+        amount="adopted_budget_amount", group=["unit_appropriation_name"], year=2025,
+        dedupe_col="publication_date",
+        basis="adopted expense budget of the Department of Homeless Services, newest publication for the FY",
     ),
     dict(
-        city="Los Angeles", state="CA", host="data.lacity.org", ds="98ve-cuf5",
-        where="fiscal_year='2025'",
-        amount_col="pstng_am", group_cols=[], fy="2025",
-        basis="actual payments recorded in the city's Homelessness Expense Tracker (expenditure, not appropriation)",
+        city="Los Angeles", state="CA", kind="place", host="data.lacity.org", ds="98ve-cuf5",
+        where="fiscal_year='2025'", amount="pstng_am", group=["dept_nm"], year=2025,
         metric="city_homelessness_expenditure",
-        page="https://data.lacity.org/d/98ve-cuf5",
+        basis="payments posted in the city's Homelessness Expense Tracker (expenditure actually recorded, not appropriation)",
     ),
     dict(
-        city="Seattle", state="WA", host="data.seattle.gov", ds="8u2j-imqx",
+        city="Seattle", state="WA", kind="place", host="data.seattle.gov", ds="8u2j-imqx",
         where="fiscal_year='2025' AND lower(program) like '%homeless%'",
-        amount_col="approved_amount", group_cols=["program"], fy="2025",
-        basis="approved operating budget of Human Services Department programs whose name contains 'homeless'",
-        page="https://data.seattle.gov/d/8u2j-imqx",
+        amount="approved_amount", group=["department", "program"], year=2025,
+        basis="approved operating budget of city programmes whose name contains 'Homeless'",
     ),
     dict(
-        city="Chicago", state="IL", host="data.cityofchicago.org", ds="x394-e874",
-        where="lower(appropriation_account_description) like '%homeless%'", fy="2024",
-        amount_col="_ordinance_amount_", group_cols=["department_description", "appropriation_account_description"],
-        basis="2024 budget ordinance appropriations whose account description contains 'homeless' (Department of Family and Support Services)",
-        page="https://data.cityofchicago.org/d/x394-e874",
+        city="Chicago", state="IL", kind="place", host="data.cityofchicago.org", ds="x394-e874",
+        where="lower(appropriation_account_description) like '%homeless%'",
+        amount="_ordinance_amount_", group=["department_description", "appropriation_account_description"],
+        basis="budget-ordinance appropriations whose appropriation account description contains 'Homeless'",
     ),
     dict(
-        city="Austin", state="TX", host="data.austintexas.gov", ds="yeeq-kk6v",
-        where="fy='2025' AND lower(dept_nm) like '%homeless%'",
-        amount_col="bud", group_cols=["dept_nm", "div_nm"], fy="2025",
-        basis="FY2025 budget for the Homeless Strategies and Operations department",
-        page="https://data.austintexas.gov/d/yeeq-kk6v",
+        city="Austin", state="TX", kind="place", host="data.austintexas.gov", ds="yeeq-kk6v",
+        where="fy='2025' AND lower(dept_nm) like '%homeless%'", amount="bud", group=["dept_nm", "div_nm"],
+        year=2025,
+        basis="FY2025 adopted budget of every department whose name contains 'Homeless'",
     ),
     dict(
-        city="San Mateo County", state="CA", host="data.smcgov.org", ds="8w4u-sjiw",
-        where="1=1", amount_col="appropriations", group_cols=["orginization_description"], fy="2014",
-        entity_type="county", metric="county_homelessness_budget",
-        basis="county budget items the county tagged as related to homelessness (FY2013/14), summed by organisation",
-        page="https://data.smcgov.org/d/8w4u-sjiw",
+        city="Mesa", state="AZ", kind="place", host="citydata.mesaaz.gov", ds="29q3-4ewh",
+        where="lower(core_business_process_name) like '%homeless%' OR lower(activity_name) like '%homeless%'",
+        amount="adopted_budget", group=["department_name", "core_business_process_name", "activity_name"],
+        fy_col="fiscal_year", nonzero=True,
+        basis="adopted budget of budget lines whose core business process or activity name contains 'Homeless' (latest FY with a non-zero amount)",
+    ),
+    dict(
+        city="Richmond", state="VA", kind="place", host="data.richmondgov.com", ds="7nru-hsrx",
+        where="lower(service_descr) like '%homeless%'", amount="fy16_adopted",
+        group=["agency_descr", "service_descr"], year=2016,
+        basis="FY2016 adopted General Fund budget lines whose service description contains 'Homeless'",
+    ),
+    dict(
+        city="San Mateo County", state="CA", kind="county", host="data.smcgov.org", ds="8w4u-sjiw",
+        where="1=1", amount="appropriations", group=["orginization_description", "account_description"],
+        year=2014,
+        basis="every line of the county's published list of FY2013/14 budget items related to homelessness",
+    ),
+    dict(
+        city="Montgomery County", state="MD", kind="county", host="data.montgomerycountymd.gov", ds="e543-hana",
+        where="lower(account_name) like '%homeless%'", amount="approved_amount",
+        group=["department", "program", "account_name"], fy_col="fiscal_year",
+        basis="approved operating-budget lines whose account name contains 'Homeless' (latest FY present in the dataset)",
     ),
 ]
 
-# CoC money attribution: county geo_layer rows are matched to a CoC by county
-# name appearing in the CoC name or the CoC city list, in the same state.
+# State's own appropriations, from the state's budget dataset.
+STATE_OWN = [
+    dict(
+        state="MD", host="opendata.maryland.gov", ds="yu65-jmmv",
+        where=("lower(program_name) like '%homeless%' OR lower(unit_name) like '%homeless%' "
+               "OR lower(subprogram_name) like '%homeless%'"),
+        amount="budget", group=["unit_name", "program_name", "subprogram_name"],
+        fy_col="fiscal_year", fy_kind="Budget - Actual",
+        basis=("Maryland operating budget rows whose programme, unit or sub-programme name contains 'Homeless', "
+               "using the 'Budget - Actual' figures of the latest fiscal year present"),
+    ),
+]
+
 COUNTY_CUT = re.compile(
     r"\s+(COUNTY|PARISH|BOROUGH|CENSUS AREA|MUNICIPALITY|CITY AND BOROUGH|ISLAND)$", re.I)
 
-
 BUSY_TRIES = 40
+WRITE_COUNT = [0]
+CITY_MIN_POP = 40000
+
+
+# ---------------------------------------------------------------------------
+# sqlite helpers: other domain workers hold write locks on atlas.db
+# ---------------------------------------------------------------------------
+def _retry(fn, *a, **kw):
+    last = None
+    for i in range(BUSY_TRIES):
+        try:
+            return fn(*a, **kw)
+        except sqlite3.OperationalError as e:
+            if "locked" not in str(e) and "busy" not in str(e):
+                raise
+            last = e
+            time.sleep(min(2 + i, 15))
+    raise last
 
 
 def _x(conn, sql, params=()):
-    """Execute a write with retry: other domain workers hold locks on atlas.db."""
-    import sqlite3 as _s
-    import time as _t
-    last = None
-    for i in range(BUSY_TRIES):
-        try:
-            return conn.execute(sql, params)
-        except _s.OperationalError as e:
-            if "locked" not in str(e) and "busy" not in str(e):
-                raise
-            last = e
-            _t.sleep(min(2 + i, 15))
-    raise last
+    return _retry(conn.execute, sql, params)
 
 
 def _up(conn, table, row, keys):
-    import sqlite3 as _s
-    import time as _t
-    last = None
-    for i in range(BUSY_TRIES):
-        try:
-            return upsert(conn, table, row, keys)
-        except _s.OperationalError as e:
-            if "locked" not in str(e) and "busy" not in str(e):
-                raise
-            last = e
-            _t.sleep(min(2 + i, 15))
-    raise last
+    return _retry(upsert, conn, table, row, keys)
 
 
 def _commit(conn):
-    import sqlite3 as _s
-    import time as _t
-    last = None
-    for i in range(BUSY_TRIES):
-        try:
-            return conn.commit()
-        except _s.OperationalError as e:
-            if "locked" not in str(e) and "busy" not in str(e):
-                raise
-            last = e
-            _t.sleep(min(2 + i, 15))
-    raise last
-
-
-def _q(host, ds, soql, timeout=180):
-    """Socrata SoQL GET, cached by common.fetch under data/raw/budgets/."""
-    url = f"https://{host}/resource/{ds}.json?" + urllib.parse.urlencode(soql)
-    return url, fetch_json(url, domain=DOMAIN, retries=2, timeout=timeout)
-
-
-def _geo(programs, start, end, layer, timeout=240):
-    payload = {
-        "scope": "place_of_performance",
-        "geo_layer": layer,
-        "filters": {"program_numbers": list(programs),
-                    "time_period": [{"start_date": start, "end_date": end}]},
-        "subawards": False,
-    }
-    return fetch_post_json(USASPENDING_GEO, payload, domain=DOMAIN, retries=3, timeout=timeout)
+    return _retry(conn.commit)
 
 
 def _ensure(conn):
     conn.executescript(
         """
         CREATE TABLE IF NOT EXISTS budgets_city_line (
-          city      TEXT NOT NULL,
+          entity    TEXT NOT NULL,
+          entity_id TEXT,
           state     TEXT NOT NULL,
           fy        TEXT NOT NULL,
           label     TEXT NOT NULL,
           amount    REAL,
           dataset   TEXT,
           source_id INTEGER,
-          PRIMARY KEY (city, state, fy, label)
+          PRIMARY KEY (entity, state, fy, label)
+        );
+        CREATE TABLE IF NOT EXISTS budgets_state_line (
+          state     TEXT NOT NULL,
+          fy        TEXT NOT NULL,
+          label     TEXT NOT NULL,
+          amount    REAL,
+          dataset   TEXT,
+          source_id INTEGER,
+          PRIMARY KEY (state, fy, label)
         );
         CREATE TABLE IF NOT EXISTS budgets_progress (
           step      TEXT PRIMARY KEY,
@@ -215,19 +228,14 @@ def _ensure(conn):
     )
 
 
-def _done(conn, step):
-    return conn.execute("SELECT 1 FROM budgets_progress WHERE step=?", (step,)).fetchone() is not None
-
-
 def _mark(conn, step, detail=""):
     _x(conn, "INSERT INTO budgets_progress(step,done_at,detail) VALUES(?,?,?) "
           "ON CONFLICT(step) DO UPDATE SET done_at=excluded.done_at, detail=excluded.detail",
-       (step, now(), str(detail)[:400]))
+       (step, now(), str(detail)[:500]))
     _commit(conn)
 
 
 def _source(conn, url, *, title, publisher, license, method="GET", payload=None):
-    """Register the source row and fill in bytes/sha256 from the fetch cache."""
     sid = source_id_for(conn, url, DOMAIN, title=title, publisher=publisher, license=license)
     key = hashlib.sha1((method + url + json.dumps(payload or {}, sort_keys=True, default=str)).encode()).hexdigest()
     p = RAW / DOMAIN / f"{key}.bin"
@@ -238,14 +246,11 @@ def _source(conn, url, *, title, publisher, license, method="GET", payload=None)
     return sid
 
 
-WROTE = [0]  # metric rows written by this process (for the run report)
-
-
 def _metric(conn, entity_type, entity_id, metric, value, unit, year, source_id,
-            is_est=0, note=None, counter=None):
-    if value is None or entity_id is None:
+            is_est=0, note=None):
+    if value is None or entity_id in (None, ""):
         return
-    WROTE[0] += 1
+    WRITE_COUNT[0] += 1
     _up(conn, "metric", {
         "entity_type": entity_type, "entity_id": str(entity_id), "metric": metric,
         "value": float(value), "unit": unit, "year": int(year) if year else None,
@@ -254,75 +259,109 @@ def _metric(conn, entity_type, entity_id, metric, value, unit, year, source_id,
 
 
 # ---------------------------------------------------------------------------
-# 1. federal per-state obligations
+# Socrata helpers (all cached through common.fetch -> data/raw/budgets/)
 # ---------------------------------------------------------------------------
-def _state_federal(conn, stats):
+def _soql(host, ds, params):
+    u = f"https://{host}/resource/{ds}.json?" + urllib.parse.urlencode(params)
+    return u, fetch_json(u, domain=DOMAIN, retries=2, timeout=240)
+
+
+def _dataset_meta(host, ds):
+    """Official dataset title/description from the portal API (for source rows)."""
+    u = f"https://{host}/api/views/{ds}.json"
+    try:
+        j = fetch_json(u, domain=DOMAIN, retries=2, timeout=90)
+        return u, clean(j.get("name")), clean(j.get("description"))
+    except Exception:
+        return u, None, None
+
+
+def _money(v):
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return None
+
+
+def _fy_int(v):
+    try:
+        return int(str(v)[:4])
+    except (TypeError, ValueError):
+        return None
+
+
+# ---------------------------------------------------------------------------
+# 1a. federal obligations per state, from the `award` table
+# ---------------------------------------------------------------------------
+def _state_from_award(conn, stats):
     sid = _source(
-        conn, USASPENDING_GEO,
-        title="USASpending.gov API v2 spending_by_geography (HUD homeless assistance programs, CFDA 14.231/14.267/14.276/14.241)",
-        publisher="U.S. Department of the Treasury, Bureau of the Fiscal Service",
-        license="US Government work, public domain", method="POST")
+        conn, USA_AWARD,
+        title="USASpending.gov API v2 spending_by_award — HUD homelessness Assistance Listings "
+              "14.231/14.235/14.267/14.276/14.241 (rows aggregated from this atlas's `award` table)",
+        publisher=PUB_TREASURY, license=LIC_FED, method="POST")
 
-    per_state = {}   # (fy, abbr) -> {metric: value}
-    pops = {}
-    for fy, start, end in FYS:
-        for cfda, (stem, pname) in PROGRAMS.items():
-            try:
-                j = _geo([cfda], start, end, "state")
-            except Exception as e:  # one program failing must not kill the sweep
-                stats["notes"].append(f"federal FY{fy} {cfda}: {repr(e)[:120]}")
-                continue
-            n = 0
-            for r in j.get("results", []):
-                abbr = clean(r.get("shape_code"))
-                amt = r.get("aggregated_amount")
-                if not abbr or amt is None or len(abbr) != 2:
-                    continue
-                n += 1
-                pops[abbr] = r.get("population") or pops.get(abbr)
-                per_state.setdefault((fy, abbr), {})[stem] = float(amt)
-                _metric(conn, "state", abbr, f"{stem}_obligated", amt, "USD", fy, sid,
-                        note=f"{pname}, federal obligations recorded in FY{fy} (USASpending place-of-performance)")
-            stats["federal_state_calls"] += 1
-            stats["federal_state_rows"] += n
+    cf = ",".join("'%s'" % c for c in AWARD_PROGRAMS)
+    rows = conn.execute(
+        f"""SELECT UPPER(place_state) st, fy, cfda AS cfda,
+                   SUM(COALESCE(amount_obligated, amount_total)) amt, COUNT(*) n
+              FROM award
+             WHERE cfda IN ({cf}) AND place_state IS NOT NULL AND length(place_state)=2
+               AND fy GLOB '[0-9][0-9][0-9][0-9]'
+             GROUP BY 1,2,3""").fetchall()
 
-    _commit(conn)
+    per_state_fy = {}
+    for r in rows:
+        st, fy, cfda, amt, n = r["st"], int(r["fy"]), r["cfda"], r["amt"], r["n"]
+        if not st or amt is None:
+            continue
+        stem, pname = AWARD_PROGRAMS[cfda]
+        per_state_fy.setdefault((st, fy), {"total": 0.0, "n": 0})["total"] += float(amt)
+        per_state_fy[(st, fy)]["n"] += n
+        _metric(conn, "state", st, f"award_hud_{stem}_obligated", amt, "USD", fy, sid,
+                note=f"{pname}: obligations recorded in the atlas `award` table with place of "
+                     f"performance in {st} for federal fiscal year {fy} "
+                     f"({n:,} award rows; USASpending assistance listing {cfda})")
 
-    # state totals + derived per-capita / per-homeless
+    for (st, fy), d in sorted(per_state_fy.items()):
+        _metric(conn, "state", st, "award_hud_homeless_obligated", d["total"], "USD", fy, sid,
+                note=f"formula: sum of HUD ESG + SHP + CoC + YHDP + HOPWA obligations in the atlas "
+                     f"`award` table whose place of performance is {st}, federal FY{fy} "
+                     f"({d['n']:,} award rows)")
+
+    # derived: latest fiscal year with a figure per state
+    latest = {}
+    for (st, fy), d in per_state_fy.items():
+        if d["total"] > 0 and (st not in latest or fy > latest[st][0]):
+            latest[st] = (fy, d["total"])
+    pop = {r["abbr"]: r["pop"] for r in conn.execute("SELECT abbr,pop FROM geo_state")}
     pit = _state_pit(conn)
-    n_tot = 0
-    for (fy, abbr), d in sorted(per_state.items()):
-        total = sum(d.values())
-        _metric(conn, "state", abbr, "hud_homeless_obligated_total", total, "USD", fy, sid,
-                note="formula: sum of HUD ESG + CoC + YHDP + HOPWA obligations for the state in FY%d "
-                     "from USASpending spending_by_geography (place of performance)" % fy)
-        n_tot += 1
-        pop = pops.get(abbr)
-        if pop:
-            _metric(conn, "state", abbr, "hud_homeless_obligated_per_capita",
-                    total / pop, "USD/person", fy, sid, is_est=1,
-                    note="formula: HUD homeless-assistance obligations FY%d / resident population "
-                         "(%s, population field returned by USASpending geography API)" % (fy, f"{pop:,}"))
-        py, ptot = pit.get(abbr, (None, None))
+    for st, (fy, total) in sorted(latest.items()):
+        if pop.get(st):
+            _metric(conn, "state", st, "award_hud_homeless_per_capita", total / pop[st],
+                    "USD/person", fy, sid, is_est=1,
+                    note=f"formula: award-table HUD homeless obligations for {st} in FY{fy} "
+                         f"(${total:,.0f}) / {pop[st]:,} residents (Census population in geo_state)")
+        py, ptot = pit.get(st, (None, None))
         if ptot:
-            _metric(conn, "state", abbr, "hud_homeless_obligated_per_homeless",
-                    total / ptot, "USD/person", fy, sid, is_est=1,
-                    note="formula: HUD homeless-assistance obligations FY%d / HUD PIT count for the "
-                         "state in %s (%s people, sum of the state's CoC PIT totals)" % (fy, py, f"{ptot:,}"))
+            _metric(conn, "state", st, "award_hud_homeless_per_homeless", total / ptot,
+                    "USD/person", fy, sid, is_est=1,
+                    note=f"formula: award-table HUD homeless obligations for {st} in FY{fy} "
+                         f"(${total:,.0f}) / {ptot:,} people counted homeless in the state in {py} "
+                         f"(sum of the state's CoC PIT totals)")
     _commit(conn)
-    stats["state_metric_rows"] += n_tot
-    return sid
+    stats["award_states"] = len(latest)
+    stats["award_rows"] = len(rows)
+    return latest
 
 
 def _state_pit(conn):
-    """state abbr -> (year, total people homeless) from the pit table, latest year."""
+    """state abbr -> (year, people counted homeless) from `pit` joined to geo_coc."""
     out = {}
-    rows = conn.execute(
-        """SELECT g.state AS st, p.year AS y, SUM(p.total) AS tot
-             FROM pit p JOIN geo_coc g ON g.coc_num = p.coc_num
-            WHERE p.total IS NOT NULL
-            GROUP BY g.state, p.year""")
-    for r in rows:
+    for r in conn.execute(
+            """SELECT g.state AS st, p.year AS y, SUM(p.total) AS tot
+                 FROM pit p JOIN geo_coc g ON g.coc_num = p.coc_num
+                WHERE p.total IS NOT NULL
+                GROUP BY g.state, p.year"""):
         st, y, tot = r["st"], r["y"], r["tot"]
         if not st or not tot:
             continue
@@ -332,9 +371,79 @@ def _state_pit(conn):
 
 
 # ---------------------------------------------------------------------------
-# 2. county -> CoC attribution of HUD CoC + ESG money
+# 1b. federal obligations per state, from the USASpending geography API
 # ---------------------------------------------------------------------------
-def _coc_from_county(conn, stats):
+def _geo(programs, start, end, layer, timeout=240):
+    payload = {
+        "scope": "place_of_performance",
+        "geo_layer": layer,
+        "filters": {"program_numbers": list(programs),
+                    "time_period": [{"start_date": start, "end_date": end}]},
+        "subawards": False,
+    }
+    return fetch_post_json(USA_GEO, payload, domain=DOMAIN, retries=3, timeout=timeout)
+
+
+def _state_geo(conn, stats):
+    sid = _source(
+        conn, USA_GEO,
+        title="USASpending.gov API v2 spending_by_geography, place of performance, geo_layer=state "
+              "(HUD homeless assistance programs 14.231/14.267/14.276/14.241, FY2023-FY2024)",
+        publisher=PUB_TREASURY, license=LIC_FED, method="POST")
+
+    per_state = {}
+    pops = {}
+    for fy, start, end in FYS:
+        for cfda, (stem, pname) in AWARD_PROGRAMS.items():
+            if cfda not in ("14.231", "14.267", "14.276", "14.241"):
+                continue
+            try:
+                j = _geo([cfda], start, end, "state")
+            except Exception as e:
+                stats["notes"].append(f"geo FY{fy} {cfda}: {repr(e)[:110]}")
+                continue
+            for r in j.get("results", []):
+                abbr = clean(r.get("shape_code"))
+                amt = r.get("aggregated_amount")
+                if not abbr or amt is None or len(abbr) != 2:
+                    continue
+                pops[abbr] = r.get("population") or pops.get(abbr)
+                per_state.setdefault((fy, abbr), {})[stem] = float(amt)
+                _metric(conn, "state", abbr, f"hud_{stem}_obligated", amt, "USD", fy, sid,
+                        note=f"{pname}: federal obligations in FY{fy} with place of performance in "
+                             f"{abbr} (USASpending spending_by_geography, geo_layer=state)")
+            stats["geo_calls"] += 1
+    _commit(conn)
+
+    pit = _state_pit(conn)
+    n = 0
+    for (fy, abbr), d in sorted(per_state.items()):
+        total = sum(d.values())
+        _metric(conn, "state", abbr, "hud_homeless_obligated_total", total, "USD", fy, sid,
+                note=f"formula: sum of HUD ESG + CoC + YHDP + HOPWA obligations for {abbr} in FY{fy} "
+                     f"from USASpending spending_by_geography (place of performance = {abbr})")
+        n += 1
+        pop = pops.get(abbr)
+        if pop:
+            _metric(conn, "state", abbr, "hud_homeless_obligated_per_capita", total / float(pop),
+                    "USD/person", fy, sid, is_est=1,
+                    note=f"formula: HUD homeless-assistance obligations FY{fy} (${total:,.0f}) / "
+                         f"{int(pop):,} residents (population field returned by the geography API)")
+        py, ptot = pit.get(abbr, (None, None))
+        if ptot:
+            _metric(conn, "state", abbr, "hud_homeless_obligated_per_homeless", total / ptot,
+                    "USD/person", fy, sid, is_est=1,
+                    note=f"formula: HUD homeless-assistance obligations FY{fy} (${total:,.0f}) / "
+                         f"{ptot:,} people counted homeless in {abbr} in {py} (sum of CoC PIT totals)")
+    _commit(conn)
+    stats["geo_state_rows"] = n
+    return n
+
+
+# ---------------------------------------------------------------------------
+# 2a. CoC money via county-level geography rows
+# ---------------------------------------------------------------------------
+def _coc_index(conn):
     index = {}
     for r in conn.execute("SELECT coc_num, name, state, cities FROM geo_coc"):
         st = (r["state"] or "").upper()
@@ -344,43 +453,55 @@ def _coc_from_county(conn, stats):
                 continue
             for tok in re.split(r"[,/;&]| and ", blob):
                 tok = re.sub(r"\bCoC\b", "", tok, flags=re.I)
-                tok = re.sub(r"\b(city|county|counties|balance of state|continuum of care)\b", "", tok, flags=re.I)
+                tok = re.sub(r"\b(city|county|counties|balance of state|continuum of care)\b", "",
+                             tok, flags=re.I)
                 tok = re.sub(r"[^A-Za-z ]+", " ", tok)
                 tok = re.sub(r"\s+", " ", tok).strip().upper()
                 if len(tok) > 2:
                     names.add(tok)
-        index.setdefault(st, []).append((r["coc_num"], r["name"] or "", names))
+        index.setdefault(st, []).append((r["coc_num"], (r["name"] or "").upper(), names))
+    return index
 
-    fy, start, end = FYS[0]
-    agg = {}
-    matched = seen = 0
-    geo_by_prog = {}
-    for cfda in ("14.267", "14.231"):
-        try:
-            geo_by_prog[cfda] = _geo([cfda], start, end, "county")
-        except Exception as e:
-            stats["notes"].append(f"county geography {cfda}: {repr(e)[:120]}")
-            continue
-        stats["federal_county_calls"] += 1
 
+def _pit_latest(conn):
+    out = {}
+    for r in conn.execute("SELECT coc_num, year, total FROM pit WHERE total IS NOT NULL AND total > 0"):
+        c = r["coc_num"]
+        if c not in out or r["year"] > out[c][0]:
+            out[c] = (r["year"], r["total"])
+    return out
+
+
+def _coc_from_county(conn, stats):
+    index = _coc_index(conn)
     counties = {r["geoid"]: (r["name"], (r["state"] or "").upper())
                 for r in conn.execute("SELECT geoid,name,state FROM geo_city WHERE kind='county'")}
 
-    for cfda, j in geo_by_prog.items():
+    fy, start, end = FYS[0]
+    agg, matched, seen = {}, 0, 0
+    got = {}
+    for cfda in ("14.267", "14.231"):
+        try:
+            got[cfda] = _geo([cfda], start, end, "county")
+        except Exception as e:
+            stats["notes"].append(f"county geography {cfda}: {repr(e)[:110]}")
+            continue
+        stats["geo_calls"] += 1
+
+    for cfda, j in got.items():
         for r in j.get("results", []):
             fips = clean(r.get("shape_code"))
             amt = r.get("aggregated_amount")
             if not fips or amt is None:
                 continue
             seen += 1
-            cname, st = counties.get(fips, (r.get("display_name") or "", ""))
+            cname, st = counties.get(fips, (None, None))
             if not st:
                 continue
             base = COUNTY_CUT.sub("", (cname or "").upper()).strip()
             if not base:
                 continue
-            hits = {cn for cn, nm, toks in index.get(st, [])
-                    if base in toks or base in nm.upper()}
+            hits = {cn for cn, nm, toks in index.get(st, []) if base in toks or base in nm}
             if len(hits) != 1:
                 continue
             matched += 1
@@ -389,36 +510,95 @@ def _coc_from_county(conn, stats):
             agg[coc][cfda] += float(amt)
 
     sid = _source(
-        conn, USASPENDING_GEO,
-        title="USASpending.gov API v2 spending_by_geography, county layer (HUD CoC + ESG, FY2024)",
-        publisher="U.S. Department of the Treasury, Bureau of the Fiscal Service",
-        license="US Government work, public domain", method="POST")
-
-    pit = {}
-    for r in conn.execute("SELECT coc_num, year, total FROM pit WHERE total IS NOT NULL AND total > 0"):
-        if r["coc_num"] not in pit or r["year"] > pit[r["coc_num"]][0]:
-            pit[r["coc_num"]] = (r["year"], r["total"])
+        conn, USA_GEO,
+        title="USASpending.gov API v2 spending_by_geography, place of performance, geo_layer=county "
+              "(HUD CoC 14.267 + ESG 14.231, FY2024), attributed to CoCs",
+        publisher=PUB_TREASURY, license=LIC_FED, method="POST")
+    pit = _pit_latest(conn)
 
     n = 0
     for coc, d in sorted(agg.items()):
         total = sum(d.values())
         _metric(conn, "coc", coc, "hud_coc_esg_obligated_county_attributed", total, "USD", fy, sid,
                 is_est=1,
-                note="formula: sum of HUD CoC (14.267, %s) + ESG (14.231, %s) county-level obligations "
-                     "whose county was attributed to this CoC by county name matching the CoC name/city "
-                     "list (same state); county rows that matched no single CoC are excluded"
-                     % (_fmt(d.get("14.267")), _fmt(d.get("14.231"))))
+                note=f"formula: sum of HUD CoC {_fmt(d.get('14.267'))} + ESG {_fmt(d.get('14.231'))} "
+                     f"county-level obligations in FY{fy} whose county was attributed to this CoC by "
+                     f"county-name matching against the CoC name/city list (same state, unique match "
+                     f"only); counties that matched no single CoC are excluded")
         n += 1
         py, ptot = pit.get(coc, (None, None))
         if ptot:
-            _metric(conn, "coc", coc, "hud_coc_esg_obligated_per_homeless", total / ptot, "USD/person",
-                    fy, sid, is_est=1,
-                    note="formula: county-attributed HUD CoC+ESG obligations FY%d / HUD PIT count for the "
-                         "CoC in %s (%s people)" % (fy, py, f"{ptot:,}"))
+            _metric(conn, "coc", coc, "hud_coc_esg_obligated_per_homeless", total / ptot,
+                    "USD/person", fy, sid, is_est=1,
+                    note=f"formula: county-attributed HUD CoC+ESG obligations FY{fy} (${total:,.0f}) / "
+                         f"{ptot:,} people in this CoC's {py} PIT count")
     _commit(conn)
-    stats["coc_rows"] = n
+    stats["coc_county_rows"] = n
     stats["coc_county_match"] = (matched, seen)
     return n
+
+
+# ---------------------------------------------------------------------------
+# 2b. CoC money via award recipients
+# ---------------------------------------------------------------------------
+def _locality_index(conn):
+    """(state, UPPER name, min name length) -> (coc_num, geoid, name) for populated places/counties."""
+    idx = {}
+    for r in conn.execute(
+            "SELECT geoid,kind,name,pop,coc_num FROM geo_city "
+            "WHERE coc_num IS NOT NULL AND pop IS NOT NULL AND pop > ? "
+            "AND kind IN ('place','county')", (CITY_MIN_POP,)):
+        nm = (r["name"] or "").upper()
+        if len(nm) < 6:
+            continue
+        idx.setdefault((r["state"] or "").upper(), []).append((nm, r["coc_num"], r["geoid"], r["pop"] or 0))
+    return idx
+
+
+def _coc_from_award(conn, stats):
+    idx = _locality_index(conn)
+    sid = _source(
+        conn, USA_AWARD,
+        title="USASpending.gov API v2 spending_by_award — HUD ESG/SHP/CoC awards from the `award` table, "
+              "attributed to CoCs by recipient name",
+        publisher=PUB_TREASURY, license=LIC_FED, method="POST")
+
+    per = {}   # (coc, fy) -> amount
+    for r in conn.execute(
+            """SELECT UPPER(COALESCE(recipient_name,'')) rn, UPPER(place_state) st, fy,
+                      COALESCE(amount_obligated, amount_total) amt
+                 FROM award
+                WHERE cfda IN ('14.231','14.235','14.267') AND place_state IS NOT NULL
+                  AND fy GLOB '[0-9][0-9][0-9][0-9]' AND CAST(fy AS INTEGER) >= 2010""").fetchall():
+        rn, st, fy, amt = r["rn"], r["st"], int(r["fy"]), r["amt"]
+        if not rn or not st or amt is None:
+            continue
+        best = None
+        for nm, coc, geoid, pop in idx.get(st, ()):
+            if nm in rn and (best is None or len(nm) > len(best[0])):
+                best = (nm, coc)
+        if not best:
+            continue
+        key = (best[1], fy)
+        per[key] = per.get(key, 0.0) + float(amt)
+
+    pit = _pit_latest(conn)
+    for (coc, fy), total in sorted(per.items()):
+        _metric(conn, "coc", coc, "award_hud_coc_attributed", total, "USD", fy, sid, is_est=1,
+                note="formula: sum of HUD ESG (14.231) + SHP (14.235) + CoC (14.267) award rows in the "
+                     "atlas `award` table for this fiscal year whose recipient name contains the name "
+                     "of a city/county that geo_city assigns to this CoC; recipient-name attribution, "
+                     "not place of performance, so multi-city recipients are assigned to the "
+                     f"longest matching place name")
+        py, ptot = pit.get(coc, (None, None))
+        if ptot and fy == max(k[1] for k in per if k[0] == coc):
+            _metric(conn, "coc", coc, "award_hud_coc_attributed_per_homeless", total / ptot,
+                    "USD/person", fy, sid, is_est=1,
+                    note=f"formula: award-attributed HUD CoC-program dollars FY{fy} (${total:,.0f}) / "
+                         f"{ptot:,} people in this CoC's {py} PIT count")
+    _commit(conn)
+    stats["coc_award_rows"] = len(per)
+    return len(per)
 
 
 def _fmt(v):
@@ -426,257 +606,267 @@ def _fmt(v):
 
 
 # ---------------------------------------------------------------------------
-# 3. city budgets from city open data
+# 3. state's own appropriations
 # ---------------------------------------------------------------------------
+def _state_own(conn, stats):
+    for spec in STATE_OWN:
+        st = spec["state"]
+        sel = [spec["fy_col"]]
+        grp = [spec["fy_col"]]
+        if spec.get("fy_kind"):
+            sel.append("type")
+            grp.append("type")
+        sel.append(f"sum({spec['amount']})")
+        try:
+            url, rows = _soql(spec["host"], spec["ds"], {
+                "$select": ",".join(sel), "$where": spec["where"],
+                "$group": ",".join(grp), "$limit": 5000,
+            })
+        except Exception as e:
+            stats["notes"].append(f"state {st}: {repr(e)[:130]}")
+            continue
+        if not rows:
+            stats["notes"].append(f"state {st}: filter matched no rows")
+            continue
+        amt_key = [k for k in rows[0] if k.startswith("sum_")][0]
+        by_fy = {}
+        for r in rows:
+            if spec.get("fy_kind") and str(r.get("type")) != spec["fy_kind"]:
+                continue
+            fy = _fy_int(r.get(spec["fy_col"]))
+            amt = _money(r.get(amt_key))
+            if fy and amt is not None:
+                by_fy[fy] = by_fy.get(fy, 0.0) + amt
+        if not by_fy:
+            stats["notes"].append(f"state {st}: no rows of type {spec.get('fy_kind')}")
+            continue
+        fy = max(by_fy)
+        total = by_fy[fy]
+
+        meta_url, meta_title, _ = _dataset_meta(spec["host"], spec["ds"])
+        sid = _source(conn, url,
+                      title=f"{meta_title or 'State budget dataset'} ({spec['host']}/{spec['ds']}): "
+                            f"rows for {st} homelessness programmes",
+                      publisher=f"State of {st} open data portal",
+                      license="State open data portal terms (public record)")
+        _up(conn, "budgets_state_line", {
+            "state": st, "fy": str(fy), "label": spec["basis"][:300],
+            "amount": total, "dataset": f"{spec['host']}/{spec['ds']}", "source_id": sid,
+        }, ["state", "fy", "label"])
+
+        _metric(conn, "state", st, "state_homelessness_appropriation", total, "USD", fy, sid,
+                note=f"{st} state budget: {spec['basis']}; filter [{spec['where']}] on "
+                     f"{spec['host']}/{spec['ds']}, latest fiscal year present = {fy}")
+        pop = conn.execute("SELECT pop FROM geo_state WHERE abbr=?", (st,)).fetchone()
+        if pop and pop["pop"]:
+            _metric(conn, "state", st, "state_homelessness_appropriation_per_capita",
+                    total / pop["pop"], "USD/person", fy, sid, is_est=1,
+                    note=f"formula: {st} state homelessness appropriation FY{fy} (${total:,.0f}) / "
+                         f"{pop['pop']:,} residents (Census population in geo_state)")
+        py, ptot = _state_pit(conn).get(st, (None, None))
+        if ptot:
+            _metric(conn, "state", st, "state_homelessness_appropriation_per_homeless",
+                    total / ptot, "USD/person", fy, sid, is_est=1,
+                    note=f"formula: {st} state homelessness appropriation FY{fy} (${total:,.0f}) / "
+                         f"{ptot:,} people counted homeless in {st} in {py} (sum of CoC PIT totals)")
+        _commit(conn)
+        stats["state_own"].append(f"{st} FY{fy} ${total:,.0f}")
+
+
+# ---------------------------------------------------------------------------
+# 4. city / county budgets
+# ---------------------------------------------------------------------------
+def _jurisdiction(conn, spec):
+    kind = spec.get("kind", "place")
+    r = conn.execute(
+        "SELECT geoid,pop,coc_num,name FROM geo_city WHERE name=? AND state=? AND kind=? "
+        "ORDER BY pop DESC LIMIT 1", (spec["city"], spec["state"], kind)).fetchone()
+    return r
+
+
 def _city_budgets(conn, stats):
     for spec in CITY_BUDGETS:
         city, state = spec["city"], spec["state"]
         metric = spec.get("metric", "city_homelessness_budget")
-        etype = spec.get("entity_type", "city")
-        kind = "county" if etype == "county" else "place"
-        sel = list(spec["group_cols"]) + [f"sum({spec['amount_col']})"]
-        soql = {
-            "$select": ",".join(sel),
-            "$where": spec["where"],
-            "$group": ",".join(spec["group_cols"]) if spec["group_cols"] else None,
-            "$limit": 5000,
-        }
-        soql = {k: v for k, v in soql.items() if v is not None}
+        etype = "county" if spec.get("kind") == "county" else "city"
+        amt = spec["amount"]
+
+        # 1. which fiscal year (fixed, or the latest in the table)
+        year = spec.get("year")
+        if spec.get("fy_col") and not year:
+            try:
+                _, fyrows = _soql(spec["host"], spec["ds"], {
+                    "$select": f"{spec['fy_col']},sum({amt})", "$where": spec["where"],
+                    "$group": spec["fy_col"], "$limit": 5000})
+            except Exception as e:
+                stats["notes"].append(f"{city}: fy probe {repr(e)[:110]}")
+                continue
+            key = [k for k in fyrows[0] if k.startswith("sum_")][0] if fyrows else None
+            cands = {_fy_int(r.get(spec["fy_col"])): _money(r.get(key)) for r in fyrows}
+            cands = {y: v for y, v in cands.items() if y and v is not None}
+            if spec.get("nonzero"):
+                cands = {y: v for y, v in cands.items() if v > 0}
+            if not cands:
+                stats["notes"].append(f"{city}: no fiscal year with a non-zero amount")
+                continue
+            year = max(cands)
+
+        # 2. the published lines for that year
+        if spec.get("fy_col") and spec.get("year") is None:
+            where = f"({spec['where']}) AND {spec['fy_col']}='{year}'"
+        else:
+            where = spec["where"]
+        if spec.get("dedupe_col"):
+            try:
+                _, drows = _soql(spec["host"], spec["ds"], {
+                    "$select": f"{spec['dedupe_col']},sum({amt})", "$where": where,
+                    "$group": spec["dedupe_col"], "$limit": 5000})
+                pubs = sorted(str(r.get(spec["dedupe_col"])) for r in drows if r.get(spec["dedupe_col"]))
+                newest = pubs[-1]
+                where = f"({where}) AND {spec['dedupe_col']}='{newest}'"
+            except Exception as e:
+                stats["notes"].append(f"{city}: publication probe {repr(e)[:110]}")
+                newest = None
+        else:
+            newest = None
+
+        params = {"$select": ",".join(spec["group"] + [f"sum({amt})"]),
+                  "$where": where, "$group": ",".join(spec["group"]), "$limit": 5000}
         try:
-            url, rows = _q(spec["host"], spec["ds"], soql)
+            url, rows = _soql(spec["host"], spec["ds"], params)
         except Exception as e:
-            stats["notes"].append(f"city {city}: {repr(e)[:150]}")
+            stats["notes"].append(f"{city}: {repr(e)[:130]}")
             continue
         if not rows:
-            stats["notes"].append(f"city {city}: query returned 0 rows ({spec['ds']})")
+            stats["notes"].append(f"{city}: query returned 0 rows")
             continue
         amt_key = [k for k in rows[0] if k.startswith("sum_")][0]
-        sid = _source(
-            conn, url,
-            title=f"{city} homelessness budget lines ({spec['page']})",
-            publisher=f"City of {city} open data portal",
-            license="City open data portal (public record); see portal terms")
-        fy_label = spec.get("fy") or "latest"
 
+        meta_url, meta_title, _ = _dataset_meta(spec["host"], spec["ds"])
+        sid = _source(conn, url,
+                      title=f"{meta_title or city + ' budget dataset'} ({spec['host']}/{spec['ds']}) — "
+                            f"homelessness lines used for {city}, {state}",
+                      publisher=f"City of {city} open data portal",
+                      license="City open data portal terms (public record)")
+
+        j = _jurisdiction(conn, spec)
+        eid = j["geoid"] if j else city
         total = 0.0
         kept = 0
         for r in rows:
-            amt = r.get(amt_key)
-            try:
-                amt = float(amt)
-            except (TypeError, ValueError):
+            v = _money(r.get(amt_key))
+            if v is None:
                 continue
-            label = " | ".join(str(r.get(c) or "") for c in spec["group_cols"]).strip(" |") or spec["basis"]
-            if spec.get("dedupe_newest"):
-                pass
-            if amt == 0 and spec.get("dedupe_newest"):
-                continue
-            total += amt
+            label = " | ".join(str(r.get(c) or "") for c in spec["group"]).strip(" |") or spec["basis"]
+            total += v
             kept += 1
             _up(conn, "budgets_city_line", {
-                "city": city, "state": state, "fy": fy_label, "label": label[:300],
-                "amount": amt, "dataset": f"{spec['host']}/{spec['ds']}", "source_id": sid,
-            }, ["city", "state", "fy", "label"])
+                "entity": city, "entity_id": eid, "state": state, "fy": str(year or ""),
+                "label": label[:300], "amount": v,
+                "dataset": f"{spec['host']}/{spec['ds']}", "source_id": sid,
+            }, ["entity", "state", "fy", "label"])
 
-        if spec.get("dedupe_newest"):
-            # NYC publishes the same FY several times (one row per publication);
-            # keep only the newest publication for the FY.
-            rows = sorted(rows, key=lambda r: str(r.get(spec["dedupe_newest"]) or ""))
-            newest = str(rows[-1].get(spec["dedupe_newest"])) if rows else ""
-            total = 0.0
-            kept = 0
-            for r in rows:
-                if str(r.get(spec["dedupe_newest"])) != newest:
-                    continue
-                try:
-                    amt = float(r.get(amt_key))
-                except (TypeError, ValueError):
-                    continue
-                total += amt
-                kept += 1
-            _x(conn, "DELETE FROM budgets_city_line WHERE city=? AND state=? AND fy=?",
-               (city, state, fy_label))
-            _up(conn, "budgets_city_line", {
-                "city": city, "state": state, "fy": fy_label,
-                "label": f"all agencies matching filter (publication {newest})",
-                "amount": total, "dataset": f"{spec['host']}/{spec['ds']}", "source_id": sid,
-            }, ["city", "state", "fy", "label"])
-            note_extra = f"; newest publication_date {newest} used"
-        else:
-            note_extra = ""
-
-        year = int(fy_label) if str(fy_label).isdigit() else None
-        pop_row = conn.execute(
-            "SELECT geoid, pop, coc_num FROM geo_city WHERE name=? AND state=? AND kind=? "
-            "ORDER BY pop DESC LIMIT 1", (city, state, kind)).fetchone()
-        eid = pop_row["geoid"] if pop_row and pop_row["geoid"] else city
         _metric(conn, etype, eid, metric, total, "USD", year, sid,
-                note=f"{city}, {state}: {spec['basis']}; filter [{spec['where']}]; "
-                     f"{kept} published line(s) summed{note_extra}")
-        if pop_row and pop_row["pop"]:
-            _metric(conn, etype, eid, f"{metric}_per_capita", total / pop_row["pop"], "USD/person",
+                note=f"{city}, {state}: {spec['basis']}; filter [{where}] on "
+                     f"{spec['host']}/{spec['ds']}; {kept} published line(s) summed"
+                     + (f"; newest {spec['dedupe_col']} {newest} used" if newest else ""))
+        if j and j["pop"]:
+            _metric(conn, etype, eid, f"{metric}_per_capita", total / j["pop"], "USD/person",
                     year, sid, is_est=1,
-                    note="formula: %s / %s residents (Census place population in geo_city)" % (metric, f"{pop_row['pop']:,}"))
-        if pop_row and pop_row["coc_num"]:
+                    note=f"formula: {metric} ({city}, ${total:,.0f}) / {j['pop']:,} residents "
+                         f"(Census population in geo_city)")
+        if j and j["coc_num"]:
             pr = conn.execute(
                 "SELECT year,total FROM pit WHERE coc_num=? AND total IS NOT NULL AND total>0 "
-                "ORDER BY year DESC LIMIT 1", (pop_row["coc_num"],)).fetchone()
+                "ORDER BY year DESC LIMIT 1", (j["coc_num"],)).fetchone()
             if pr:
                 _metric(conn, etype, eid, f"{metric}_per_homeless", total / pr["total"], "USD/person",
                         year, sid, is_est=1,
-                        note="formula: %s / HUD PIT %d count for CoC %s (%s people)"
-                             % (metric, pr["year"], pop_row["coc_num"], f"{pr['total']:,}"))
+                        note=f"formula: {metric} ({city}, ${total:,.0f}) / HUD PIT {pr['year']} count "
+                             f"for CoC {j['coc_num']} ({pr['total']:,} people)")
         _commit(conn)
-        stats["city_rows"] += 1
-        stats["cities"].append(city)
-
-
-# ---------------------------------------------------------------------------
-# 4. HUD new awards in FY2024 to local governments (cities / counties).
-#    The `award` table in this atlas has place_city empty for these CDFAs, so
-#    the recipient name is matched against geo_city instead; only the largest
-#    page of awards per program is read, so this is a floor, not a total.
-# ---------------------------------------------------------------------------
-SPENDING_BY_AWARD = "https://api.usaspending.gov/api/v2/search/spending_by_award/"
-LOCAL_GOV = re.compile(r"\b(CITY|COUNTY|BOROUGH|MUNICIPAL|GOVERNMENT|TOWN|VILLAGE|PARISH)\b")
-
-
-def _city_awards(conn, stats):
-    fy, start, end = FYS[0]
-    per = {}   # (etype, canonical name, state) -> amount
-    sid = None
-    for cfda in ("14.231", "14.267"):
-        payload = {
-            "filters": {"program_numbers": [cfda],
-                        "time_period": [{"start_date": start, "end_date": end,
-                                         "date_type": "new_awards_only"}],
-                        "award_type_codes": ["02", "03", "04", "05"]},
-            "fields": ["Award ID", "Recipient Name", "Award Amount", "Description",
-                       "Start Date", "Place of Performance State Code"],
-            "page": 1, "limit": 100, "sort": "Award Amount", "order": "desc", "subawards": False,
-        }
-        try:
-            j = fetch_post_json(SPENDING_BY_AWARD, payload, domain=DOMAIN, retries=3, timeout=240)
-        except Exception as e:
-            stats["notes"].append(f"local-government awards {cfda}: {repr(e)[:140]}")
-            continue
-        sid = _source(conn, SPENDING_BY_AWARD,
-                      title="USASpending.gov API v2 spending_by_award (HUD ESG + CoC new awards, FY2024, local-government recipients)",
-                      publisher="U.S. Department of the Treasury, Bureau of the Fiscal Service",
-                      license="US Government work, public domain", method="POST")
-        stats["award_calls"] += 1
-        for r in j.get("results", []):
-            st = clean(r.get("Place of Performance State Code"))
-            rn = (clean(r.get("Recipient Name")) or "").upper()
-            amt = r.get("Award Amount")
-            if not st or not rn or amt is None or not LOCAL_GOV.search(rn):
-                continue
-            hit = _match_locality(conn, rn, st)
-            if not hit:
-                continue
-            key = (hit[0], hit[1], hit[2], st)
-            per[key] = per.get(key, 0.0) + float(amt)
-
-    n = 0
-    for (etype, name, geoid, st), total in sorted(per.items(), key=lambda kv: -kv[1]):
-        eid = geoid or name
-        _metric(conn, etype, eid, "hud_new_awards_fy2024", total, "USD", fy, sid,
-                note="formula: sum of HUD ESG (14.231) + CoC (14.267) awards first created in FY%d whose "
-                     "recipient name is this local government (%s, %s), top 100 awards by amount per program "
-                     "(USASpending spending_by_award); matched on recipient name, not place of performance"
-                     % (fy, name, st))
-        n += 1
-        row = conn.execute(
-            "SELECT pop, coc_num FROM geo_city WHERE geoid=? ORDER BY pop DESC LIMIT 1", (eid,)).fetchone()
-        if row and row["pop"]:
-            _metric(conn, etype, eid, "hud_new_awards_fy2024_per_capita", total / row["pop"], "USD/person",
-                    fy, sid, is_est=1,
-                    note="formula: HUD ESG+CoC FY%d new awards to this local government / %s residents "
-                         "(Census place/county population in geo_city)" % (fy, f"{row['pop']:,}"))
-        if row and row["coc_num"]:
-            pr = conn.execute("SELECT year,total FROM pit WHERE coc_num=? AND total IS NOT NULL AND total>0 "
-                              "ORDER BY year DESC LIMIT 1", (row["coc_num"],)).fetchone()
-            if pr:
-                _metric(conn, etype, eid, "hud_new_awards_fy2024_per_homeless", total / pr["total"],
-                        "USD/person", fy, sid, is_est=1,
-                        note="formula: HUD ESG+CoC FY%d new awards to this local government / HUD PIT %d count "
-                             "for CoC %s (%s people)" % (fy, pr["year"], row["coc_num"], f"{pr['total']:,}"))
-    _commit(conn)
-    stats["local_gov_rows"] = n
-    return n
-
-
-def _match_locality(conn, recipient_upper, state):
-    """Longest geo_city name (place or county) that appears in the recipient name."""
-    best = None
-    for r in conn.execute(
-            "SELECT geoid,kind,name,pop FROM geo_city WHERE state=? AND kind IN ('place','county') "
-            "AND pop IS NOT NULL AND pop > 40000", (state,)):
-        nm = (r["name"] or "").upper()
-        if len(nm) < 5:
-            continue
-        if re.search(r"(^|[^A-Z])" + re.escape(nm) + r"([^A-Z]|$)", recipient_upper):
-            if best is None or (r["pop"] or 0) > best[3]:
-                best = ("county" if r["kind"] == "county" else "city", r["name"], r["geoid"], r["pop"] or 0)
-    return (best[0], best[1], best[2]) if best else None
+        stats["cities"].append(f"{city} {year} ${total:,.0f} ({kept} lines)")
 
 
 # ---------------------------------------------------------------------------
 def run(conn, cfg=None):
     cfg = cfg or {}
+    t0 = time.time()
     _ensure(conn)
-    _x(conn, "DELETE FROM metric WHERE (metric LIKE 'city\\_homelessness%' ESCAPE '\\' "
-             "OR metric LIKE 'county\\_homelessness%' ESCAPE '\\' "
-             "OR metric LIKE 'hud\\_new\\_awards%' ESCAPE '\\') AND entity_id NOT GLOB '[0-9]*'")
+    # rows this domain wrote on an earlier (possibly interrupted) run are rebuilt
+    _x(conn, r"DELETE FROM metric WHERE metric LIKE 'hud\_%' ESCAPE '\' "
+             r"OR metric LIKE 'award\_hud\_%' ESCAPE '\' "
+             r"OR metric LIKE 'city\_homelessness\_%' ESCAPE '\' "
+             r"OR metric LIKE 'county\_homelessness\_%' ESCAPE '\' "
+             r"OR metric LIKE 'state\_homelessness\_%' ESCAPE '\'")
     _commit(conn)
-    stats = dict(notes=[], federal_state_calls=0, federal_state_rows=0, state_metric_rows=0,
-                 federal_county_calls=0, coc_rows=0, coc_county_match=(0, 0), city_rows=0, cities=[],
-                 award_calls=0, local_gov_rows=0)
 
-    _state_federal(conn, stats)
-    _mark(conn, "state_federal", f"{stats['state_metric_rows']} state-year totals")
+    stats = dict(notes=[], geo_calls=0, geo_state_rows=0, award_states=0, award_rows=0,
+                 coc_county_rows=0, coc_county_match=(0, 0), coc_award_rows=0,
+                 state_own=[], cities=[])
+
+    latest = _state_from_award(conn, stats)
+    _mark(conn, "state_from_award", f"{stats['award_states']} states, {len(latest)} state-year totals")
+
+    _state_geo(conn, stats)
+    _mark(conn, "state_geo", f"{stats['geo_state_rows']} state-year totals from geography API")
 
     _coc_from_county(conn, stats)
-    _mark(conn, "coc_county", f"{stats['coc_rows']} CoCs, matched {stats['coc_county_match'][0]}/{stats['coc_county_match'][1]} county rows")
+    _mark(conn, "coc_from_county",
+          f"{stats['coc_county_rows']} CoCs, matched {stats['coc_county_match'][0]}/{stats['coc_county_match'][1]} county rows")
+
+    _coc_from_award(conn, stats)
+    _mark(conn, "coc_from_award", f"{stats['coc_award_rows']} CoC-fiscal-year totals")
+
+    _state_own(conn, stats)
+    _mark(conn, "state_own", "; ".join(stats["state_own"]) or "none")
 
     _city_budgets(conn, stats)
-    _mark(conn, "city_budgets", f"{stats['city_rows']} cities: {', '.join(stats['cities'])}")
-
-    _city_awards(conn, stats)
-    _mark(conn, "city_awards", f"{stats['local_gov_rows']} local governments")
+    _mark(conn, "city_budgets", f"{len(stats['cities'])} jurisdictions")
 
     _commit(conn)
-    rows = WROTE[0]
-    notes = ("state=federal obligations per state/FY (HUD ESG/CoC/YHDP/HOPWA via USASpending), "
-             f"coc={stats['coc_rows']} (county-attributed, matched {stats['coc_county_match'][0]}/"
-             f"{stats['coc_county_match'][1]} county rows), city={stats['city_rows']} "
-             f"({', '.join(stats['cities'])}), local_gov_awards={stats['local_gov_rows']}; "
-             f"calls: state={stats['federal_state_calls']} county={stats['federal_county_calls']} "
-             f"awards={stats['award_calls']}; "
-             + ("; ".join(stats["notes"])[:600] if stats["notes"] else "no source failures"))
-    return {"rows": rows, "notes": notes,
-            "sources": [(USASPENDING_GEO, "US Government work, public domain")]}
+    geo_states = conn.execute(
+        "SELECT COUNT(DISTINCT entity_id) FROM metric WHERE metric='hud_homeless_obligated_total'"
+    ).fetchone()[0]
+    city_n = conn.execute(
+        "SELECT COUNT(DISTINCT entity_id) FROM metric WHERE metric LIKE 'city_homelessness%' "
+        "OR metric LIKE 'county_homelessness%'").fetchone()[0]
+    notes = (f"states with federal figure: award-table={stats['award_states']}, "
+             f"geography-api={geo_states}; jurisdiction budgets={city_n}; "
+             f"coc: county-attributed={stats['coc_county_rows']} "
+             f"(matched {stats['coc_county_match'][0]}/{stats['coc_county_match'][1]} county rows), "
+             f"award-attributed={stats['coc_award_rows']}; "
+             f"state own budgets: {'; '.join(stats['state_own']) or 'none'}; "
+             f"city/county budgets: {len(stats['cities'])} ({'; '.join(stats['cities'])}); "
+             f"calls: geo={stats['geo_calls']}; "
+             + ("; ".join(stats["notes"])[:700] if stats["notes"] else "no source failures"))
+    return {"rows": WRITE_COUNT[0], "notes": notes,
+            "sources": [(USA_GEO, LIC_FED), (USA_AWARD, LIC_FED)]}
 
 
 def selftest():
     from ingest.common import db
     conn = db()
-    print("[budgets] metric rows by metric (top 20):")
-    for r in conn.execute("""SELECT metric, COUNT(*) n, ROUND(SUM(value)) total, MIN(year) y0, MAX(year) y1
-                               FROM metric WHERE metric LIKE 'hud%' OR metric LIKE 'city%'
-                              GROUP BY metric ORDER BY n DESC LIMIT 20"""):
+    print("[budgets] metric rows by name:")
+    for r in conn.execute("""SELECT metric, COUNT(*) n, COUNT(DISTINCT entity_id) ids,
+                                    ROUND(SUM(value)) total, MIN(year) y0, MAX(year) y1
+                               FROM metric
+                              WHERE metric LIKE 'hud%' OR metric LIKE 'award_hud%'
+                                 OR metric LIKE 'city_homelessness%' OR metric LIKE 'county_homelessness%'
+                                 OR metric LIKE 'state_homelessness%'
+                              GROUP BY metric ORDER BY n DESC"""):
         print("   ", dict(r))
-    print("[budgets] sample state rows:")
-    for r in conn.execute("""SELECT * FROM metric WHERE entity_type='state' AND metric LIKE 'hud%'
-                             ORDER BY RANDOM() LIMIT 3"""):
+    print("[budgets] 3 sample state rows:")
+    for r in conn.execute("""SELECT * FROM metric WHERE entity_type='state'
+                              AND (metric LIKE 'award_hud%' OR metric LIKE 'state_homelessness%')
+                              ORDER BY RANDOM() LIMIT 3"""):
         print("   ", dict(r))
-    print("[budgets] sample city rows:")
+    print("[budgets] 3 sample city rows:")
     for r in conn.execute("""SELECT * FROM metric WHERE metric LIKE 'city_homelessness%'
-                             OR metric LIKE 'county_homelessness%' OR metric LIKE 'hud_new_awards%'
-                             ORDER BY RANDOM() LIMIT 3"""):
+                                OR metric LIKE 'county_homelessness%' ORDER BY RANDOM() LIMIT 3"""):
         print("   ", dict(r))
     print("[budgets] city line detail:")
-    for r in conn.execute("SELECT city, fy, label, amount FROM budgets_city_line ORDER BY city, amount DESC LIMIT 8"):
+    for r in conn.execute("SELECT entity, fy, label, amount FROM budgets_city_line ORDER BY entity LIMIT 12"):
         print("   ", dict(r))
 
 

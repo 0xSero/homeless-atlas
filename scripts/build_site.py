@@ -24,6 +24,7 @@ FAST = "--fast" in sys.argv
 NOW = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
 CITY_PAGE_MIN_POP = 25_000
+PERSON_OK = set()   # slugs that actually have a page
 ORG_PAGE_MAX = 30_000
 PERSON_PAGE_MAX = 25_000
 
@@ -1378,7 +1379,8 @@ def page_org(d, o, manifest_total):
            esc((a.get("description") or "")[:120]), "", a.get("description") or "",
            money(a.get("amount_obligated")), "r", a.get("amount_obligated") or 0,
            str(a.get("pop_start") or "")[:10], "", a.get("pop_start") or ""] for a in awards]
-    prow = [[f'<a href="/person/{person_slug(p)}.html">{esc(p["person"])}</a>', "", p["person"],
+    prow = [[(f'<a href="/person/{person_slug(p)}.html">{esc(p["person"])}</a>' if person_slug(p) in PERSON_OK
+              else esc(p["person"])), "", p["person"],
              esc(p.get("title") or ""), "", p.get("title") or "", num(p.get("comp")), "r", p.get("comp") or 0,
              yr(p.get("year")), "r", p.get("year") or 0] for p in people]
     tot = sum(a.get("amount_obligated") or 0 for a in awards)
@@ -1510,7 +1512,7 @@ def save_baseline(counts: dict):
 
 
 def main():
-    global CONN, SITE
+    global CONN, SITE, PERSON_OK
     if "--out" in sys.argv:
         SITE = Path(sys.argv[sys.argv.index("--out") + 1]).resolve()
         print(f"building into {SITE}")
@@ -1542,6 +1544,7 @@ def main():
     for f in ("atlas.css", "app.js"):
         shutil.copy(SRC / f, SITE / "assets" / f)
 
+    PERSON_OK = {person_slug(p) for p in d["people_top"][:PERSON_PAGE_MAX]}
     geo_counts = build_exports(d, CONN)
     total, manifest = build_index(d)
     (SITE / "data" / "manifest.json").write_text(json.dumps({"total": total, "at": NOW, "rows": counts}))
