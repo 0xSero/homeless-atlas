@@ -379,29 +379,35 @@ def national_pdf_totals(year: int):
         return {}
     if not txt:
         return {}
-    want = {
-        "Total Homeless Persons": "pit_total_hud_published",
-        "Total Homeless Households": "pit_households",
-        "Chronically Homeless": "pit_chronic",
-        "Severely Mentally Ill": "pit_smi",
-        "Chronic Substance Abuse": "pit_sud",
-        "Veterans": "pit_veterans",
-        "HIV/AIDS": "pit_hiv",
-        "Victims of Domestic Violence": "pit_dv",
-    }
+    # HUD changed the wording between the 2007-2012 and 2013+ report layouts.
+    want = [
+        (("Total Homeless Persons in Households", "Total Homeless Persons"),
+         "pit_total_hud_published"),
+        (("Total Homeless Households", "Total Households"), "pit_households"),
+        (("Chronically Homeless",), "pit_chronic"),
+        (("Severely Mentally Ill",), "pit_smi"),
+        (("Chronic Substance Abuse",), "pit_sud"),
+        (("Veterans",), "pit_veterans"),
+        (("Persons with HIV/AIDS", "HIV/AIDS"), "pit_hiv"),
+        (("Victims of Domestic Violence",), "pit_dv"),
+    ]
     out = {}
     for line in txt.splitlines():
         s = line.strip()
-        for label, metric in want.items():
-            if not s.startswith(label):
+        for labels, metric in want:
+            if metric in out:
                 continue
-            rest = s[len(label):]
-            if label == "Chronically Homeless" and rest[:1].isalpha():
-                continue                      # 'Chronically Homeless Individuals' etc.
-            nums = re.findall(r"[\d,]{1,12}", rest)
-            nums = [int(x.replace(",", "")) for x in nums if x.strip(",")]
-            if nums and metric not in out:
-                out[metric] = nums[-1]        # last column is always 'Total'
+            for label in labels:
+                if not s.startswith(label):
+                    continue
+                rest = s[len(label):]
+                if metric == "pit_chronic" and re.match(r"\s+[A-Za-z]", rest):
+                    break                     # 'Chronically Homeless Individuals' etc.
+                nums = re.findall(r"[\d,]{1,12}", rest)
+                nums = [int(x.replace(",", "")) for x in nums if x.strip(",")]
+                if len(nums) >= 2:
+                    out[metric] = nums[-1]    # last column is always 'Total'
+                break
     return out
 
 
@@ -569,7 +575,7 @@ def run(conn, cfg):
                             publisher="HUD", license=HUD_LICENSE)
     sources.append((URL_POPSUB_NAT.format(year=2007), HUD_LICENSE))
     pdf_years = []
-    for y in range(2007, 2015):
+    for y in range(2007, (max(years) if years else 2025) + 1):
         vals = national_pdf_totals(y)
         if not vals:
             continue

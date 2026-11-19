@@ -51,6 +51,15 @@ def money(v, dash="—"):
             return f"${v/div:,.2f}{suf}"
     return f"${v:,.0f}"
 
+def rate(v, d=1, dash="—"):
+    if v is None:
+        return dash
+    try:
+        return f"{float(v):.{d}f}"
+    except (TypeError, ValueError):
+        return esc(v)
+
+
 def pct(v, d=1, dash="—"):
     if v is None:
         return dash
@@ -422,7 +431,7 @@ def build_index(d):
         idx.append([t, title or "", sub or "", url])
 
     for s in d["states"]:
-        add("state", s["name"], f"{num(s['pit'])} homeless · {pct(s['rate'])} per 10k", f"/state/{s['abbr']}.html")
+        add("state", s["name"], f"{num(s['pit'])} homeless · {rate(s['rate'])} per 10k", f"/state/{s['abbr']}.html")
     for c in d["cocs"]:
         add("coc", f"{c['coc_num']} {c.get('name') or ''}", f"CoC · {num(c.get('pit_total'))} homeless ({(c.get('pit_year') or '—')})", f"/coc/{c['coc_num']}.html")
     for c in d["cities"]:
@@ -492,7 +501,7 @@ def page_index(d, manifest_total):
     ])
     top_states = [s for s in d["states"] if s["pit"]][:15]
     rows = [[f'<a href="/state/{s["abbr"]}.html">{esc(s["name"])}</a>', "", s["name"],
-             num(s["pit"]), "r", s["pit"] or 0, pct(s["rate"], 2), "r", s["rate"] or 0,
+             num(s["pit"]), "r", s["pit"] or 0, rate(s["rate"], 2), "r", s["rate"] or 0,
              pct(s["unshel_share"]), "r", s["unshel_share"] or 0, money(s["award"]), "r", s["award"] or 0] for s in top_states]
     top_orgs = d["top_orgs"][:20]
     orows = [[f'<a href="/org/{o["id"]}-{slug(o["name"])}.html">{esc(o["name"])[:80]}</a>', "", o["name"],
@@ -1005,7 +1014,7 @@ def page_state(d, s, manifest_total):
     lrow = [[esc((l.get("topic") or "").replace("_", " ")), "", l.get("topic") or "",
              f'<a href="{esc(l.get("url") or "#")}" rel="noopener">{esc(l.get("title") or l.get("citation") or "")}</a>', "",
              l.get("title") or "", esc(l.get("status") or ""), "", l.get("status") or ""] for l in laws[:200]]
-    body = banner(s["name"], f'{num(s["pit"])} people homeless · {pct(s["rate"], 1)} per 10,000',
+    body = banner(s["name"], f'{num(s["pit"])} people homeless · {rate(s["rate"], 1)} per 10,000',
                   f'Population {num(s["pop"])} · unsheltered share {pct(s["unshel_share"])} · '
                   f'{money(s["award"])} in federal awards · {num(s["orgs"])} organizations',
                   crumbs=f'<a href="/index.html">Atlas</a> / <a href="/states.html">States</a> / {esc(s["name"])}', small=True) + f"""

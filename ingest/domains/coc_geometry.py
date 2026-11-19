@@ -37,8 +37,10 @@ from __future__ import annotations
 import io
 import json
 import math
+import sqlite3
 import struct
 import sys
+import time
 import zipfile
 from pathlib import Path
 
@@ -82,6 +84,35 @@ STATE_EXPORT_BUDGET = 1_800_000
 TOL_LADDER = [0.004, 0.006, 0.008, 0.012, 0.016, 0.024, 0.032, 0.05, 0.08]
 
 SQ_M_PER_SQ_MI = 2589988.110336
+
+
+# --------------------------------------------------------------------------- #
+# write helpers — other workers share data/atlas.db, so retry on SQLITE_BUSY
+# --------------------------------------------------------------------------- #
+def _retry(fn, attempts=10):
+    last = None
+    for i in range(attempts):
+        try:
+            return fn()
+        except sqlite3.OperationalError as e:
+            msg = str(e).lower()
+            if "locked" not in msg and "busy" not in msg:
+                raise
+            last = e
+            time.sleep(1.0 + 1.5 * i)
+    raise last
+
+
+def _upsert(conn, table, row, keys):
+    _retry(lambda: upsert(conn, table, row, keys))
+
+
+def _commit(conn):
+    _retry(lambda: conn.commit())
+
+
+def _exec(conn, sql, params=()):
+    return _retry(lambda: conn.execute(sql, params))
 
 
 # --------------------------------------------------------------------------- #
@@ -411,24 +442,24 @@ def _rings_to_geometry(rings):
 # progress bookkeeping (resumability)
 # --------------------------------------------------------------------------- #
 def _ensure(conn):
-    conn.execute("""CREATE TABLE IF NOT EXISTS coc_geometry_page(
+    _exec(conn, """CREATE TABLE IF NOT EXISTS coc_geometry_page(
         page_offset INTEGER PRIMARY KEY,
         n_feat INTEGER,
         n_points INTEGER,
         url TEXT,
         done_at TEXT)""")
-    conn.execute("""CREATE TABLE IF NOT EXISTS coc_geometry_progress(
+    _exec(conn, """CREATE TABLE IF NOT EXISTS coc_geometry_progress(
         step TEXT PRIMARY KEY,
         value TEXT,
         done_at TEXT)""")
-    conn.commit()
+    _commit(conn)
 
 
 def _mark(conn, step, value=""):
-    conn.execute("""INSERT INTO coc_geometry_progress(step,value,done_at) VALUES(?,?,?)
+    _exec(conn, """INSERT INTO coc_geometry_progress(step,value,done_at) VALUES(?,?,?)
                     ON CONFLICT(step) DO UPDATE SET value=excluded.value, done_at=excluded.done_at""",
-                 (step, str(value), now()))
-    conn.commit()
+          (step, str(value), now()))
+    _commit(conn)
 
 
 def _done(conn, step):
@@ -471,12 +502,12 @@ def _fetch_coc(conn, max_pages=None):
         page_feats = j.get("features") or []
         save_raw(DOMAIN, f"coc_page_{offset:04d}.json", raw)
         npts = sum(_count_points(f.get("geometry")) for f in page_feats)
-        conn.execute("""INSERT INTO coc_geometry_page(page_offset,n_feat,n_points,url,done_at)
+        _exec(conn, """INSERT INTO coc_geometry_page(page_offset,n_feat,n_points,url,done_at)
                         VALUES(?,?,?,?,?)
                         ON CONFLICT(page_offset) DO UPDATE SET n_feat=excluded.n_feat,
                           n_points=excluded.n_points, url=excluded.url, done_at=excluded.done_at""",
-                     (offset, len(page_feats), npts, url, now()))
-        conn.commit()
+              (offset, len(page_feats), npts, url, now()))
+        _commit(conn)
         src = source_id_for(conn, url, DOMAIN, title=f"{HUD_TITLE} — features {offset}-{offset + PAGE - 1}",
                             publisher=HUD_PUBLISHER, license=HUD_LICENSE)
         for f in page_feats:
@@ -562,7 +593,7 @@ def _census_states(conn, tol):
         lat, lon = _center_largest(geom) if geom else (None, None)
         aland = a.get("ALAND")
         land_sqmi = round(aland / SQ_M_PER_SQ_MI, 1) if isinstance(aland, (int, float)) else None
-        upsert(conn, "geo_state", {
+        _upsert(conn, "geo_state", {
             "fips": fips, "abbr": abbr, "name": name,
             "pop": pop["state"].get(fips),
             "lat": lat, "lon": lon, "land_sqmi": land_sqmi,
@@ -573,7 +604,7 @@ def _census_states(conn, tol):
                 "fips": fips, "abbr": abbr, "name": name,
                 "pop": pop["state"].get(fips), "land_sqmi": land_sqmi},
                 "geometry": _round_geom(sg)})
-    conn.commit()
+    _commit(conn)
     return feats, src_state, rows
 
 
@@ -714,7 +745,7 @@ def _census_places(conn, coc_geoms):
         lon = g[1] if g else None
         p = pop["place"].get(geoid)
         coc_num = match_coc(lon, lat) if lat is not None else None
-        upsert(conn, "geo_city", {
+        _upsert(conn, "geo_city", {
             "geoid": geoid, "kind": "place", "name": name, "state": st,
             "pop": p, "lat": lat, "lon": lon, "coc_num": coc_num,
             "source_id": src_place,
@@ -723,7 +754,7 @@ def _census_places(conn, coc_geoms):
         n_pop += 1 if p is not None else 0
         n_pt += 1 if lat is not None else 0
         n_coc += 1 if coc_num else 0
-    conn.commit()
+    _commit(conn)
     print(f"[{DOMAIN}] places={n} with_pop={n_pop} with_point={n_pt} with_coc={n_coc}")
     return {"places": n, "with_pop": n_pop, "with_point": n_pt, "with_coc": n_coc,
             "source_id": src_place}
@@ -734,6 +765,7 @@ def _census_places(conn, coc_geoms):
 # --------------------------------------------------------------------------- #
 def run(conn, cfg):
     cfg = cfg or {}
+    _exec(conn, "PRAGMA busy_timeout=60000")
     _ensure(conn)
     EXPORT.mkdir(parents=True, exist_ok=True)
     max_pages = cfg.get("max_pages")
@@ -755,7 +787,7 @@ def run(conn, cfg):
         geom = rec["geom"]
         lat, lon = _center_largest(geom)
         state = (coc_num.split("-")[0] or None)
-        upsert(conn, "geo_coc", {
+        _upsert(conn, "geo_coc", {
             "coc_num": coc_num,
             "name": clean(props.get("COCNAME")),
             "state": state,
@@ -766,7 +798,7 @@ def run(conn, cfg):
         }, keys=["coc_num"])
         coc_geoms[coc_num] = geom
         coc_rows += 1
-    conn.commit()
+    _commit(conn)
     _mark(conn, "cocs", coc_rows)
     print(f"[{DOMAIN}] geo_coc rows written: {coc_rows} (service total {total})")
 

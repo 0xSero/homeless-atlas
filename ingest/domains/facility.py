@@ -97,6 +97,8 @@ def _num(v):
     """HIFLD uses -999 / 'NOT AVAILABLE' for missing values."""
     if v is None:
         return None
+    if isinstance(v, float) and math.isnan(v):
+        return None
     if isinstance(v, (int, float)):
         n = int(v)
         return None if n <= -900 else (n or None)
