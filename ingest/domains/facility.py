@@ -207,6 +207,28 @@ def _state_from_label(label: str | None):
     return None
 
 
+def _us_coords(lat, lon):
+    """Reject coordinates outside US states/territories (bad infobox/coord parses)."""
+    if lat is None or lon is None:
+        return None, None
+    try:
+        lat, lon = float(lat), float(lon)
+    except (TypeError, ValueError):
+        return None, None
+    boxes = [
+        (24.0, 50.0, -125.5, -66.0),      # contiguous US
+        (51.0, 72.0, -180.0, -129.0),     # Alaska
+        (18.5, 22.5, -161.0, -154.0),     # Hawaii
+        (17.5, 18.6, -68.0, -65.0),       # Puerto Rico / USVI
+        (13.0, 21.0, 144.0, 146.2),       # Guam / CNMI
+        (-15.0, -13.0, -171.5, -170.0),   # American Samoa
+    ]
+    for la0, la1, lo0, lo1 in boxes:
+        if la0 <= lat <= la1 and lo0 <= lon <= lo1:
+            return lat, lon
+    return None, None
+
+
 def _km(a, b, c, d):
     return math.hypot((a - c) * 111.0, (b - d) * 111.0 * math.cos(math.radians(a)))
 
@@ -311,6 +333,8 @@ def hifld_records(conn):
         lon = g.get("x") if g else None
         typ = (a.get("TYPE") or "").upper()
         kind = "jail" if typ in ("COUNTY", "LOCAL") else "prison"
+        if re.search(r"psychiatric|mental health|state hospital", (a.get("NAME") or ""), re.I):
+            kind = "state_psychiatric"
         status = {"OPEN": "open", "CLOSED": "closed"}.get((a.get("STATUS") or "").upper(), "unknown")
         vintage = _year(a.get("VAL_DATE")) or _year(a.get("SOURCEDATE"))
         cap = _num(a.get("CAPACITY"))
@@ -426,7 +450,7 @@ WHERE {{
             coord = r.get("coord") or ""
             m = re.match(r"Point\(([-\d.]+) ([-\d.]+)\)", coord)
             if m:
-                lon, lat = float(m.group(1)), float(m.group(2))
+                lat, lon = _us_coords(m.group(2), m.group(1))
             opened = _year(r.get("incep"))
             closed = _year(r.get("diss"))
             status = "closed" if closed else ("open" if opened else "unknown")
@@ -638,11 +662,11 @@ def record_from_page(conn, page, hint):
                 if state:
                     break
 
-    lat, lon = page.get("lat"), page.get("lon")
+    lat, lon = _us_coords(page.get("lat"), page.get("lon"))
     if lat is None:
         cm = re.search(r"\{\{\s*coord\s*\|\s*([-\d.]+)\s*\|\s*([-\d.]+)", wt, re.I)
         if cm:
-            lat, lon = float(cm.group(1)), float(cm.group(2))
+            lat, lon = _us_coords(cm.group(1), cm.group(2))
 
     status = None
     if closed:
@@ -1158,14 +1182,21 @@ def run(conn, cfg):
     for rec in merger.recs.values():
         if rec.get("kind") != "state_psychiatric":
             continue
-        op = f"{rec.get('operator') or ''} {rec.get('owner') or ''}".lower()
+        op = f"{rec.get('operator') or ''} {rec.get('owner') or ''}".strip()
+        opl = op.lower()
         gov = bool(re.search(r"state|county|city|federal|govern|department|commonwealth|"
-                             r"district|authority|university|veterans", op))
-        if not gov and rec.get("status") != "closed" and not rec.get("closed"):
+                             r"district|authority|university|veterans|health system|hospital "
+                             r"district", opl))
+        if op and not gov and rec.get("status") != "closed" and not rec.get("closed"):
+            # affirmative evidence of a non-government operator: not a state hospital
             rec["kind"] = "other"
             rec.setdefault("notes", []).append(
-                "no government operator identified in the sources and not recorded as closed: "
-                "classified 'other' (not a state psychiatric hospital)")
+                f"operator/owner recorded as '{op}' (not a government entity) and the facility is "
+                "not recorded as closed: classified 'other', not a state psychiatric hospital")
+        elif not op and not re.search(r"\bstate\b", rec.get("name") or "", re.I):
+            rec.setdefault("notes", []).append(
+                "type classified from the Wikidata class / Wikipedia category; the sources record "
+                "no operator or owner for this facility")
 
     # 6. write facilities ----------------------------------------------------------------
     ids = {}

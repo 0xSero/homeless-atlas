@@ -538,6 +538,10 @@ def _run(conn, cfg):
     src_census = source_id_for(conn, URL_SUBEST, DOMAIN,
                                title="Population Estimates, July 1 2024 (sub-county, vintage 2024)",
                                publisher="US Census Bureau", license=CENSUS_LICENSE)
+    for kind in ("place", "counties", "state"):    # register the gazetteers too
+        source_id_for(conn, URL_GAZ.format(kind=kind), DOMAIN,
+                      title=f"2024 Census Gazetteer ({kind}, national)",
+                      publisher="US Census Bureau", license=CENSUS_LICENSE)
     for u in (URL_SUBEST, URL_GAZ.format(kind="place"),
               URL_GAZ.format(kind="counties"), URL_GAZ.format(kind="state")):
         sources.append((u, CENSUS_LICENSE))

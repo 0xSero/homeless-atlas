@@ -493,11 +493,20 @@ def build_index(d):
                        ("/report/san-francisco.html", "San Francisco brief")]:
         add("page", n, "section", u)
 
-    # shard by first alnum char of title
+    # Shard by the first letter of EVERY significant word in the title and subtitle, so a
+    # substring search like "housing clinic" finds "Tenderloin Housing Clinic" — sharding by the
+    # first character of the title alone silently missed every multi-word query.
     shards = defaultdict(list)
     for row in idx:
-        k = re.sub(r"[^a-z0-9]", "", row[1].lower())[:1] or "_"
-        shards[k].append(row)
+        keys = set()
+        for field in (row[1], row[2]):
+            for tok in re.findall(r"[a-z0-9]+", (field or "").lower()):
+                if len(tok) >= 2 or tok.isdigit():
+                    keys.add(tok[0])
+        if not keys:
+            keys.add("_")
+        for k in keys:
+            shards[k].append(row)
     out = SITE / "data" / "idx"
     if out.exists():
         shutil.rmtree(out)

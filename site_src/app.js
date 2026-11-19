@@ -8,8 +8,8 @@
      data/idx/manifest.json -> {shards:{a:1234,...}, total:n}
      data/idx/<char>.json  -> [[type,title,sub,url], ...]                          */
   function shardKey(q) {
-    var c = lc(q).replace(/[^a-z0-9]/g, "").charAt(0);
-    return c || "_";
+    var m = lc(q).match(/[a-z0-9]/);
+    return m ? m[0] : "_";
   }
   function loadShard(k, cb) {
     if (cache[k]) return cb(cache[k]);
@@ -19,12 +19,16 @@
     }).then(function (j) { cache[k] = j; cb(j); }).catch(function () { cache[k] = []; cb([]); });
   }
   function score(item, q) {
-    var t = lc(item[1]), s = lc(item[2] || "");
-    if (t === q) return 1000;
-    if (t.indexOf(q) === 0) return 800 - t.length;
-    if (t.indexOf(q) > 0) return 600 - t.indexOf(q);
-    if (s.indexOf(q) >= 0) return 300;
-    return 0;
+    /* every whitespace-separated token of the query must appear somewhere in the record */
+    var t = lc(item[1]), s = lc(item[2] || ""), hay = t + " " + s;
+    var toks = q.split(/\s+/).filter(Boolean);
+    for (var i = 0; i < toks.length; i++) if (hay.indexOf(toks[i]) < 0) return 0;
+    if (t === q) return 2000;
+    if (t.indexOf(q) === 0) return 1500 - t.length;
+    if (t.indexOf(q) > 0) return 1200 - t.indexOf(q);
+    if (t.indexOf(toks[0]) === 0) return 900 - t.length;
+    if (s.indexOf(q) >= 0) return 600;
+    return 200;
   }
   function doSearch(q, cb) {
     q = lc(q).trim();
