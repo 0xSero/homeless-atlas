@@ -89,7 +89,7 @@ SQ_M_PER_SQ_MI = 2589988.110336
 # --------------------------------------------------------------------------- #
 # write helpers — other workers share data/atlas.db, so retry on SQLITE_BUSY
 # --------------------------------------------------------------------------- #
-def _retry(fn, attempts=10):
+def _retry(fn, attempts=40):
     last = None
     for i in range(attempts):
         try:
@@ -99,7 +99,7 @@ def _retry(fn, attempts=10):
             if "locked" not in msg and "busy" not in msg:
                 raise
             last = e
-            time.sleep(1.0 + 1.5 * i)
+            time.sleep(min(5.0, 0.5 + 0.5 * i))
     raise last
 
 
@@ -770,7 +770,7 @@ def _census_places(conn, coc_geoms):
 # --------------------------------------------------------------------------- #
 def run(conn, cfg):
     cfg = cfg or {}
-    _exec(conn, "PRAGMA busy_timeout=60000")
+    _exec(conn, "PRAGMA busy_timeout=600000")
     _ensure(conn)
     EXPORT.mkdir(parents=True, exist_ok=True)
     max_pages = cfg.get("max_pages")
@@ -784,6 +784,30 @@ def run(conn, cfg):
 
     coc_geoms = {}
     coc_rows = 0
+    # ---- CoC export (filesystem only; written before any DB write so a locked
+    #      shared DB cannot leave the exports stale) --------------------------
+    coc_feats = []
+    for rec in simplified:
+        props = rec["props"]
+        coc_num = clean(props.get("COCNUM"))
+        if not coc_num:
+            continue
+        coc_feats.append({"type": "Feature", "properties": {
+            "coc_num": coc_num,
+            "name": clean(props.get("COCNAME")),
+            "state": coc_num.split("-")[0],
+            "geo_type": clean(props.get("Geo_Type")),
+        }, "geometry": _round_geom(rec["geom"])})
+    # a --selftest run only has PAGE features; never let it clobber the real export
+    coc_path = EXPORT / "coc.geojson" if not max_pages else (
+        ROOT / "data" / "raw" / DOMAIN / "_tmp" / "coc.selftest.geojson")
+    coc_text = json.dumps({"type": "FeatureCollection",
+                           "name": "HUD CoC boundaries FY2024 (simplified)",
+                           "features": coc_feats}, separators=(",", ":"))
+    coc_path.parent.mkdir(parents=True, exist_ok=True)
+    coc_path.write_text(coc_text)
+    print(f"[{DOMAIN}] wrote {coc_path} features={len(coc_feats)} {len(coc_text)/1e6:.2f}MB")
+
     for rec in simplified:
         props = rec["props"]
         coc_num = clean(props.get("COCNUM"))
@@ -806,28 +830,6 @@ def run(conn, cfg):
     _commit(conn)
     _mark(conn, "cocs", coc_rows)
     print(f"[{DOMAIN}] geo_coc rows written: {coc_rows} (service total {total})")
-
-    # ---- CoC export -------------------------------------------------------
-    coc_feats = []
-    for rec in simplified:
-        props = rec["props"]
-        coc_num = clean(props.get("COCNUM"))
-        if not coc_num:
-            continue
-        coc_feats.append({"type": "Feature", "properties": {
-            "coc_num": coc_num,
-            "name": clean(props.get("COCNAME")),
-            "state": coc_num.split("-")[0],
-            "geo_type": clean(props.get("Geo_Type")),
-        }, "geometry": _round_geom(rec["geom"])})
-    # a --selftest run only has PAGE features; never let it clobber the real export
-    coc_path = EXPORT / "coc.geojson" if not max_pages else (
-        ROOT / "data" / "raw" / DOMAIN / "_tmp" / "coc.selftest.geojson")
-    coc_text = json.dumps({"type": "FeatureCollection",
-                           "name": "HUD CoC boundaries FY2024 (simplified)",
-                           "features": coc_feats}, separators=(",", ":"))
-    coc_path.parent.mkdir(parents=True, exist_ok=True)
-    coc_path.write_text(coc_text)
 
     # ---- states -----------------------------------------------------------
     state_feats, _src_state, state_rows = _census_states(conn, tol)

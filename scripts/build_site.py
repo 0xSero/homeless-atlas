@@ -37,7 +37,9 @@ def num(v, dash="—"):
         v = float(v)
     except (TypeError, ValueError):
         return esc(v)
-    return f"{int(round(v)):,}" if abs(v) >= 1 else f"{v:,.2f}"
+    if abs(v) < 1:
+        return f"{int(round(v)):,}" if v == int(v) else f"{v:,.2f}"
+    return f"{int(round(v)):,}"
 
 def money(v, dash="—"):
     if v is None:
@@ -109,6 +111,7 @@ def shell(rel: str, title: str, section: str, body: str, head: str = "", desc: s
 <meta property="og:title" content="{esc(title)} · Homeless Atlas">
 <meta property="og:type" content="website">
 <link rel="stylesheet" href="{rel}assets/atlas.css">
+<script src="{rel}assets/app.js"></script>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect rx='22' width='100' height='100' fill='%230b0e13'/><circle cx='50' cy='50' r='24' fill='%23ff7a45'/></svg>">
 {head}
 </head><body>
@@ -138,7 +141,6 @@ def shell(rel: str, title: str, section: str, body: str, head: str = "", desc: s
   <p class="dim" style="margin-top:14px">Every figure links to a public source. Anything marked † is derived, not published.
   Crime and health figures are area-level context — no dataset attributes an offence to a homeless person, and we never claim otherwise.</p>
 </div></footer>
-<script src="{rel}assets/app.js"></script>
 <script>
 function goSearch(e){{e.preventDefault();var v=document.getElementById('gq').value.trim();if(v)location.href='{rel}search.html?q='+encodeURIComponent(v);return false;}}
 </script>
@@ -519,7 +521,7 @@ def page_index(d, manifest_total):
                  f'<div class="legend"><span>{num(series[0]["total"])} in {series[0]["year"]}</span>'
                  f'<span>→ {num(series[-1]["total"])} in {series[-1]["year"]}</span></div></div>')
     body = banner("Public record · United States",
-                  "Every count, contract, organization and institution<br>in American homelessness",
+                  "Every count, contract, organization and institution in American homelessness",
                   "HUD point-in-time counts by Continuum of Care, federal awards down to the recipient, "
                   "IRS filings, closed and open institutions, and the law in each jurisdiction — searchable.") + f"""
 <div class="wrap">

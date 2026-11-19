@@ -103,7 +103,9 @@ FIELDS = [
 
 LIMIT = 100
 MAX_PAGES = 200          # hard cap per query
-LOCK_RETRIES = 8         # concurrent writers: other domain agents hold write locks
+LOCK_RETRIES = 10        # concurrent writers: other domain agents hold write locks
+LOCK_SLEEP = 30          # seconds between lock retries
+BUSY_TIMEOUT = 600000    # 10 min sqlite busy timeout (several agents share this DB)
 DESC_MAX = 4000          # description is truncated to this many chars
 
 PROGRESS_DDL = """
@@ -207,6 +209,23 @@ def program_names() -> dict:
     return out
 
 
+def _write(conn, sql, params=()):
+    """Execute + commit, riding out write locks held by other domain agents."""
+    for attempt in range(LOCK_RETRIES):
+        try:
+            conn.execute(sql, params)
+            conn.commit()
+            return
+        except sqlite3.OperationalError as e:
+            if "locked" not in str(e) and "busy" not in str(e):
+                raise
+            try:
+                conn.rollback()
+            except Exception:  # noqa: BLE001
+                pass
+            time.sleep(LOCK_SLEEP)
+
+
 def _money(v):
     if v is None or v == "":
         return None
@@ -230,16 +249,27 @@ def run(conn, cfg):
     selftest = bool(cfg.get("selftest"))
     max_pages = int(cfg.get("max_pages") or (1 if selftest else MAX_PAGES))
 
-    conn.execute("PRAGMA busy_timeout = 120000")
-    conn.execute(PROGRESS_DDL)
-    conn.commit()
+    conn.execute(f"PRAGMA busy_timeout = {BUSY_TIMEOUT}")
+    _write(conn, PROGRESS_DDL)
 
     pmap = program_names()
-    src_id = source_id_for(conn, SEARCH_URL, DOMAIN,
-                           title="USASpending.gov API v2 spending_by_award search",
-                           publisher="US Treasury / Bureau of the Fiscal Service",
-                           license=LICENSE)
-    conn.commit()
+    src_id = None
+    for attempt in range(LOCK_RETRIES):
+        try:
+            src_id = source_id_for(conn, SEARCH_URL, DOMAIN,
+                                   title="USASpending.gov API v2 spending_by_award search",
+                                   publisher="US Treasury / Bureau of the Fiscal Service",
+                                   license=LICENSE)
+            conn.commit()
+            break
+        except sqlite3.OperationalError as e:
+            if "locked" not in str(e) and "busy" not in str(e):
+                raise
+            try:
+                conn.rollback()
+            except Exception:  # noqa: BLE001
+                pass
+            time.sleep(LOCK_SLEEP)
 
     queries = build_queries(selftest)
     seen: set[str] = set()
@@ -258,13 +288,12 @@ def run(conn, cfg):
             continue
         if n == 0:
             zero.append(q["key"])
-            conn.execute(
+            _write(conn,
                 """INSERT INTO usaspending_progress(query_key,label,n_awards,pages_total,pages_done,done,note,updated_at)
                    VALUES(?,?,?,?,0,1,'zero results',?)
                    ON CONFLICT(query_key) DO UPDATE SET n_awards=excluded.n_awards,done=1,
                      note='zero results',updated_at=excluded.updated_at""",
                 (q["key"], q["label"], 0, 0, now()))
-            conn.commit()
             continue
 
         pages_needed = math.ceil(n / LIMIT)
@@ -285,13 +314,12 @@ def run(conn, cfg):
             if row["pages_done"]:
                 notes.append(f"{q['key']}: resuming at page {start_page}")
 
-        conn.execute(
+        _write(conn,
             """INSERT INTO usaspending_progress(query_key,label,n_awards,pages_total,pages_done,done,note,updated_at)
                VALUES(?,?,?,?,?,0,?,?)
                ON CONFLICT(query_key) DO UPDATE SET n_awards=excluded.n_awards,
                  pages_total=excluded.pages_total,note=excluded.note,updated_at=excluded.updated_at""",
             (q["key"], q["label"], n, pages_total, start_page - 1, capped_note, now()))
-        conn.commit()
 
         # --- paginate ------------------------------------------------------ #
         page = start_page
@@ -336,17 +364,16 @@ def run(conn, cfg):
                     org_cache.clear()
                     org_cache.update(snap_org)
                     notes.append(f"{q['key']} p{page}: locked, retry {attempt + 1}/{LOCK_RETRIES}")
-                    time.sleep(20)
+                    time.sleep(LOCK_SLEEP)
             else:
                 failed.append(f"{q['key']} p{page}: database locked, gave up")
                 break
             page += 1
 
-        with conn:
-            conn.execute(
-                """UPDATE usaspending_progress SET done=1,pages_done=?,note=?,updated_at=?
-                   WHERE query_key=?""",
-                (min(page - 1, pages_total), capped_note or "", now(), q["key"]))
+        _write(conn,
+            """UPDATE usaspending_progress SET done=1,pages_done=?,note=?,updated_at=?
+               WHERE query_key=?""",
+            (min(page - 1, pages_total), capped_note or "", now(), q["key"]))
 
     awards_total = conn.execute("SELECT COUNT(*) FROM award").fetchone()[0]
     orgs_total = conn.execute("SELECT COUNT(*) FROM org").fetchone()[0]

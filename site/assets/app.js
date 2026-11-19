@@ -114,10 +114,11 @@
   }
 
   /* ---------------- maps ---------------- */
-  var RAMP = [[0, "#22303f"], [0.02, "#3d2a3f"], [0.08, "#6b2f3a"], [0.2, "#a83c33"], [0.45, "#e2603a"], [0.7, "#ff8a4c"], [1, "#ffc857"];
+  var RAMP = [[0, "#22303f"], [0.02, "#3d2a3f"], [0.08, "#6b2f3a"], [0.2, "#a83c33"], [0.45, "#e2603a"], [0.7, "#ff8a4c"], [1, "#ffc857"]];
   function rateColorExpr(prop) {
-    return ["interpolate", ["linear"], ["coalesce", ["get", prop], 0], 0, RAMP[0][1],
-      0.02, RAMP[1][1], 0.08, RAMP[2][1], 0.2, RAMP[3][1], 0.45, RAMP[4][1], 0.7, RAMP[5][1], 1, RAMP[6][1]];
+    /* stops are homeless people per 10,000 residents, not fractions */
+    return ["interpolate", ["linear"], ["coalesce", ["get", prop], 0],
+      0, RAMP[0][1], 3, RAMP[1][1], 8, RAMP[2][1], 15, RAMP[3][1], 28, RAMP[4][1], 45, RAMP[5][1], 70, RAMP[6][1]];
   }
   function baseMap(el, opts) {
     opts = opts || {};
