@@ -140,7 +140,7 @@
     map.addLayer({ id: layer, type: "circle", source: layer, paint: {
       "circle-color": rateColorExpr(colorProp),
       "circle-radius": ["interpolate", ["linear"], ["sqrt", ["coalesce", ["get", "v"], 1]], 1, 3, 20, 26],
-      "circle-opacity": 0.82, "circle-stroke-color": "#0b0e13", "circle-stroke-width": 0.5
+      "circle-opacity": 0.86, "circle-stroke-color": "#0b0e13", "circle-stroke-width": 0.5
     } });
     var pop = new maplibregl.Popup({ closeButton: true, maxWidth: "300px" });
     map.on("click", layer, function (e) {

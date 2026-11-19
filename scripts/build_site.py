@@ -683,7 +683,7 @@ function loadLayer(name){
   if(name==='choro') loaded[name]=fetch('/data/map-states.geojson').then(r=>r.json()).then(g=>{atlasMap.choro(m,g,'st');});
   if(name==='coc') loaded[name]=fetch('/data/map-cocs.geojson').then(r=>r.json()).then(g=>{
      m.addSource('coc',{type:'geojson',data:g});
-     m.addLayer({id:'coc-l',type:'line',source:'coc',paint:{'line-color':'#5aa9ff','line-width':1,'line-opacity':.45}});
+     m.addLayer({id:'coc-l',type:'line',source:'coc',paint:{'line-color':'#7fc4ff','line-width':0.6,'line-opacity':.28}});
      var pop=new maplibregl.Popup({maxWidth:'300px'});
      m.on('click','coc-l',e=>{var p=e.features[0].properties;pop.setLngLat(e.lngLat).setHTML(p.__html||p.name).addTo(m);});
   });
@@ -708,7 +708,7 @@ function apply(y){
   Object.keys(rates).forEach(function(ab){ m.setFeatureState({source:'st',id:ab},{rate:rates[ab]}); });
   if(m.getLayer('st-fill')){
     m.setPaintProperty('st-fill','fill-color',colorExpr());
-    m.setPaintProperty('st-fill','fill-opacity',0.8);
+    m.setPaintProperty('st-fill','fill-opacity',0.92);
   }
   current=String(y);
   var out=document.getElementById('yrout'); if(out) out.textContent=current;

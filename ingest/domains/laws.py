@@ -247,8 +247,19 @@ _CODE_WORDS = {"TIT", "CH", "SEC", "SUBSEC", "ANN", "CODE", "STAT", "STATS", "LA
                "COMP", "CONS", "REV", "GEN", "WELF", "CIV", "PROC", "PENAL", "HEALTH", "SAFETY",
                "HYG", "MENTAL", "INS", "EDUC", "FAM", "GOV", "JUV", "CODIFIED", "CIVIL", "ADMIN"}
 _STAT_WORDS = {"STAT", "STATS", "CODE", "LAWS", "LAW", "ANN", "COMP", "REV", "CONS"}
-_TOKEN_RE = re.compile(r"^(?:[0-9]?[A-Z]{1,4}[A-Za-z]*\.|[A-Z0-9][A-Za-z0-9.\-]{0,20}\.|[0-9]+[A-Za-z]?|"
-                       r"[A-Z]{2,7}|&|tit\.|ch\.|Sec\.)$")
+
+
+def _is_code_token(t: str) -> bool:
+    """Does this token look like part of a statute citation ('34-B', 'N.Y.', 'CODE', 'Code')?"""
+    if not t:
+        return False
+    if re.match(r"^[0-9][0-9A-Za-z.\-:/]*$", t):        # 34-B, 43A, 5/3-600, 7504
+        return True
+    if re.match(r"^[A-Z0-9][A-Za-z0-9.\-:&]*\.$", t):    # abbreviations: N.Y. / FLA. / tit.
+        return True
+    if re.match(r"^[A-Z]{2,9}$", t) or t == "&":         # CODE / LAWS / MENTAL
+        return True
+    return t.upper().rstrip(".") in _CODE_WORDS           # 'Code', 'Stat.'
 
 
 def _trim_code(code: str) -> str:
@@ -260,9 +271,10 @@ def _trim_code(code: str) -> str:
     """
     keep: list[str] = []
     nxt_stat = False
-    for t in reversed(code.split()):
+    for raw in reversed(code.split()):
+        t = raw.rstrip(",;")
         base = t.upper().rstrip(".")
-        if _TOKEN_RE.match(t) or base in _CODE_WORDS:
+        if _is_code_token(t):
             keep.append(t)
             nxt_stat = base in _STAT_WORDS
         elif re.match(r"^[A-Z][a-z]{2,12}$", t) and nxt_stat:

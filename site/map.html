@@ -65,7 +65,7 @@ function loadLayer(name){
   if(name==='choro') loaded[name]=fetch('/data/map-states.geojson').then(r=>r.json()).then(g=>{atlasMap.choro(m,g,'st');});
   if(name==='coc') loaded[name]=fetch('/data/map-cocs.geojson').then(r=>r.json()).then(g=>{
      m.addSource('coc',{type:'geojson',data:g});
-     m.addLayer({id:'coc-l',type:'line',source:'coc',paint:{'line-color':'#5aa9ff','line-width':1,'line-opacity':.45}});
+     m.addLayer({id:'coc-l',type:'line',source:'coc',paint:{'line-color':'#7fc4ff','line-width':0.6,'line-opacity':.28}});
      var pop=new maplibregl.Popup({maxWidth:'300px'});
      m.on('click','coc-l',e=>{var p=e.features[0].properties;pop.setLngLat(e.lngLat).setHTML(p.__html||p.name).addTo(m);});
   });
@@ -90,7 +90,7 @@ function apply(y){
   Object.keys(rates).forEach(function(ab){ m.setFeatureState({source:'st',id:ab},{rate:rates[ab]}); });
   if(m.getLayer('st-fill')){
     m.setPaintProperty('st-fill','fill-color',colorExpr());
-    m.setPaintProperty('st-fill','fill-opacity',0.8);
+    m.setPaintProperty('st-fill','fill-opacity',0.92);
   }
   current=String(y);
   var out=document.getElementById('yrout'); if(out) out.textContent=current;
@@ -124,7 +124,7 @@ function inp_max(){ return document.getElementById('yr').max; }
 </script></main>
 <footer class="site"><div class="wrap">
   <div class="row">
-    <div><strong>Homeless Atlas</strong> · public-record research · generated 2026-11-19 · 46,104 indexed records</div>
+    <div><strong>Homeless Atlas</strong> · public-record research · generated 2026-11-19 · 46,117 indexed records</div>
     <div><a href="method.html">Method &amp; caveats</a> · <a href="sources.html">Sources &amp; licences</a> · <a href="about.html">About</a></div>
   </div>
   <p class="dim" style="margin-top:14px">Every figure links to a public source. Anything marked † is derived, not published.
