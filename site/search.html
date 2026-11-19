@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Search · Homeless Atlas</title>
+<meta name="description" content="Public-record atlas of homelessness in the United States: counts, contracts, organizations, institutions, laws, money.">
+<meta property="og:title" content="Search · Homeless Atlas">
+<meta property="og:type" content="website">
+<link rel="stylesheet" href="assets/atlas.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect rx='22' width='100' height='100' fill='%230b0e13'/><circle cx='50' cy='50' r='24' fill='%23ff7a45'/></svg>">
+
+</head><body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="top"><div class="wrap">
+  <div class="topbar">
+    <a class="brand" href="index.html"><span class="dot"></span>Homeless&nbsp;Atlas</a>
+    <form class="searchbox" role="search" onsubmit="return goSearch(event)">
+      <span class="ico">⌕</span>
+      <input type="search" id="gq" placeholder="Search 100,000+ records — city, CoC, org, person, law…" aria-label="Search" autocomplete="off">
+      <div class="ac" role="listbox"></div>
+    </form>
+    <button class="navbtn" aria-label="Menu">☰ Menu</button>
+  </div>
+  <nav class="main"><a href="index.html">Overview</a><a href="map.html">Map</a><a href="search.html">Search</a><a href="states.html">States</a><a href="cities.html">Cities</a><a href="orgs.html">Organizations</a><a href="people.html">People</a><a href="facilities.html">Institutions</a><a href="budgets.html">Money</a><a href="laws.html">Laws</a><a href="media.html">Media</a><a href="docs.html">Docs</a>
+    <a href="about.html">About</a>
+    <a href="method.html">Method</a>
+    <a href="sources.html">Sources</a>
+  </nav>
+</div></header>
+<main id="main"><section class="banner"><div class="wrap"><div class="inner">
+  
+  <div class="kicker">Search</div>
+  <h1>Search everything</h1>
+  <p class="sub">Every state, CoC, city, organization, person, institution, law, video and document in the atlas.</p>
+</div></div></section>
+<div class="wrap wrap-narrow">
+  <div class="searchbar"><input id="q" placeholder="Try: San Francisco, Continuum of Care, Laguna Honda, camping ban…" aria-label="Search query" autocomplete="off"></div>
+  <div class="filters">
+    <button data-type="" class="on">All</button><button data-type="org">Organizations</button>
+    <button data-type="city">Cities</button><button data-type="coc">CoCs</button><button data-type="state">States</button>
+    <button data-type="person">People</button><button data-type="facility">Institutions</button>
+    <button data-type="law">Laws</button><button data-type="media">Media</button><button data-type="doc">Docs</button>
+  </div>
+  <div id="results"><p class="dim">Type at least two characters.</p></div>
+</div></main>
+<footer class="site"><div class="wrap">
+  <div class="row">
+    <div><strong>Homeless Atlas</strong> · public-record research · generated 2026-11-19 · 556 indexed records</div>
+    <div><a href="method.html">Method &amp; caveats</a> · <a href="sources.html">Sources &amp; licences</a> · <a href="about.html">About</a></div>
+  </div>
+  <p class="dim" style="margin-top:14px">Every figure links to a public source. Anything marked † is derived, not published.
+  Crime and health figures are area-level context — no dataset attributes an offence to a homeless person, and we never claim otherwise.</p>
+</div></footer>
+<script src="assets/app.js"></script>
+<script>
+function goSearch(e){e.preventDefault();var v=document.getElementById('gq').value.trim();if(v)location.href='search.html?q='+encodeURIComponent(v);return false;}
+</script>
+
+</body></html>

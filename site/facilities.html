@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Institutions · Homeless Atlas</title>
+<meta name="description" content="Public-record atlas of homelessness in the United States: counts, contracts, organizations, institutions, laws, money.">
+<meta property="og:title" content="Institutions · Homeless Atlas">
+<meta property="og:type" content="website">
+<link rel="stylesheet" href="assets/atlas.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect rx='22' width='100' height='100' fill='%230b0e13'/><circle cx='50' cy='50' r='24' fill='%23ff7a45'/></svg>">
+
+</head><body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="top"><div class="wrap">
+  <div class="topbar">
+    <a class="brand" href="index.html"><span class="dot"></span>Homeless&nbsp;Atlas</a>
+    <form class="searchbox" role="search" onsubmit="return goSearch(event)">
+      <span class="ico">⌕</span>
+      <input type="search" id="gq" placeholder="Search 100,000+ records — city, CoC, org, person, law…" aria-label="Search" autocomplete="off">
+      <div class="ac" role="listbox"></div>
+    </form>
+    <button class="navbtn" aria-label="Menu">☰ Menu</button>
+  </div>
+  <nav class="main"><a href="index.html">Overview</a><a href="map.html">Map</a><a href="search.html">Search</a><a href="states.html">States</a><a href="cities.html">Cities</a><a href="orgs.html">Organizations</a><a href="people.html">People</a><a href="facilities.html">Institutions</a><a href="budgets.html">Money</a><a href="laws.html">Laws</a><a href="media.html">Media</a><a href="docs.html">Docs</a>
+    <a href="about.html">About</a>
+    <a href="method.html">Method</a>
+    <a href="sources.html">Sources</a>
+  </nav>
+</div></header>
+<main id="main"><section class="banner"><div class="wrap"><div class="inner">
+  
+  <div class="kicker">Institutions</div>
+  <h1>Asylums, hospitals and prisons — open and closed</h1>
+  <p class="sub">State psychiatric hospitals, psychiatric units, prisons and jails, with capacity, operator and operating economics where they are published.</p>
+</div></div></section>
+<div class="wrap">
+  <div class="kpis">
+    <div class="kpi "><div class="v">0.00</div><div class="l">institutions recorded</div></div>
+    <div class="kpi b"><div class="v">0.00</div><div class="l">closed</div><div class="n">deinstitutionalisation, counted</div></div>
+    <div class="kpi c"><div class="v">0.00</div><div class="l">beds in closed institutions</div><div class="n">capacity that once existed</div></div>
+    <div class="kpi d"><div class="v">0.00</div><div class="l">beds open today</div></div>
+  </div>
+  <div class="map" id="map"></div>
+  <div class="legend"><span><i style="background:#2ee6c5"></i>open</span><span><i style="background:#ff5d5d"></i>closed</span>
+  <span><i style="background:#ffc857"></i>other/unknown</span></div>
+  <h2>All institutions</h2>
+  <div class="tablewrap"><table class="sortable"><thead><tr><th class="">Institution</th><th class="">Kind</th><th class="">Status</th><th class="">City</th><th class="">State</th><th class="r">Beds</th><th class="r">Opened</th><th class="r">Closed</th></tr></thead><tbody></tbody></table></div>
+</div>
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+<script>
+var m=atlasMap.base('map',{zoom:3.1});
+m.on('load',function(){
+ fetch('/data/map-facilities.geojson').then(r=>r.json()).then(function(g){
+   m.addSource('fac',{type:'geojson',data:g});
+   m.addLayer({id:'fac',type:'circle',source:'fac',paint:{
+     'circle-radius':['interpolate',['linear'],['sqrt',['coalesce',['get','beds'],4]],1,3,20,13],
+     'circle-color':['match',['get','status'],'closed','#ff5d5d','open','#2ee6c5','#ffc857'],
+     'circle-opacity':.85,'circle-stroke-color':'#0b0e13','circle-stroke-width':.6}});
+   var pop=new maplibregl.Popup({maxWidth:'300px'});
+   m.on('click','fac',function(e){var p=e.features[0].properties;pop.setLngLat(e.features[0].geometry.coordinates).setHTML(p.__html||p.name).addTo(m);});
+ });
+});
+</script></main>
+<footer class="site"><div class="wrap">
+  <div class="row">
+    <div><strong>Homeless Atlas</strong> · public-record research · generated 2026-11-19 · 556 indexed records</div>
+    <div><a href="method.html">Method &amp; caveats</a> · <a href="sources.html">Sources &amp; licences</a> · <a href="about.html">About</a></div>
+  </div>
+  <p class="dim" style="margin-top:14px">Every figure links to a public source. Anything marked † is derived, not published.
+  Crime and health figures are area-level context — no dataset attributes an offence to a homeless person, and we never claim otherwise.</p>
+</div></footer>
+<script src="assets/app.js"></script>
+<script>
+function goSearch(e){e.preventDefault();var v=document.getElementById('gq').value.trim();if(v)location.href='search.html?q='+encodeURIComponent(v);return false;}
+</script>
+
+</body></html>

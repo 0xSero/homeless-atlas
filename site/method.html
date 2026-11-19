@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Method · Homeless Atlas</title>
+<meta name="description" content="Public-record atlas of homelessness in the United States: counts, contracts, organizations, institutions, laws, money.">
+<meta property="og:title" content="Method · Homeless Atlas">
+<meta property="og:type" content="website">
+<link rel="stylesheet" href="assets/atlas.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect rx='22' width='100' height='100' fill='%230b0e13'/><circle cx='50' cy='50' r='24' fill='%23ff7a45'/></svg>">
+
+</head><body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="top"><div class="wrap">
+  <div class="topbar">
+    <a class="brand" href="index.html"><span class="dot"></span>Homeless&nbsp;Atlas</a>
+    <form class="searchbox" role="search" onsubmit="return goSearch(event)">
+      <span class="ico">⌕</span>
+      <input type="search" id="gq" placeholder="Search 100,000+ records — city, CoC, org, person, law…" aria-label="Search" autocomplete="off">
+      <div class="ac" role="listbox"></div>
+    </form>
+    <button class="navbtn" aria-label="Menu">☰ Menu</button>
+  </div>
+  <nav class="main"><a href="index.html">Overview</a><a href="map.html">Map</a><a href="search.html">Search</a><a href="states.html">States</a><a href="cities.html">Cities</a><a href="orgs.html">Organizations</a><a href="people.html">People</a><a href="facilities.html">Institutions</a><a href="budgets.html">Money</a><a href="laws.html">Laws</a><a href="media.html">Media</a><a href="docs.html">Docs</a>
+    <a href="about.html">About</a>
+    <a href="method.html">Method</a>
+    <a href="sources.html">Sources</a>
+  </nav>
+</div></header>
+<main id="main"><section class="banner"><div class="wrap"><div class="inner">
+  
+  <div class="kicker">Method</div>
+  <h1>How every number is produced</h1>
+  <p class="sub">Definitions, joins, and the places where the data lies to you.</p>
+</div></div></section>
+<div class="wrap wrap-narrow">
+<h2>Definitions</h2>
+<dl class="facts">
+<dt>PIT count</dt><dd>HUD's Point-in-Time count: people in shelters and on the street on one night in the last ten days of January.
+It is a census of visible homelessness, not an estimate of everyone who is homeless during a year.</dd>
+<dt>CoC</dt><dd>Continuum of Care: the HUD-designated regional body that plans and receives homelessness funding. There are ~400.
+Counts are published by CoC, never by city limit — that is why city numbers here point to their CoC.</dd>
+<dt>Unsheltered</dt><dd>People counted outdoors, in vehicles, or in places not meant for habitation. The least reliable and most
+policy-sensitive number in the whole system.</dd>
+<dt>Chronically homeless</dt><dd>HUD definition: a disabling condition plus either 12 months continuous homelessness or four episodes in three years.</dd>
+<dt>Federal award value</dt><dd>Obligated amount from USASpending. Obligated ≠ spent, and place of performance ≠ where services happen.
+Contracts and grants are counted separately and deduplicated by generated award key.</dd>
+<dt>† derived</dt><dd>Anything marked † is computed by us (a rate, a per-person figure, a per-bed cost). It is never presented as published.</dd>
+</dl>
+<h2>Known biases and traps</h2>
+<ul>
+<li><b>Count methods differ by CoC.</b> Some do a full census, some sample, some use HMIS extrapolation. Year-over-year change in a
+single CoC can be a method change, not a trend.</li>
+<li><b>Federal money is not the whole budget.</b> City general funds, county health dollars, Medicaid and philanthropy are mostly outside
+USASpending. Where city or state budgets are included they are labelled.</li>
+<li><b>Nonprofit revenue is self-reported</b> and lagged: a Form 990 covers a fiscal year that may be 18 months old when filed.</li>
+<li><b>Institutional capacity</b> figures come from many different agencies with different definitions of a "bed". Where a state
+publishes licensed beds we use that; where it publishes staffed beds we say so.</li>
+<li><b>Crime.</b> UCR/NIBRS do not record housing status. Area rates are context only. Studies that do measure incidents are listed
+in Documents, with their own methodology.</li>
+<li><b>Substance use and mental illness.</b> PIT subpopulation counts are CoC-reported, self-reported or observed, and systematically
+undercount. State prevalence estimates (NSDUH) are modelled survey estimates, not counts of homeless people.</li>
+</ul>
+<h2>Pipeline</h2>
+<p>Each source has an ingestor in <code>ingest/domains/</code> that caches the raw response under <code>data/raw/</code>, records the URL,
+retrieval time, byte size and SHA-256 in the <code>source</code> table, and writes rows that reference it. The site is generated from
+the database by <code>scripts/build_site.py</code>. Nothing on this site is hand-typed.</p>
+</div></main>
+<footer class="site"><div class="wrap">
+  <div class="row">
+    <div><strong>Homeless Atlas</strong> · public-record research · generated 2026-11-19 · 556 indexed records</div>
+    <div><a href="method.html">Method &amp; caveats</a> · <a href="sources.html">Sources &amp; licences</a> · <a href="about.html">About</a></div>
+  </div>
+  <p class="dim" style="margin-top:14px">Every figure links to a public source. Anything marked † is derived, not published.
+  Crime and health figures are area-level context — no dataset attributes an offence to a homeless person, and we never claim otherwise.</p>
+</div></footer>
+<script src="assets/app.js"></script>
+<script>
+function goSearch(e){e.preventDefault();var v=document.getElementById('gq').value.trim();if(v)location.href='search.html?q='+encodeURIComponent(v);return false;}
+</script>
+
+</body></html>
