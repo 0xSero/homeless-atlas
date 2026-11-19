@@ -67,11 +67,18 @@ BUDGET = int(os.environ.get("ORG_CONTACTS_BUDGET", "1500"))       # seconds for 
 MAX_SITES = int(os.environ.get("ORG_CONTACTS_MAX_SITES", "0"))    # 0 = no cap
 WORKERS = int(os.environ.get("ORG_CONTACTS_WORKERS", "0")) or min(16, os.cpu_count() or 4)
 TIER2_EMAIL = os.environ.get("ORG_CONTACTS_EMAIL_TIER2", "0") == "1"
-PAGE_TIMEOUT = int(os.environ.get("ORG_CONTACTS_TIMEOUT", "25"))
+PAGE_TIMEOUT = int(os.environ.get("ORG_CONTACTS_TIMEOUT", "15"))
+# Two shard workers may run side by side; each is a separate `common.fetch` client pinned to its own
+# 1 req/s throttle, and a shard only ever touches its own share of the org ids.
+SHARD = os.environ.get("ORG_CONTACTS_SHARD", "0/1")
+try:
+    SHARD_I, SHARD_N = (int(x) for x in SHARD.split("/"))
+except Exception:
+    SHARD_I, SHARD_N = 0, 1
 
 TEOS = "https://apps.irs.gov/pub/epostcard/990/xml/{year}/{year}_TEOS_XML_{batch:02d}A.zip"
-JOURNAL = common.RAW / DOMAIN / "site_results.jsonl"
-ROBOTS_CACHE = common.RAW / DOMAIN / "robots.json"
+JOURNAL = common.RAW / DOMAIN / (f"site_results.{SHARD_I}.jsonl" if SHARD_N > 1 else "site_results.jsonl")
+ROBOTS_CACHE = common.RAW / DOMAIN / (f"robots.{SHARD_I}.json" if SHARD_N > 1 else "robots.json")
 
 IRSTITLE = "IRS Form 990 e-file XML (TEOS bulk batch {year}-{batch:02d}A)"
 IRSLIC = "US Government work — public domain (IRS e-file returns as published)"
@@ -525,9 +532,9 @@ def _robots_allows(host, url):
         rec = _robots_mem[key]
     else:
         rec = None
-        blob, status, err = _get(f"https://{host}/robots.txt", retries=1, timeout=20)
+        blob, status, err = _get(f"https://{host}/robots.txt", retries=1, timeout=10)
         if status == 0:  # https unreachable at all: try the plain-http robots before giving up
-            blob, status, err = _get(f"http://{host}/robots.txt", retries=1, timeout=20)
+            blob, status, err = _get(f"http://{host}/robots.txt", retries=1, timeout=10)
         if status == 200 and blob is not None:
             text = blob.decode("utf-8", "replace")
             rp = urllib.robotparser.RobotFileParser()
@@ -600,6 +607,17 @@ def _name_match(name, title, text, host):
     hit_host = [t for t in strong if len(t) >= 4 and t.lower() in bare]
     if hit_host:
         return f"host:{hit_host[0]}"
+    # the initials of the org's own name are a common host name (cots.org for "Committee On The
+    # Shelterless"); only an exact match on a host label counts, and the page is still fetched live
+    raw_words = [w for w in re.split(r"[^A-Za-z]+", (name or "").upper()) if w]
+    keep = [w for w in raw_words if w not in {"INC", "LLC", "CORP", "THE", "OF", "AND", "A", "AN", "CO",
+                                              "LTD", "INCORPORATED", "COMPANY", "CORPORATION",
+                                              "ASSOCIATION", "FOUNDATION", "FOR", "TO"}]
+    labels = {x for x in re.split(r"[^a-z0-9]+", (host or "").lower()) if x}
+    for words in (raw_words, keep):
+        ac = "".join(w[0] for w in words).lower()
+        if len(ac) >= 3 and ac in labels:
+            return f"host:acronym {ac}"
     weak = [t for t in toks if t in GENERIC_TOK and t.lower() in hay]
     if len(weak) >= 2:
         return "text:" + "+".join(weak[:2]) + " (generic)"
@@ -701,9 +719,9 @@ def _crawl_site(conn, s, person_tokens):
         res["note"] = f"{rnote}: crawling disallowed for {url}"
         return res
 
-    blob, status, err = _get(url, retries=2)
+    blob, status, err = _get(url, retries=1)
     used_url = url
-    if blob is None and status in (0, 301, 302, 400, 404, 403, 410, 500, 502, 503):
+    if blob is None and status in (301, 302, 400, 403, 404, 410, 500, 502, 503):
         # a filed address is often scheme- or www-wrong: try the other scheme / bare host, once
         alt = []
         sp = urllib.parse.urlsplit(url)
@@ -714,7 +732,7 @@ def _crawl_site(conn, s, person_tokens):
         else:
             alt.append(urllib.parse.urlunsplit((sp.scheme, "www." + sp.netloc, sp.path, "", "")))
         for a in alt:
-            b2, st2, e2 = _get(a, retries=1)
+            b2, st2, e2 = _get(a, retries=1, timeout=10)
             if b2 is not None:
                 blob, status, used_url = b2, 200, a
                 break
@@ -784,6 +802,9 @@ def _crawl_site(conn, s, person_tokens):
         res["note"] = f"verified by {nm}" + ("" if used_url == url else f" (filed as {url})")
     else:
         res["note"] = "HTTP 200 but no name match — not recorded as the org's website"
+    if not nm:
+        # a page we could not tie to this organisation publishes nobody's contact data for it
+        email = email_url = phone = phone_url = None
     res["email"] = email
     res["email_page"] = email_url
     res["phone"] = phone
@@ -802,9 +823,15 @@ def _journal_append(rec):
 
 
 def _journal_load():
+    """Every shard's journal is read, so a shard never redoes another shard's work."""
     out = {}
-    if JOURNAL.exists():
-        for line in JOURNAL.read_text().splitlines():
+    paths = sorted(JOURNAL.parent.glob("site_results*.jsonl"))
+    for p in paths:
+        try:
+            text = p.read_text()
+        except Exception:
+            continue
+        for line in text.splitlines():
             try:
                 r = json.loads(line)
                 out[r["org_id"]] = r
@@ -821,6 +848,9 @@ def _replay(conn, j):
                            (org_id,)).fetchone()
         if cur and cur["phase"] not in ("seed", None) and (cur["updated_at"] or "") >= (r.get("updated_at") or ""):
             continue
+        if not r.get("verified"):
+            for k in ("email", "email_page", "phone", "phone_page"):
+                r[k] = None
         upsert(conn, "org_contacts_site", {
             "org_id": org_id, "org_name": r.get("org_name"), "ein": r.get("ein"),
             "candidate_url": r.get("candidate_url"), "candidate_host": r.get("candidate_host"),
@@ -847,6 +877,8 @@ def _crawl(conn, t0):
           AND COALESCE(s.attempts,0) < 2
         ORDER BY s.priority DESC, s.org_id""").fetchall()
     todo = [dict(r) for r in todo if r["org_id"] not in j]
+    if SHARD_N > 1:
+        todo = [s for s in todo if s["org_id"] % SHARD_N == SHARD_I]
     if MAX_SITES:
         todo = todo[:MAX_SITES]
     budget_end = time.time() + BUDGET
@@ -893,8 +925,7 @@ def _crawl(conn, t0):
 def _write(conn):
     """Land verified values on `org` (fill blanks only) and set page-level provenance."""
     out = {"website": 0, "email": 0, "phone": 0}
-    rows = conn.execute("""SELECT * FROM org_contacts_site
-                           WHERE verified=1 OR email IS NOT NULL OR phone IS NOT NULL""").fetchall()
+    rows = conn.execute("SELECT * FROM org_contacts_site WHERE verified=1").fetchall()
     for r in rows:
         org = conn.execute("SELECT id, website, email, phone, source_id FROM org WHERE id=?",
                            (r["org_id"],)).fetchone()

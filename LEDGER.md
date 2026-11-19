@@ -26,3 +26,4 @@
 | 2026-11-19T13:33:08+00:00 | canada | DONE | 606 | research/canada.md + ingest/domains/canada.py | worker exit 0 |
 | 2026-11-19T13:42:12+00:00 | australia | DONE | 1952 | research/australia.md + ingest/domains/australia.py | worker exit 0 |
 | 2026-11-19T13:58:03+00:00 | sf-deep | DONE | 0 | research/sf-deep.md + ingest/domains/sf-deep.py | worker exit 0 |
+| 2026-11-19T18:05:09+00:00 | org-contacts | DONE | 0 | research/org-contacts.md + ingest/domains/org-contacts.py | worker exit 0 |

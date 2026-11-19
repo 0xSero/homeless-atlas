@@ -22,3 +22,4 @@
 {"ts": "2026-11-19T13:33:08+00:00", "skill": "homeless-atlas", "domain": "canada", "verdict": "DONE", "rows": 606, "evidence": "research/canada.md + ingest/domains/canada.py", "note": "worker exit 0"}
 {"ts": "2026-11-19T13:42:12+00:00", "skill": "homeless-atlas", "domain": "australia", "verdict": "DONE", "rows": 1952, "evidence": "research/australia.md + ingest/domains/australia.py", "note": "worker exit 0"}
 {"ts": "2026-11-19T13:58:03+00:00", "skill": "homeless-atlas", "domain": "sf-deep", "verdict": "DONE", "rows": 0, "evidence": "research/sf-deep.md + ingest/domains/sf-deep.py", "note": "worker exit 0"}
+{"ts": "2026-11-19T18:05:09+00:00", "skill": "homeless-atlas", "domain": "org-contacts", "verdict": "DONE", "rows": 0, "evidence": "research/org-contacts.md + ingest/domains/org-contacts.py", "note": "worker exit 0"}
