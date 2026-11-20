@@ -148,7 +148,7 @@ def shell(rel: str, title: str, section: str, body: str, head: str = "", desc: s
     <a class="brand" href="{rel}index.html"><span class="dot"></span>Homeless&nbsp;Atlas</a>
     <form class="searchbox" role="search" onsubmit="return goSearch(event)">
       <span class="ico">⌕</span>
-      <input type="search" id="gq" placeholder="Search 100,000+ records — city, CoC, org, person, law…" aria-label="Search" autocomplete="off">
+      <input type="search" id="gq" placeholder="Search counts, orgs, people, laws…" aria-label="Search" autocomplete="off">
       <div class="ac" role="listbox"></div>
     </form>
     <button class="navbtn" aria-label="Menu">☰ Menu</button>
@@ -174,17 +174,26 @@ function goSearch(e){{e.preventDefault();var v=document.getElementById('gq').val
 {head and ''}
 </body></html>"""
 
-def spark(series, key="total", w=100, h=34, color="var(--ember)"):
-    """SVG sparkline from [{year,total},...]; returns '' when there is nothing to draw."""
-    pts = [(r.get(key) or 0) for r in series]
-    if len(pts) < 3 or max(pts) <= 0:
+def spark_svg(series, key="total", w=100, h=34, color="var(--ember)"):
+    """SVG sparkline from [{year,total},...], with the first and last value labelled.
+    Returns '' when there is nothing to draw."""
+    pts = [r.get(key) for r in series]
+    clean = [p for p in pts if p is not None]
+    if len(clean) < 3 or (max(clean) or 0) <= 0:
         return ""
-    mx = max(pts) or 1
-    xy = " ".join(f"{i/(len(pts)-1)*w:.1f},{h-2-(p/mx*(h-4)):.1f}" for i, p in enumerate(pts))
-    return (f'<svg viewBox="0 0 {w} {h}" preserveAspectRatio="none" style="width:100%;height:{h+16}px" role="img" '
-            f'aria-label="trend {series[0].get("year")} to {series[-1].get("year")}">'
+    lo, mx = min(clean), max(clean)
+    rng = (mx - lo) or 1
+    xy = " ".join(f"{i/(len(pts)-1)*w:.1f},{h-2-(((p if p is not None else lo)-lo)/rng*(h-4)):.1f}"
+                  for i, p in enumerate(pts))
+    y0, y1 = series[0].get("year"), series[-1].get("year")
+    v0, v1 = series[0].get(key), series[-1].get(key)
+    return (f'<figure class="sparkfig"><svg viewBox="0 0 {w} {h}" preserveAspectRatio="none" '
+            f'style="width:100%;height:{h + 14}px" role="img" '
+            f'aria-label="trend {y0} to {y1}">'
             f'<polyline points="{xy}" fill="none" stroke="{color}" stroke-width="1.8" '
-            f'vector-effect="non-scaling-stroke"/></svg>')
+            f'vector-effect="non-scaling-stroke"/></svg>'
+            f'<figcaption><span>{esc(str(y0))} · <b>{num(v0)}</b></span>'
+            f'<span>{esc(str(y1))} · <b>{num(v1)}</b></span></figcaption></figure>')
 
 
 def trend(series, key="total"):
@@ -245,11 +254,19 @@ def md(text: str) -> str:
     def inline(s):
         s = esc(s)
         s = re.sub(r"`([^`]+)`", r"<code>\1</code>", s)
+        # markdown links must be consumed before bare URLs, or the URL inside the
+        # parentheses gets linkified first and the [label](url) form never matches
+        s = re.sub(r"\[([^\]]+)\]\((https?://[^)\s]+)\)", r'<a href="\2" rel="noopener">\1</a>', s)
         s = re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", s)
         s = re.sub(r"(?<![\w*])\*([^*\n]+)\*", r"<em>\1</em>", s)
-        # order matters: bare URLs first, and never inside an attribute we already produced
-        s = re.sub(r'(?<!["\'=>])(https?://[^\s<)\]]+)', r'<a href="\1" rel="noopener">\1</a>', s)
-        s = re.sub(r"\[([^\]]+)\]\((https?://[^)\s]+)\)", r'<a href="\2" rel="noopener">\1</a>', s)
+
+        def _bare(m):
+            url, trail = m.group(1), ""
+            while url and url[-1] in ".,;:":
+                trail, url = url[-1] + trail, url[:-1]
+            return f'<a href="{url}" rel="noopener">{url}</a>{trail}'
+
+        s = re.sub(r'(?<!["\'=>])(https?://[^\s<)\]]+)', _bare, s)
         return s
     for ln in lines:
         if ln.strip().startswith("```"):
@@ -648,13 +665,11 @@ def page_index(d, manifest_total):
     series = d["nat_series"]
     spark = ""
     if len(series) > 2:
-        mx = max((r["total"] or 0) for r in series) or 1
-        pts = " ".join(f'{i/(len(series)-1)*100:.1f},{40-(r["total"] or 0)/mx*36:.1f}' for i, r in enumerate(series))
-        spark = (f'<div class="panel"><h3>National count, {series[0]["year"]}–{series[-1]["year"]}</h3>'
-                 f'<svg viewBox="0 0 100 42" preserveAspectRatio="none" style="width:100%;height:110px">'
-                 f'<polyline points="{pts}" fill="none" stroke="var(--ember)" stroke-width="1.6" vector-effect="non-scaling-stroke"/></svg>'
-                 f'<div class="legend"><span>{num(series[0]["total"])} in {series[0]["year"]}</span>'
-                 f'<span>→ {num(series[-1]["total"])} in {series[-1]["year"]}</span></div></div>')
+        line = spark_svg([dict(r) for r in series], h=86)
+        if line:
+            spark = (f'<div class="panel"><h3>National count, {series[0]["year"]}–{series[-1]["year"]}</h3>'
+                     f'{line}<div class="legend"><span class="dim">each point is the CoC-summed count for '
+                     f'that January</span></div></div>')
     body = banner("Public record · United States",
                   "Every count, contract, organization and institution in American homelessness",
                   "HUD point-in-time counts by Continuum of Care, federal awards down to the recipient, "
@@ -666,9 +681,9 @@ def page_index(d, manifest_total):
       <h2>Homelessness per 10,000 residents, by state</h2>
       <div class="map" id="map"></div>
       <div class="legend">
-        <span><i style="background:#22303f"></i>0–2</span><span><i style="background:#6b2f3a"></i>2–8</span>
-        <span><i style="background:#a83c33"></i>8–20</span><span><i style="background:#e2603a"></i>20–45</span>
-        <span><i style="background:#ffc857"></i>45+</span>
+        <span><i style="background:#EFE6D6"></i>0–2</span><span><i style="background:#D2A576"></i>2–8</span>
+        <span><i style="background:#BD8250"></i>8–20</span><span><i style="background:#8A3A1E"></i>20–45</span>
+        <span><i style="background:#6A2410"></i>45+</span>
         <span class="dim">Click a state. Rate = latest PIT count ÷ population × 10,000.</span>
       </div>
     </div>
@@ -740,7 +755,7 @@ def page_map(d, manifest_total):
   </div>
   <div class="map tall" id="map"></div>
   <div class="legend">
-    <span><i style="background:#22303f"></i>low</span><span><i style="background:#a83c33"></i>high</span>
+    <span><i style="background:#EFE6D6"></i>low</span><span><i style="background:#6A2410"></i>high</span>
     <span><i style="background:#2ee6c5"></i>institution open</span><span><i style="background:#ff5d5d"></i>closed</span>
     <span class="dim">Data: HUD PIT/AHAR, Census, Wikidata. Click a feature.</span>
   </div>
@@ -791,15 +806,15 @@ function loadLayer(name){
      m.addSource('fac',{type:'geojson',data:g});
      m.addLayer({id:'fac',type:'circle',source:'fac',paint:{
        'circle-radius':['interpolate',['linear'],['sqrt',['coalesce',['get','beds'],4]],1,3,20,12],
-       'circle-color':['match',['get','status'],'closed','#ff5d5d','open','#2ee6c5','#ffc857'],
-       'circle-opacity':.85,'circle-stroke-color':'#0b0e13','circle-stroke-width':.6}});
+       'circle-color':['match',['get','status'],'closed','#A63A1B','open','#2C6B62','#8F6B0E'],
+       'circle-opacity':.88,'circle-stroke-color':'#FCFBF7','circle-stroke-width':.7}});
      var pop=new maplibregl.Popup({maxWidth:'300px'});
      m.on('click','fac',e=>{var p=e.features[0].properties;pop.setLngLat(e.features[0].geometry.coordinates).setHTML(p.__html||p.name).addTo(m);});
   });
   return loaded[name];
 }
-function colorExpr(){ return ['interpolate',['linear'],['coalesce',['feature-state','rate'],0],
-    0,'#22303f',3,'#3d2a3f',8,'#6b2f3a',15,'#a83c33',28,'#e2603a',45,'#ff8a4c',70,'#ffc857']; }
+function colorExpr(){ return ['interpolate',['linear'],['coalesce',['feature-state','rate'],['get','rate'],0],
+    0,'#EFE6D6',3,'#E4CDA9',8,'#D2A576',15,'#BD8250',28,'#A75832',45,'#8A3A1E',70,'#6A2410']; }
 var YR=null, current=null;
 function apply(y){
   if(!YR || !m.getSource('st')) return;
@@ -813,7 +828,7 @@ function apply(y){
   window.__atlasYear=current; window.__atlasRates=rates;
   var out=document.getElementById('yrout'); if(out) out.textContent=current;
   var lg=document.getElementById('yrlegend');
-  if(lg) lg.innerHTML='<span class="dim">'+current+' · '+Object.keys(rates).length+' states reporting · dark = under 3 per 10,000, amber = 70+</span>';
+  if(lg) lg.innerHTML='<span class="dim">'+current+' · '+Object.keys(rates).length+' states reporting · deep red = 70 or more per 10,000</span>';
 }
 m.on('load',function(){
   loadLayer('coc'); loadLayer('fac').then(function(){
@@ -986,7 +1001,7 @@ def page_facilities(d, manifest_total):
   </div>
   <div class="map" id="map"></div>
   <div class="legend"><span><i style="background:#2ee6c5"></i>open</span><span><i style="background:#ff5d5d"></i>closed</span>
-  <span><i style="background:#ffc857"></i>other/unknown</span></div>
+  <span><i style="background:#8F6B0E"></i>other/unknown</span></div>
   <h2>All institutions</h2>
   {table([("Institution",""),("Kind",""),("Status",""),("City",""),("State",""),("Beds","r"),("Opened","r"),("Closed","r")], rows)}
 </div>
@@ -999,8 +1014,8 @@ m.on('load',function(){{
    m.addSource('fac',{{type:'geojson',data:g}});
    m.addLayer({{id:'fac',type:'circle',source:'fac',paint:{{
      'circle-radius':['interpolate',['linear'],['sqrt',['coalesce',['get','beds'],4]],1,3,20,13],
-     'circle-color':['match',['get','status'],'closed','#ff5d5d','open','#2ee6c5','#ffc857'],
-     'circle-opacity':.85,'circle-stroke-color':'#0b0e13','circle-stroke-width':.6}}}});
+     'circle-color':['match',['get','status'],'closed','#A63A1B','open','#2C6B62','#8F6B0E'],
+     'circle-opacity':.88,'circle-stroke-color':'#FCFBF7','circle-stroke-width':.7}}}});
    var pop=new maplibregl.Popup({{maxWidth:'300px'}});
    m.on('click','fac',function(e){{var p=e.features[0].properties;pop.setLngLat(e.features[0].geometry.coordinates).setHTML(p.__html||p.name).addTo(m);}});
  }});
@@ -1513,11 +1528,10 @@ def page_state(d, s, manifest_total):
                         FROM pit p JOIN geo_coc c ON c.coc_num=p.coc_num WHERE c.state=? GROUP BY p.year ORDER BY p.year""", (abbr,))
     spark = ""
     if len(series) > 2:
-        mx = max((r["total"] or 0) for r in series) or 1
-        pts = " ".join(f'{i/(len(series)-1)*100:.1f},{44-(r["total"] or 0)/mx*40:.1f}' for i, r in enumerate(series))
-        spark = (f'<div class="panel"><h3>Homeless count {series[0]["year"]}–{series[-1]["year"]}</h3>'
-                 f'<svg viewBox="0 0 100 46" preserveAspectRatio="none" style="width:100%;height:120px">'
-                 f'<polyline points="{pts}" fill="none" stroke="var(--ember)" stroke-width="1.6" vector-effect="non-scaling-stroke"/></svg></div>')
+        line = spark_svg([dict(r) for r in series], h=120)
+        if line:
+            spark = (f'<div class="panel"><h3>Homeless count {series[0]["year"]}–{series[-1]["year"]}</h3>'
+                     f'{line}</div>')
     crow = [[f'<a href="/coc/{esc(c["coc_num"])}.html">{esc(c["coc_num"])}</a>', "", c["coc_num"],
              esc(c.get("name") or ""), "", c.get("name") or "", num(c.get("pit_total")), "r", c.get("pit_total") or 0,
              str(c.get("pit_year") or ""), "", c.get("pit_year") or 0] for c in cocs]
@@ -1608,10 +1622,10 @@ def page_coc(d, c, manifest_total):
   </div>
   <div class="grid two" style="margin-top:16px">
     <div class="panel"><h3>Total homeless, {series[0]["year"] if series else ""}–{series[-1]["year"] if series else ""}</h3>
-      {spark(series)}<div class="legend">{trend_badge(trend(series))}
+      {spark_svg(series)}<div class="legend">{trend_badge(trend(series))}
       <span class="dim">{num(series[0]["total"]) if series else "—"} → {num(series[-1]["total"]) if series else "—"}</span></div></div>
     <div class="panel"><h3>Unsheltered share over time</h3>
-      {spark([{"year": r["year"], "total": (r["unsheltered"] or 0)} for r in series], color="var(--teal)")}
+      {spark_svg([{"year": r["year"], "total": (r["unsheltered"] or 0)} for r in series], color="var(--teal)")}
       <div class="legend"><span class="dim">latest unsheltered: {num((series[-1]["unsheltered"] if series else None))}</span></div></div>
   </div>
   <h2>Every reported year</h2>
@@ -1653,7 +1667,7 @@ def page_city(d, c, manifest_total):
   </div>
   <div class="panel" style="margin:16px 0"><h3>Trend for the CoC that plans this city
     {trend_badge(trend(cseries))}</h3>
-    {spark(cseries)}
+    {spark_svg(cseries)}
     <div class="legend"><span class="dim">{num(cseries[0]["total"]) if cseries else "no series"} in {cseries[0]["year"] if cseries else "—"}
     → {num(cseries[-1]["total"]) if cseries else "—"} in {cseries[-1]["year"] if cseries else "—"}</span></div>
   </div>
@@ -1667,23 +1681,57 @@ def page_city(d, c, manifest_total):
     return shell("../", f'{c["name"]}, {c.get("state") or ""}', "", body, manifest_total=manifest_total)
 
 
+AGENCY_SHORT = {
+    "Department of Health and Human Services": "HHS",
+    "Department of Housing and Urban Development": "HUD",
+    "Department of Veterans Affairs": "VA",
+    "Department of Agriculture": "USDA",
+    "Department of Labor": "DOL",
+    "Department of Education": "ED",
+    "Department of Justice": "DOJ",
+    "Department of Commerce": "DOC",
+    "Department of the Treasury": "Treasury",
+    "Department of Homeland Security": "DHS",
+    "Department of Transportation": "DOT",
+    "Department of the Interior": "DOI",
+    "Department of Energy": "DOE",
+    "Social Security Administration": "SSA",
+    "Small Business Administration": "SBA",
+    "Corporation for National and Community Service": "AmeriCorps",
+}
+
+
+def agency(name):
+    """Long federal department names shrink to the acronym everyone uses in tables."""
+    n = (name or "").strip()
+    return AGENCY_SHORT.get(n, n)
+
+
 def page_org(d, o, manifest_total):
     awards = q(CONN, """SELECT * FROM award WHERE org_id=? ORDER BY amount_obligated DESC NULLS LAST LIMIT 500""", (o["id"],))
     people = q(CONN, """SELECT * FROM org_person WHERE org_id=? ORDER BY COALESCE(comp,0) DESC LIMIT 200""", (o["id"],))
     aw = [[esc((a.get("award_id") or "")[:40]), "", a.get("award_id") or "",
-           esc((a.get("agency") or "")), "", a.get("agency") or "",
+           esc(agency(a.get("agency"))), "", a.get("agency") or "",
            esc((a.get("description") or "")[:120]), "", a.get("description") or "",
            money(a.get("amount_obligated")), "r", a.get("amount_obligated") or 0,
-           str(a.get("pop_start") or "")[:10], "", a.get("pop_start") or ""] for a in awards]
+           str(a.get("pop_start") or "")[:4], "", a.get("pop_start") or ""] for a in awards]
     prow = [[(f'<a href="/person/{person_slug(p)}.html">{esc(p["person"])}</a>' if person_slug(p) in PERSON_OK
               else esc(p["person"])), "", p["person"],
              esc(p.get("title") or ""), "", p.get("title") or "", num(p.get("comp")), "r", p.get("comp") or 0,
              yr(p.get("year")), "r", p.get("year") or 0] for p in people]
     tot = sum(a.get("amount_obligated") or 0 for a in awards)
+    bits = []
+    if o.get("city") or o.get("state"):
+        bits.append(", ".join(x for x in [o.get("city"), o.get("state")] if x))
+    if tot:
+        bits.append(f"${tot/1e6:,.2f}M in mapped federal awards across {len(awards)} grant{'s' if len(awards) != 1 else ''}")
+    if o.get("revenue"):
+        bits.append(f"reported ${o['revenue']/1e6:,.2f}M revenue on its latest Form 990")
+    if people:
+        top = people[0]
+        bits.append(f"{num(len(people))} named officers, the best paid being {esc(top['person']).title()} ({esc((top.get('title') or 'officer')).title()})")
     body = banner((o.get("org_type") or "organization").replace("_", " "), esc(o.get("name")),
-                  f'{esc(o.get("city") or "")} {esc(o.get("state") or "")}'
-                  + (f' · EIN {esc(o["ein"])}' if o.get("ein") else "")
-                  + (f' · UEI {esc(o["uei"])}' if o.get("uei") else ""),
+                  " · ".join(bits) + ".",
                   crumbs=f'<a href="/index.html">Atlas</a> / <a href="/orgs.html">Organizations</a> / {esc((o.get("name") or "")[:60])}', small=True) + f"""
 <div class="wrap">
   <div class="kpis">
@@ -1695,7 +1743,7 @@ def page_org(d, o, manifest_total):
   <div class="grid side">
     <div>
       <h2>Awards</h2>
-      {table([("Award",""),("Agency",""),("Description",""),("Obligated","r"),("Start","")], aw)}
+      {table([("Award",""),("Agency",""),("Description",""),("Obligated","r"),("Year","r")], aw)}
     </div>
     <div>
       <div class="panel"><h3>Facts</h3><dl class="facts">

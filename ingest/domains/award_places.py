@@ -63,6 +63,10 @@ NAICS_CODES = ["624221", "624229", "623220", "925110"]
 KEYWORDS = ["homeless", "homelessness", "continuum of care", "emergency solutions grant",
             "rapid rehousing", "permanent supportive housing", "HMIS", "Housing First",
             "transitional housing", "street outreach", "coordinated entry"]
+# scripts/sweep_awards.py (which built part of the award table) also swept the bare keyword
+# "shelter"; 1,343 award rows carry program='kw=shelter FY2023'. Kept as a separate plan item so
+# the two big merged downloads did not have to be regenerated.
+EXTRA_KEYWORDS = ["shelter"]
 ALL_TIME = [{"start_date": "2007-10-01", "end_date": "2027-09-30", "date_type": "action_date"}]
 FY_RANGE = range(2008, 2028)
 
@@ -83,7 +87,7 @@ CONTRACT_COLS = [
     "primary_place_of_performance_city_name", "primary_place_of_performance_county_name",
     "prime_award_summary_place_of_performance_county_fips_code",
     "prime_award_summary_place_of_performance_state_fips_code",
-    "primary_place_of_performance_state_code", "primary_place_of_performance_county_name",
+    "primary_place_of_performance_state_code",
     "primary_place_of_performance_zip_4", "primary_place_of_performance_country_code",
     "recipient_uei", "recipient_name", "recipient_address_line_1", "recipient_city_name",
     "recipient_county_name", "recipient_state_code", "recipient_zip_4_code",
@@ -159,6 +163,12 @@ def plan_items() -> list[dict]:
                       "time_period": ALL_TIME}),
         dict(key="contracts_keywords_all", group_name="contracts", family="keywords",
              filters={"keywords": KEYWORDS, "award_type_codes": CONTRACTS,
+                      "time_period": ALL_TIME}),
+        dict(key="grants_keywords_extra", group_name="grants", family="keywords_extra",
+             filters={"keywords": EXTRA_KEYWORDS, "award_type_codes": GRANTS,
+                      "time_period": ALL_TIME}),
+        dict(key="contracts_keywords_extra", group_name="contracts", family="keywords_extra",
+             filters={"keywords": EXTRA_KEYWORDS, "award_type_codes": CONTRACTS,
                       "time_period": ALL_TIME}),
     ]
 
@@ -258,6 +268,15 @@ def state_abbr_from_fips(conn) -> dict:
     return {r[0]: r[1] for r in conn.execute("SELECT fips, abbr FROM geo_state") if r[1]}
 
 
+def _cached(url: str) -> bool:
+    """Is this exact GET already in the data/raw cache (so re-loading needs no network at all)?"""
+    import hashlib
+    from ingest.common import RAW
+    key = hashlib.sha1(("GET" + url + json.dumps({}, sort_keys=True)).encode()).hexdigest()
+    p = RAW / DOMAIN / f"{key}.bin"
+    return p.exists() and p.stat().st_size > 0
+
+
 def run_item(conn, item: dict) -> dict:
     """Generate (or reuse) one download, load its prime-award CSV into award/org."""
     plan_key = item["key"]
@@ -269,6 +288,8 @@ def run_item(conn, item: dict) -> dict:
     if req is None:
         req = request_download(item)
         wait_finished(req["status_url"])
+    elif not _cached(req["file_url"]):        # cached plan, but the artifact is not on disk: re-poll
+        wait_finished(STATUS_URL.format(req["file_url"].rsplit("/", 1)[-1]))
     src = source_id_for(
         conn, req["file_url"], DOMAIN,
         title=f"USASpending bulk award download ({item['family']}, {item['group_name']}): "
@@ -276,6 +297,11 @@ def run_item(conn, item: dict) -> dict:
         publisher="US Department of the Treasury — USASpending.gov",
         license="US Government work, public domain")
     blob = fetch_zip(item, req)
+    # source_id_for() cannot compute these for a POST-generated artifact file, so record the size
+    # and digest of the exact ZIP that was parsed
+    import hashlib as _hl
+    conn.execute("UPDATE source SET bytes=COALESCE(bytes,?), sha256=COALESCE(sha256,?) WHERE id=?",
+                 (len(blob), _hl.sha256(blob).hexdigest(), src))
 
     award_keys = {r[0] for r in conn.execute("SELECT award_key FROM award WHERE award_key IS NOT NULL")}
     org_of_award = {r[0]: r[1] for r in conn.execute("SELECT award_key, org_id FROM award")}
@@ -284,7 +310,7 @@ def run_item(conn, item: dict) -> dict:
 
     award_upd, fill_rows, progress_rows = [], [], []
     recip_by_uei, recip_by_org = {}, {}
-    rows_read = matched = city_n = 0
+    rows_read = matched = in_archive = city_n = 0
     for rd in prime_csv_from_zip(blob):
         for row in rd:
             rows_read += 1
@@ -313,6 +339,9 @@ def run_item(conn, item: dict) -> dict:
                            zip=zip5(row.get("recipient_zip_code") or row.get("recipient_zip_4_code")),
                            cfips=clean(row.get("prime_award_summary_recipient_county_fips_code")))
             matched += 1
+            if key not in award_keys:
+                continue                      # a row the archive does not hold (other award type)
+            in_archive += 1
             progress_rows.append((key, 1, f"csv:{plan_key}", ts))
             if city:
                 city_n += 1
@@ -368,13 +397,36 @@ def run_item(conn, item: dict) -> dict:
     uei_upd = [(rec["city"], rec["county"], rec["state"], rec["zip"], rec["address1"], ts, uei)
                for uei, rec in recip_by_uei.items()
                if rec["city"] or rec["state"] or rec["zip"] or rec["address1"]]
+    # which org rows the UEI pass is about to touch (recorded before the UPDATE, so a replay from
+    # an already-filled archive records nothing new)
+    uei_touch = []
+    for uei, rec in recip_by_uei.items():
+        if not (rec["city"] or rec["state"] or rec["zip"] or rec["address1"]):
+            continue
+        for r in conn.execute("""SELECT id FROM org WHERE uei=? AND uei IS NOT NULL AND uei<>''
+                                 AND (state IS NULL OR state IN (SELECT abbr FROM geo_state))
+                                 AND (city IS NULL OR state IS NULL OR zip IS NULL OR address1 IS NULL
+                                      OR COALESCE(city,'')=COALESCE(?,'')
+                                         AND COALESCE(zip,'')=COALESCE(?,''))""",
+                              (uei, rec["city"], rec["zip"])):
+            uei_touch.append((r[0], uei))
     conn.executemany(
         """UPDATE org SET city=COALESCE(city,?), county=COALESCE(county,?), state=COALESCE(state,?),
                           zip=COALESCE(zip,?), address1=COALESCE(address1,?), updated_at=?
            WHERE uei=? AND uei IS NOT NULL AND uei<>''
+             AND (state IS NULL OR state IN (SELECT abbr FROM geo_state))
              AND (city IS NULL OR state IS NULL OR zip IS NULL OR address1 IS NULL)""", uei_upd)
     org_fill = [(oid, rec["uei"], plan_key, rec["city"], rec["county"], rec["state"], rec["zip"],
                  rec["address1"], src, ts) for oid, rec in recip_by_org.items()]
+    # provenance for orgs reached only through recipient_uei (no award of ours points at them)
+    have = {r[0] for r in conn.execute("SELECT org_id FROM award_places_org_fill")}
+    for oid, uei in uei_touch:
+        if oid in have:
+            continue
+        rec = recip_by_uei[uei]
+        have.add(oid)
+        org_fill.append((oid, uei, plan_key, rec["city"], rec["county"], rec["state"], rec["zip"],
+                         rec["address1"], src, ts))
     conn.executemany(
         """INSERT INTO award_places_org_fill(org_id,uei,plan_key,city,county,state,zip,address1,source_id,ts)
            VALUES(?,?,?,?,?,?,?,?,?,?)
@@ -391,12 +443,12 @@ def run_item(conn, item: dict) -> dict:
     conn.execute(
         """UPDATE award_places_plan SET status='finished', file_name=?, file_url=?, rows_read=?,
              rows_matched=?, awards_city=?, orgs_filled=?, note=?, updated_at=? WHERE plan_key=?""",
-        (req["file_url"].rsplit("/", 1)[-1], req["file_url"], rows_read, matched, filled_city,
+        (req["file_url"].rsplit("/", 1)[-1], req["file_url"], rows_read, in_archive, filled_city,
          len(org_upd), "", ts, plan_key))
     conn.commit()
-    print(f"  [{plan_key}] rows={rows_read} matched={matched} with_city={city_n} "
+    print(f"  [{plan_key}] rows={rows_read} matched_in_archive={in_archive} with_city={city_n} "
           f"orgs_touched={len(org_upd)}", flush=True)
-    return dict(rows_read=rows_read, matched=matched, city=city_n, orgs=len(org_upd),
+    return dict(rows_read=rows_read, matched=in_archive, city=city_n, orgs=len(org_upd),
                 awards_city_total=filled_city, src=src, file_url=req["file_url"])
 
 
@@ -412,6 +464,46 @@ def mark_failed(conn, plan_key: str, note: str):
                     ON CONFLICT(plan_key) DO UPDATE SET status='failed', note=excluded.note,
                     updated_at=excluded.updated_at""", (plan_key, "failed", note[:500], now()))
     conn.commit()
+
+
+def drop_foreign_places(conn) -> int:
+    """Reconcile non-US places of performance out of the city columns.
+
+    One award (CONT_AWD_W912PF05C0003_9700_-NONE-_-NONE-, Vicenza, IT) reports pop_country=ITA in
+    one download and a blank country in another; whichever plan loaded it first kept the city. The
+    plan that names a non-US country is the stronger evidence, so no foreign place ends up on a US
+    city page.
+    """
+    keys = [r[0] for r in conn.execute(
+        """SELECT award_key FROM award_places_fill
+           WHERE pop_country IS NOT NULL AND UPPER(pop_country)<>'USA'""")]
+    if not keys:
+        return 0
+    conn.executemany("UPDATE award SET place_city=NULL, place_county=NULL WHERE award_key=?",
+                     [(k,) for k in keys])
+    conn.executemany("UPDATE award_places_fill SET place_city=NULL, place_county=NULL WHERE award_key=?",
+                     [(k,) for k in keys])
+    conn.commit()
+    return len(keys)
+
+
+def drop_foreign_org_address(conn) -> int:
+    """Foreign awardees must not get a US street address.
+
+    USASpending mints placeholder recipient UEIs shared by many unrelated foreign awardees
+    (`MISCELLANEOUS FOREIGN AWARDEES` appears once per country), so a UEI match can hand one row a
+    US ZIP/county/street from a different awardee. An `org` whose `state` is not a USPS abbreviation
+    is foreign: drop the county / ZIP / street this domain added and its provenance row.
+    """
+    ids = [r[0] for r in conn.execute(
+        """SELECT o.id FROM org o JOIN award_places_org_fill f ON f.org_id=o.id
+           WHERE o.state IS NOT NULL AND o.state NOT IN (SELECT abbr FROM geo_state)
+             AND (o.county IS NOT NULL OR o.zip IS NOT NULL OR o.address1 IS NOT NULL)""")]
+    for i in ids:
+        conn.execute("UPDATE org SET county=NULL, zip=NULL, address1=NULL WHERE id=?", (i,))
+        conn.execute("DELETE FROM award_places_org_fill WHERE org_id=?", (i,))
+    conn.commit()
+    return len(ids)
 
 
 def quick_check(conn, plan_key):
@@ -443,10 +535,11 @@ def run(conn, cfg) -> dict:
 
     total = dict(rows=0, matched=0, city=0, orgs=0)
     done_items = []
+    reload = bool(cfg.get("reload"))
     for it in items:
         st = conn.execute("SELECT status, n_hint FROM award_places_plan WHERE plan_key=?",
                           (it["key"],)).fetchone()
-        if st and st["status"] == "finished":
+        if st and st["status"] == "finished" and not reload:
             done_items.append((it, st["n_hint"]))
             continue
         try:
@@ -491,6 +584,8 @@ def run(conn, cfg) -> dict:
                     mark_failed(conn, sub["key"], repr(e))
                     print(f"  [{sub['key']}] FAILED {e!r}"[:300], flush=True)
 
+    foreign_dropped = drop_foreign_places(conn)
+    foreign_orgs = drop_foreign_org_address(conn)
     n_award = conn.execute("SELECT COUNT(*) FROM award").fetchone()[0]
     n_city = conn.execute("SELECT COUNT(*) FROM award WHERE place_city IS NOT NULL").fetchone()[0]
     n_county = conn.execute("SELECT COUNT(*) FROM award WHERE place_county IS NOT NULL").fetchone()[0]
@@ -500,14 +595,15 @@ def run(conn, cfg) -> dict:
     pct = 100.0 * n_city / n_award if n_award else 0.0
     notes = (f"place_city {n_city}/{n_award} ({pct:.1f}%) place_county {n_county} "
              f"orgs_with_city+state {n_org_addr} orgs_with_zip {n_org_zip} "
-             f"plans={len(items)} matched={total['matched']}")
+             f"plans={len(items)} matched={total['matched']} foreign_cleared={foreign_dropped} "
+             f"foreign_orgs_cleared={foreign_orgs}")
     return {"rows": total["matched"], "notes": notes,
             "sources": [(DOWNLOAD_URL, "public domain")]}
 
 
 def selftest():
     conn = db()
-    res = run(conn, {"selftest": True})
+    res = run(conn, {"selftest": True, "reload": True})
     print(f"[{DOMAIN}] selftest rows={res['rows']} {res['notes']}")
     print("sample award rows just filled:")
     for r in conn.execute("""SELECT a.award_key, a.award_type, a.place_state, a.place_city,
@@ -520,9 +616,11 @@ def selftest():
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--selftest", action="store_true")
+    ap.add_argument("--reload", action="store_true",
+                    help="re-load every finished plan from the cached ZIP (no network); idempotent")
     a = ap.parse_args()
     if a.selftest:
         selftest()
     else:
         conn = db()
-        print(json.dumps(run(conn, {}), indent=1, default=str))
+        print(json.dumps(run(conn, {"reload": a.reload}), indent=1, default=str))

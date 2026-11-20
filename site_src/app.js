@@ -127,17 +127,25 @@
   }
 
   /* ---------------- maps ---------------- */
-  var RAMP = [[0, "#22303f"], [0.02, "#3d2a3f"], [0.08, "#6b2f3a"], [0.2, "#a83c33"], [0.45, "#e2603a"], [0.7, "#ff8a4c"], [1, "#ffc857"]];
+  /* sequential warm ramp on paper; a cooler ramp when the reader prefers a dark scheme */
+  var DARK_UI = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  var RAMP_LIGHT = [[0, "#EFE6D6"], [0.02, "#E4CDA9"], [0.08, "#D2A576"], [0.2, "#BD8250"], [0.45, "#A75832"], [0.7, "#8A3A1E"], [1, "#6A2410"]];
+  var RAMP_DARK  = [[0, "#242119"], [0.02, "#3A2E2A"], [0.08, "#6B3A32"], [0.2, "#93452F"], [0.45, "#C05A32"], [0.7, "#E8834B"], [1, "#F7B267"]];
+  var RAMP = DARK_UI ? RAMP_DARK : RAMP_LIGHT;
+  var PAPER = DARK_UI ? "#131210" : "#FCFBF7";
+  var BASE_STYLE = DARK_UI
+    ? "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json"
+    : "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json";
   function rateColorExpr(prop) {
     /* stops are homeless people per 10,000 residents, not fractions */
-    return ["interpolate", ["linear"], ["coalesce", ["get", prop], 0],
+    return ["interpolate", ["linear"], ["coalesce", ["feature-state", "rate"], ["get", prop], 0],
       0, RAMP[0][1], 3, RAMP[1][1], 8, RAMP[2][1], 15, RAMP[3][1], 28, RAMP[4][1], 45, RAMP[5][1], 70, RAMP[6][1]];
   }
   function baseMap(el, opts) {
     opts = opts || {};
     return new maplibregl.Map({
       container: el,
-      style: opts.style || "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
+      style: opts.style || BASE_STYLE,
       center: opts.center || [-96, 38.2],
       zoom: opts.zoom || 3.1,
       minZoom: 1, maxZoom: 11, attributionControl: false,
@@ -149,7 +157,7 @@
     map.addLayer({ id: layer, type: "circle", source: layer, paint: {
       "circle-color": rateColorExpr(colorProp),
       "circle-radius": ["interpolate", ["linear"], ["sqrt", ["coalesce", ["get", "v"], 1]], 1, 3, 20, 26],
-      "circle-opacity": 0.86, "circle-stroke-color": "#0b0e13", "circle-stroke-width": 0.5
+      "circle-opacity": 0.88, "circle-stroke-color": PAPER, "circle-stroke-width": 0.6
     } });
     var pop = new maplibregl.Popup({ closeButton: true, maxWidth: "300px" });
     map.on("click", layer, function (e) {
@@ -160,9 +168,9 @@
     map.on("mouseleave", layer, function () { map.getCanvas().style.cursor = ""; });
   }
   function addChoropleth(map, geojson, id) {
-    map.addSource(id, { type: "geojson", data: geojson });
+    map.addSource(id, { type: "geojson", data: geojson, promoteId: "abbr" });
     map.addLayer({ id: id + "-fill", type: "fill", source: id, paint: { "fill-color": rateColorExpr("rate"), "fill-opacity": 0.72 } });
-    map.addLayer({ id: id + "-line", type: "line", source: id, paint: { "line-color": "#0b0e13", "line-width": 0.7 } });
+    map.addLayer({ id: id + "-line", type: "line", source: id, paint: { "line-color": PAPER, "line-width": 0.8 } });
     var pop = new maplibregl.Popup({ maxWidth: "320px" });
     map.on("click", id + "-fill", function (e) {
       var p = e.features[0].properties;
@@ -171,7 +179,7 @@
     map.on("mouseenter", id + "-fill", function () { map.getCanvas().style.cursor = "pointer"; });
     map.on("mouseleave", id + "-fill", function () { map.getCanvas().style.cursor = ""; });
   }
-  window.atlasMap = { base: baseMap, pops: addPops, choro: addChoropleth, ramp: RAMP };
+  window.atlasMap = { base: baseMap, pops: addPops, choro: addChoropleth, ramp: RAMP, baseStyle: BASE_STYLE, paper: PAPER };
 
   /* ---------------- search page ---------------- */
   function initSearchPage() {
