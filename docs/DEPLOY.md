@@ -33,8 +33,22 @@ lands during the directory swap can 404 for a fraction of a second.
 
 ## Names
 
-- `https://atlas.homelabai.org` — CNAME to the `atlas` tunnel, proxied by Cloudflare.
+- `https://homeless.sybilsolutions.ai` — canonical. CNAME to the `atlas` tunnel, proxied by Cloudflare.
+- `https://atlas.homelabai.org` — same tunnel, same content.
 - `http://pop-os-1.tailadb2c1.ts.net:8123` — tailnet only, no Cloudflare in the path.
+
+`cloudflared tunnel route dns` writes into whichever zone it picks from the default config, so these
+records were created through the API instead:
+
+```sh
+curl -X POST -H "X-Auth-Email: $EMAIL" -H "X-Auth-Key: $KEY" -H "Content-Type: application/json" \
+  "https://api.cloudflare.com/client/v4/zones/<zone>/dns_records" \
+  --data '{"type":"CNAME","name":"homeless","content":"99f5057e-90d2-4ef2-b97c-c080ae5b8dff.cfargotunnel.com","proxied":true}'
+```
+
+Only one connector may run per tunnel config: a second `cloudflared run` left over from testing keeps
+serving its old ingress rules and returns 404 for any hostname added afterwards. If a new hostname
+404s while the old ones work, check `cloudflared tunnel info <uuid>` for more than one connector.
 
 If a LAN resolver returns NXDOMAIN for the new hostname while public resolvers answer, that is the
 router caching the miss from before the record existed. Nothing to fix on this host.
