@@ -1720,6 +1720,45 @@ def agency(name):
     return AGENCY_SHORT.get(n, n)
 
 
+PROFILE_LABEL = {
+    "profile_score": "public-record profile",
+    "profile_disclosure": "disclosure / 40",
+    "profile_solvency": "solvency / 25",
+    "profile_dependency": "CoC dependency / 20",
+    "profile_pay": "executive pay / 15",
+}
+
+
+def org_profile(org_id):
+    """The public-record profile: filing completeness and financial shape, never an outcome claim."""
+    rows = q(CONN, """SELECT metric, value, note FROM metric
+                       WHERE entity_type='org' AND entity_id=? AND metric LIKE 'profile_%'
+                       ORDER BY CASE metric WHEN 'profile_score' THEN 0
+                                            WHEN 'profile_disclosure' THEN 1
+                                            WHEN 'profile_solvency' THEN 2
+                                            WHEN 'profile_dependency' THEN 3
+                                            ELSE 4 END""",
+             (str(org_id),))
+    if not rows:
+        return ""
+    score = next((r for r in rows if r["metric"] == "profile_score"), None)
+    if not score:
+        return ""
+    bars = "".join(
+        f'<tr><td>{esc(PROFILE_LABEL.get(r["metric"], r["metric"]))}</td>'
+        f'<td class="r">{r["value"]:g}</td></tr>'
+        for r in rows if r["metric"] != "profile_score")
+    return (f'<div class="panel"><h3>Public-record profile</h3>'
+            f'<p class="num" style="font-family:var(--serif);font-size:2rem;margin:0 0 .1em">'
+            f'{score["value"]:g}<span class="dim" style="font-size:.9rem"> / 100</span></p>'
+            f'<div class="tablewrap" style="border-top:1px solid var(--rule)"><table>'
+            f'<tbody>{bars}</tbody></table></div>'
+            f'<p class="dim" style="font-size:.76rem;margin:.6em 0 0">This scores filing completeness and '
+            f'financial shape only. No public dataset reports whether this organisation housed anyone: HUD '
+            f'publishes outcomes per Continuum of Care, never per provider. Do not read a high score as '
+            f'effectiveness.</p></div>')
+
+
 def page_org(d, o, manifest_total):
     awards = q(CONN, """SELECT * FROM award WHERE org_id=? ORDER BY amount_obligated DESC NULLS LAST LIMIT 500""", (o["id"],))
     people = q(CONN, """SELECT * FROM org_person WHERE org_id=? ORDER BY COALESCE(comp,0) DESC LIMIT 200""", (o["id"],))
@@ -1755,6 +1794,7 @@ def page_org(d, o, manifest_total):
   </div>
   <div class="grid side">
     <div>
+      {org_profile(o["id"])}
       <h2>Awards</h2>
       {table([("Award",""),("Agency",""),("Description",""),("Obligated","r"),("Year","r")], aw)}
     </div>
