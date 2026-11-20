@@ -66,7 +66,8 @@ code,kbd{font-family:var(--mono);font-size:.88em;background:var(--paper3);
 .muted{color:var(--ink2)}
 .dim{color:var(--ink3)}
 .wrap{width:100%;max-width:1180px;margin:0 auto;padding:0 20px}
-.wrap-narrow{max-width:900px}  /* prose caps at 66ch via p{}; tables may run wider */
+/* .wrap-narrow shares the masthead gutter: measure comes from p{} at 66ch, not from a centred column */
+.wrap-narrow{max-width:none}
 
 .skip{position:absolute;left:-9999px;top:0;background:var(--ink);color:var(--paper);
   padding:10px 16px;z-index:99;border-radius:0}
