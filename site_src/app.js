@@ -128,7 +128,7 @@
 
   /* ---------------- maps ---------------- */
   /* sequential warm ramp on paper; a cooler ramp when the reader prefers a dark scheme */
-  var DARK_UI = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  var DARK_UI = document.documentElement.dataset.theme === "dark";
   var RAMP_LIGHT = [[0, "#EFE6D6"], [0.02, "#E4CDA9"], [0.08, "#D2A576"], [0.2, "#BD8250"], [0.45, "#A75832"], [0.7, "#8A3A1E"], [1, "#6A2410"]];
   var RAMP_DARK  = [[0, "#242119"], [0.02, "#3A2E2A"], [0.08, "#6B3A32"], [0.2, "#93452F"], [0.45, "#C05A32"], [0.7, "#E8834B"], [1, "#F7B267"]];
   var RAMP = DARK_UI ? RAMP_DARK : RAMP_LIGHT;

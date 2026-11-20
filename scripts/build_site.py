@@ -138,6 +138,7 @@ def shell(rel: str, title: str, section: str, body: str, head: str = "", desc: s
 <meta property="og:title" content="{esc(title)} · Homeless Atlas">
 <meta property="og:type" content="website">
 <link rel="stylesheet" href="{rel}assets/atlas.css">
+<script>try{{var t=localStorage.getItem("atlas-theme");if(t==="dark")document.documentElement.dataset.theme="dark";}}catch(e){{}}</script>
 <script src="{rel}assets/app.js"></script>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect rx='22' width='100' height='100' fill='%230b0e13'/><circle cx='50' cy='50' r='24' fill='%23ff7a45'/></svg>">
 {head}
@@ -151,6 +152,7 @@ def shell(rel: str, title: str, section: str, body: str, head: str = "", desc: s
       <input type="search" id="gq" placeholder="Search counts, orgs, people, laws…" aria-label="Search" autocomplete="off">
       <div class="ac" role="listbox"></div>
     </form>
+    <button class="themebtn" id="themebtn" aria-label="Switch between light and dark" title="Light / dark">◐</button>
     <button class="navbtn" aria-label="Menu">☰ Menu</button>
   </div>
   <nav class="main">{nav}
@@ -170,6 +172,17 @@ def shell(rel: str, title: str, section: str, body: str, head: str = "", desc: s
 </div></footer>
 <script>
 function goSearch(e){{e.preventDefault();var v=document.getElementById('gq').value.trim();if(v)location.href='{rel}search.html?q='+encodeURIComponent(v);return false;}}
+(function(){{
+  var b=document.getElementById('themebtn');
+  if(!b)return;
+  b.addEventListener('click',function(){{
+    var on=document.documentElement.dataset.theme==='dark';
+    if(on){{delete document.documentElement.dataset.theme;}}else{{document.documentElement.dataset.theme='dark';}}
+    try{{localStorage.setItem('atlas-theme',on?'light':'dark');}}catch(e){{}}
+    /* maps choose their basemap and colour ramp at load, so reload to match */
+    if(document.getElementById('map')||document.querySelector('.map'))location.reload();
+  }});
+}})();
 </script>
 {head and ''}
 </body></html>"""
