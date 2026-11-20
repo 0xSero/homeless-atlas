@@ -1921,6 +1921,23 @@ def _build_lock():
     raise SystemExit("another build holds the lock; refusing to interleave")
 
 
+def page_404(d, manifest_total):
+    body = banner("404", "That page is not in the atlas",
+                  "The address is wrong, or the record it pointed at was withdrawn after a source check failed.") + """
+<div class="wrap">
+  <p>Nothing here. Try the search box above, or start from one of these:</p>
+  <div class="cards" style="margin-top:18px">
+    <div class="card"><h3><a href="/map.html">The map</a></h3><div class="m">states, CoCs, cities, institutions</div></div>
+    <div class="card"><h3><a href="/orgs.html">Organizations</a></h3><div class="m">ranked by public money</div></div>
+    <div class="card"><h3><a href="/states.html">States</a></h3><div class="m">counts, rates and federal awards</div></div>
+    <div class="card"><h3><a href="/facilities.html">Institutions</a></h3><div class="m">psychiatric hospitals, prisons, jails</div></div>
+    <div class="card"><h3><a href="/report/san-francisco.html">San Francisco brief</a></h3><div class="m">the flagship case study</div></div>
+    <div class="card"><h3><a href="/search.html">Search</a></h3><div class="m">every record in the archive</div></div>
+  </div>
+</div>"""
+    return shell("../", "Not found", "", body, manifest_total=manifest_total)
+
+
 def main():
     global CONN, SITE, PERSON_OK, ORG_URL
     _lock = _build_lock()
@@ -1979,6 +1996,7 @@ def main():
     write("docs.html", page_docs(d, total))
     write("search.html", page_search(d, total))
     write("about.html", page_about(d, total))
+    write("404.html", page_404(d, total))
     write("method.html", page_method(d, total))
     write("sources.html", page_sources(d, total))
     write("report/san-francisco.html", page_report_sf(d, total))

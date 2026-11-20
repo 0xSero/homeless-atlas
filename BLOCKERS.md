@@ -347,3 +347,41 @@ are unpacked with the system `unzip` (which does support method 9) and parsed fr
 `KeyCount 0`, and a known object id answers `NoSuchKey`. Per-filing XML therefore has to come out of the
 annual bulk batches, and ProPublica's `download-xml?object_id=…` is HTTP 403 for this host (recorded by
 the `nonprofit` worker).
+
+## search-index
+
+**Not a source blocker — a scope blocker.** The item ("split `<letter>` shards into `<letter>-<0..9>`
+buckets, keep every fetched file under 250 KB, p95 < 300 ms on 3G") can only be implemented in
+`scripts/build_site.py:build_index()`, `site_src/app.js:loadShard()` and `site/data/idx/`, all of which
+rule 4 forbids this worker to write. There is no ingest-side hook to use instead: `build_index()` builds
+from in-memory DB reads and no other code reads a prepared index (`grep -rn "data/idx|search-index.json"`
+→ `scripts/build_site.py`, `scripts/verify.py`, `site_src/app.js` only).
+
+State as measured (details, baselines and design options with sizes in `research/search-index.md`):
+
+- the `<letter>-<0..9>` split already exists (commit `f43045e9b9`); largest shard `c-9.json` is
+  423,061 B on disk, 115,001 B brotli on the wire, and **76 of 360** shards exceed 250 KB on disk;
+- the client still fetches all ten buckets of a letter, i.e. 4,071,823 B on disk / 1,131,932 B on the
+  wire for one keystroke on `c` (byte counts fetched live from `homeless.sybilsolutions.ai`), which is
+  ~6 s on Fast 3G and ~23 s on Slow 3G — criterion 3 fails by an order of magnitude;
+- "continuum of care" baselines at 141 scored rows (top `CONTINUUM OF CARE INC`); "housing clinic" has
+  **4** scored rows, all `person`, because **`Tenderloin Housing Clinic` is not in `org` or `org_person`
+  at all** (`like '%TENDERLOIN HOUSING%'` → 0 rows) — the exemplar in the code comment does not exist in
+  this atlas, so that acceptance test can only check "unchanged", not "finds the org".
+
+### Unblock
+
+A decision, not a key. One of:
+
+1. grant an exception to edit `scripts/build_site.py:build_index()`, `site_src/app.js:loadShard()` and
+   `site/data/idx/` (plus permission to run `scripts/build_site.py` and the crawl gate) — 2-level
+   `token → bucket list` manifest, 4-char token prefixes, payload `[type,title,url]` + shared subtitle
+   table, files capped ~200 KB; or
+2. move search to the Worker (`/api/search` over KV/D1 — `wrangler.jsonc` already deploys
+   `scripts/deploy-worker.js`), which is the only option that makes p95 < 300 ms on 3G hold for common
+   tokens; or
+3. re-scope the item to something a domain worker owns. As of today a domain worker owns nothing here.
+
+Caveat for whoever takes it: no static layout that keeps whole-letter substring matching fits 300 ms on
+3G — a keystroke has to reach ≲ 40 KB, and the acceptance wording needs to say whether the 300 ms is
+per keystroke or warm-cache.
