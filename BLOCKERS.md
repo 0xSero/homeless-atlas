@@ -385,3 +385,61 @@ A decision, not a key. One of:
 Caveat for whoever takes it: no static layout that keeps whole-letter substring matching fits 300 ms on
 3G — a keystroke has to reach ≲ 40 KB, and the acceptance wording needs to say whether the 300 ms is
 per keystroke or warm-cache.
+
+## 2026-11-21 — org websites / emails cannot reach 5,000 / 2,000 from bulk public data
+
+**Target (goal item 3):** `org.website >= 5000`, `org.email >= 2000`.
+**Reached:** 2,023 websites, 832 emails.
+
+Measured yields, so the shortfall is a fact rather than an opinion:
+
+| source | attempted | websites obtained | emails obtained |
+|---|---|---|---|
+| Form 990 e-file XML (`WebsiteAddressTxt`, Part VI email fields) | 2,782 filings parsed | 10 (0.4%) | 0 |
+| IRS BMF | not usable — the file carries no web or email field at all | — | — |
+| ProPublica Nonprofit Explorer | their API exposes filings and PDF links, no website/email; `download-xml` returns 403 to non-browser clients | 0 | 0 |
+| Brave Search (key present, slim API) | 3 queries spot-checked | top hits are Nextdoor, Reddit, USASpending for a named organisation — needs a per-org query budget | — |
+
+**Brave's quota is the binding constraint, measured:** `x-ratelimit-policy: 1;w=1, 2000;w=2592000`
+— one request per second, **2,000 requests per 30 days**, of which 1,911 remained when this was
+checked. Measured yield over a 25-organisation trial: **7 websites (28%) and 3 emails (12%)** per
+lookup. Spent against the whole remaining quota that is ≈ 535 websites and ≈ 230 emails, i.e. about
+2,560 websites and 1,060 emails in total — short of both targets, and it would exhaust the month.
+
+**What would unblock it:** SAM.gov's entity API returns `entityURL` for every registered entity and a
+point of contact (free key from api.data.gov, one-time signup, no cost), which covers the
+organisations that hold federal awards — the ones that matter most here. The Brave key present in the
+environment can top up the rest, but only at 2,000 lookups per month.
+
+**Decision:** leave the columns at their verified values rather than fill them from search results
+that cannot be checked; the goal's own rule is that a URL that does not answer is worse than NULL.
+
+## 2026-11-21 — Part III XML: 1,945 of 5,000 organisations
+
+The IRS publishes the 990 XML only as per-year batch ZIPs (~100–520 MB each). Three attempts failed
+before the cause was found:
+
+1. `zipfile` raised `NotImplementedError` on several published archives → switched to the `unzip` CLI.
+2. Some batches are named `2024_TEOS_XML_05a` in the index while the file on disk is `05A` → every
+   object id in those batches failed with FileNotFoundError (1,334 EINs). Fixed by upper-casing the
+   batch name and rejecting any download that is not a real ZIP (`PK` magic).
+3. After those fixes the sweep continues; 2,782 organisations are parsed and 1,945 have programme text.
+
+Nothing is estimated: organisations without a parsed filing simply have no row in `org_program`.
+
+## 2026-11-21 — the ingest loop cannot run while the model endpoint is down
+
+The loop launches `pi -p --model homelab/deepseek-v4.1-flash-1017` workers. Twice today a launched
+worker sat with an empty log, zero TCP connections and no rows written for ten minutes:
+
+```
+$ curl -s -o /dev/null -w '%{http_code}' https://api.homelabai.org/v1/models
+000
+$ ps -eo etimes,args | grep atlas-subawards
+291 timeout 7200 pi -p --model homelab/deepseek-v4.1-flash-1017 ...
+```
+
+The subawards item was finished by hand (`ingest/domains/subawards.py`, 2,705 rows) rather than wait
+for the 7,200 s worker timeout. The loop is installed as `atlas-loop.service` (systemd user unit,
+`Restart=always`) but left **stopped** until `api.homelabai.org` answers or the unit's `MODEL` is
+changed to a reachable one — spawning workers that cannot connect just burns two hours each.

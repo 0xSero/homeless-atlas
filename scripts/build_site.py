@@ -1161,8 +1161,85 @@ def page_rankings(d, manifest_total):
   {table([("City",""),("Population","r"),("Deaths","r"),("Year","")], orow,
          note="Where a city or county publishes medical-examiner counts. Cause of death, not an attribution to "
               "homeless people.")}
+
+{_spend_block()}
 </div>"""
     return shell("", "Rankings", "rankings.html", body, manifest_total=manifest_total)
+
+
+def _spend_block():
+    """Federal dollars next to outcomes, per CoC — the caveats are the point, not a footnote.
+
+    Both series come from scripts/build_outcome_metrics.py (metric rows written with is_est=1) and
+    spend_vs_outcome_spend (the attributed federal obligation per CoC-year).
+    """
+    def series(metric, denom_metric, min_denom):
+        latest = one(CONN, """SELECT MAX(year) y FROM metric WHERE entity_type='coc' AND metric=?""",
+                     (metric,), default={}) or {}
+        y = latest.get("y")
+        rows = q(CONN, """SELECT m.entity_id coc, m.value per, m.year, m.note, g.name, g.state,
+                                 s.obligated, s.awards, d.value denom
+                          FROM metric m
+                          JOIN geo_coc g ON g.coc_num = m.entity_id
+                          LEFT JOIN spend_vs_outcome_spend s ON s.coc_num = m.entity_id AND s.fy = m.year
+                          LEFT JOIN metric d ON d.entity_type='coc' AND d.entity_id = m.entity_id
+                               AND d.metric = ? AND d.year = m.year
+                          WHERE m.entity_type='coc' AND m.metric = ? AND m.value IS NOT NULL
+                            AND m.year = ? AND COALESCE(d.value, 0) >= ?""",
+                   (denom_metric, metric, y, min_denom))
+        return y, rows
+
+    def rows_for(rs, denom_head):
+        out = []
+        for r in rs:
+            coc = f'<a href="coc/{esc(r["coc"])}.html">{esc(r["coc"])}</a> {esc((r.get("name") or "")[:54])}'
+            out.append([coc, "", r["coc"], esc(r.get("state") or ""), "", r.get("state") or "",
+                        money(r.get("obligated")), "r", r.get("obligated") or 0,
+                        num(r.get("denom")), "r", r.get("denom") or 0,
+                        money(r["per"]) + est(True), "r", r["per"], yr(r["year"]), "", r["year"] or 0])
+        return out
+
+    y, sp = series("spend_per_exit_to_housing", "spm_exit_to_ph_count", 50)
+    if not sp:
+        return ""
+    sp.sort(key=lambda r: r["per"])
+    head = [("CoC", ""), ("State", ""), ("Federal $", "r"), ("Exits to housing", "r"),
+            ("$ per exit†", "r"), ("Year", "r")]
+    lo, hi = rows_for(sp[:25], "Exits"), rows_for(sp[-25:][::-1], "Exits")
+    n_all = len(sp)
+
+    py, pp = series("spend_per_person_placed", "spend_per_person_placed", 1)
+    pp = [r for r in pp if r.get("denom")]
+    head_person = [("CoC", ""), ("State", ""), ("Federal $", "r"), ("Net decline", "r"),
+                   ("$ per net person†", "r"), ("Year", "r")]
+    py_all = rows_for(sorted(pp, key=lambda r: r["per"])[:15], "Net decline") if pp else []
+    py_hi = rows_for(sorted(pp, key=lambda r: r["per"])[-15:][::-1], "Net decline") if pp else []
+
+    block = f"""
+  <h2>Most and least spent per exit to housing</h2>
+  <p class="dim" style="max-width:70ch">Federal dollars obligated against the exits to permanent housing that HUD's
+  System Performance Measures record for the same CoC and fiscal year, FY{esc(y)}. {n_all} CoCs have both
+  inputs and at least 50 exits. <strong>A low number is not evidence of efficiency.</strong> It can equally be an
+  accounting artefact: dollars booked to a neighbouring county, awards dated in a different fiscal year, a prime
+  award whose subawards carry the service money, or a place of performance recorded at a headquarters address.
+  <strong>CoC spend cannot be separated from city and county spend</strong> — the same county's police, hospital and
+  general-fund money is invisible here, and a CoC is a planning body, not a spending unit. This table is a
+  question to ask a CoC, not a verdict on it.</p>
+  {table(head, lo, note="Least federal dollars per exit to permanent housing, FY" + esc(y) + ". † federal obligation with place of performance inside the CoC (USASpending award records, award type grant/contract, subawards excluded) ÷ SPM exits to permanent housing. FY is the fiscal year of the award's base obligation date.")}
+  <h3>The other end of the same ranking</h3>
+  {table(head, hi, note="Most federal dollars per exit, same definition. A high figure here usually means the county hosts a federal grantee whose money is booked locally, not that the CoC is profligate.")}
+
+  {('<h2>Most and least spent per net person placed</h2>'
+    '<p class="dim" style="max-width:70ch">Federal obligation ÷ the net fall in the point-in-time count between '
+    'FY' + esc(py) + ' and FY' + esc(int(py) + 1) + '. That denominator is a net change in a census-style count, '
+    'not a count of placements: people arriving into homelessness are netted off it, and any CoC whose count rose '
+    'is dropped rather than given a negative cost. Far fewer CoCs qualify than in the table above, so read this as '
+    'a cross-check, not a league table.</p>'
+    + table(head_person, py_all,
+            note="Cheapest per net person placed. A low figure here is as much about inflow as about placement: a CoC whose count fell sharply looks cheap whether or not it housed anybody.")
+    + table(head_person, py_hi, note="Most expensive per net person placed.")) if py_all else ""}
+"""
+    return block
 
 
 COUNTRIES = [("us", "United States", "US", "point-in-time count"),
