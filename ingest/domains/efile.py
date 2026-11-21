@@ -259,8 +259,11 @@ def main():
                           float(rev) if rev and re.match(r"^-?[\d.]+$", rev) else None, src))
             stats["program"] += 1
 
+        # "ok" means the filing was read and produced something. A filing with no Part III text is
+        # marked no_fields, not ok, so a later sweep retries it instead of skipping it forever.
+        status = "ok" if (mission or progtext) else "no_fields"
         conn.execute("INSERT OR REPLACE INTO efile_progress VALUES(?,?,?,?,?,?)",
-                     (ein, int(period[:4]) if period[:4].isdigit() else None, oid, "ok",
+                     (ein, int(period[:4]) if period[:4].isdigit() else None, oid, status,
                       ",".join(sorted(f)), now()))
         if i % 25 == 0:
             conn.commit()
