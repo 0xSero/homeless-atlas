@@ -1,0 +1,68 @@
+# Weekly upstream change detection. Probes every source in ingest/probes.py, compares with the
+# fingerprints committed in data/freshness.json, and keeps ONE open issue up to date when
+# something upstream changed. A change is news, not a failure: the job fails only when the
+# checker itself crashes (exit 2). Re-ingesting stays a human step: python3 scripts/refresh.py --run
+name: source-watch
+
+on:
+  schedule:
+    - cron: "0 13 * * 1"   # Mondays 13:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests pyyaml
+      - name: Check upstream sources
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set +e
+          python3 scripts/refresh.py --check --json watch.json --markdown watch.md
+          rc=$?
+          set -e
+          echo "refresh.py exit code: $rc"
+          if [ "$rc" -eq 0 ]; then
+            echo "No upstream changes."
+            exit 0
+          fi
+          if [ "$rc" -ne 10 ]; then
+            echo "refresh.py crashed (exit $rc)"
+            exit 1
+          fi
+          title="Upstream data changed"
+          num=$(gh issue list --search 'in:title "Upstream data changed"' --state open \
+                --json number,title --jq "map(select(.title == \"$title\")) | .[0].number // empty")
+          if [ -n "${DRY_RUN:-}" ]; then
+            echo "DRY_RUN: existing open issue: ${num:-none}"
+            if [ -n "$num" ]; then
+              echo "DRY_RUN: would run: gh issue edit $num --body-file watch.md"
+            else
+              echo "DRY_RUN: would run: gh issue create --title \"$title\" --body-file watch.md"
+            fi
+            cat watch.md
+          elif [ -n "$num" ]; then
+            gh issue edit "$num" --body-file watch.md
+          else
+            gh issue create --title "$title" --body-file watch.md
+          fi
+          exit 0
+      - name: Keep the probe results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: source-watch
+          path: |
+            watch.json
+            watch.md
+          if-no-files-found: ignore
