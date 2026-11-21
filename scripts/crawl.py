@@ -154,7 +154,9 @@ def main(attempt=1):
                     tgt = tgt.with_suffix(".html")
                 if tgt.exists() and tgt.suffix == ".html":
                     stack.append(tgt)
-    orphans = [p for p in pages if p not in seen]
+    # 404.html is served by the worker for unknown paths, so nothing links to it on purpose
+    UNLINKED = {"404.html"}
+    orphans = [p for p in pages if p not in seen and str(p.relative_to(SITE)) not in UNLINKED]
 
     print(f"pages: {len(pages)}  internal links: {internal}  reachable from home: {len(seen)}"
           f"  orphans: {len(orphans)}")

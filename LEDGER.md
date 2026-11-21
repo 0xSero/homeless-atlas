@@ -31,3 +31,4 @@
 | 2026-11-20T08:34:23+00:00 | deploy | DONE | 41929 | scripts/publish_cf.sh | site served from Cloudflare Workers static assets at homeless.sybilsolutions.ai; local web+tunnel units disabled and the URL still returns 200 |
 | 2026-11-20T08:34:36+00:00 | award-places | DONE | 177891 | ingest/domains/award_places.py | place_city resolved for 177,891 of 187,120 awards (95%) |
 | 2026-11-20T08:37:48+00:00 | search-index | DONE | 0 | research/search-index.md + ingest/domains/search-index.py | worker exit 0 |
+| 2026-11-20T09:53:37+01:00 | deploy | DONE | 41930 | scripts/publish_cf.sh | redeployed with ASSETS binding fix (version 83bb084f); / and 404 page were 1101; local atlas-web/atlas-tunnel units removed |

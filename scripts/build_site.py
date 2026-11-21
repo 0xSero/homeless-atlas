@@ -120,7 +120,7 @@ NAV = [
     ("/index.html", "Overview"), ("/map.html", "Map"), ("/search.html", "Search"),
     ("/states.html", "States"), ("/cities.html", "Cities"), ("/orgs.html", "Orgs"),
     ("/people.html", "Officers"), ("/facilities.html", "Facilities"), ("/budgets.html", "Money"),
-    ("/country/us.html", "Countries"), ("/rankings.html", "Rankings"), ("/costs.html", "Costs"), ("/laws.html", "Laws"), ("/media.html", "Media"), ("/docs.html", "Docs"),
+    ("/country/us.html", "Countries"), ("/rankings.html", "Rankings"), ("/moved.html", "What moved"), ("/costs.html", "Costs"), ("/laws.html", "Laws"), ("/media.html", "Media"), ("/docs.html", "Docs"),
 ]
 
 # ---------------------------------------------------------------- shell
@@ -1921,6 +1921,100 @@ def _build_lock():
     raise SystemExit("another build holds the lock; refusing to interleave")
 
 
+HOMELESS_PROGRAMS = ["Continuum of Care Program", "Emergency Solutions Grant Program",
+                     "Supportive Housing Program", "Shelter Plus Care",
+                     "VA Supportive Services for Veteran Families Program",
+                     "VA Homeless Providers Grant and Per Diem Program",
+                     "Homeless Veterans’ Reintegration Program",
+                     "Youth Homelessness Demonstration Program"]
+
+
+def coc_winners():
+    """CoCs whose count fell from 2015 to 2025, with the organisations that received the most
+    federal homelessness money in each. This is co-location in a region, not attribution."""
+    rows = q(CONN, """SELECT coc_num, year, total FROM pit
+                      WHERE year BETWEEN 2015 AND 2025 AND total IS NOT NULL AND year != 2021""")
+    by = {}
+    for r in rows:
+        by.setdefault(r["coc_num"], {})[r["year"]] = r["total"]
+    meta = {r["coc_num"]: r for r in q(CONN, "SELECT coc_num,name,state FROM geo_coc")}
+    placeholders = ",".join("?" * len(HOMELESS_PROGRAMS))
+    recips = q(CONN, f"""SELECT g.coc_num AS coc, a.org_id AS oid, o.name, SUM(a.amount_obligated) AS amt, COUNT(*) AS n
+                         FROM award a JOIN org o ON o.id=a.org_id
+                         JOIN geo_city g ON lower(g.name)=lower(a.place_city) AND g.state=a.place_state
+                              AND g.coc_num IS NOT NULL
+                         WHERE a.amount_obligated > 0 AND a.program IN ({placeholders})
+                         GROUP BY g.coc_num, a.org_id""", HOMELESS_PROGRAMS)
+    by_coc = {}
+    for r in recips:
+        by_coc.setdefault(r["coc"], []).append(r)
+
+    out = []
+    for coc, ys in by.items():
+        if not (ys.get(2015) and ys.get(2025)) or ys[2015] < 300:
+            continue
+        years = sorted(ys)
+        seq = [ys[y] for y in years]
+        downs = sum(1 for a_, b_ in zip(seq, seq[1:]) if b_ < a_)
+        net = (ys[2025] - ys[2015]) / ys[2015] * 100
+        m = meta.get(coc, {})
+        top = sorted(by_coc.get(coc, []), key=lambda r: -(r["amt"] or 0))[:3]
+        out.append({"coc": coc, "name": m.get("name") or coc, "state": m.get("state") or "",
+                    "y0": ys[2015], "y1": ys[2025], "net": net, "downs": downs,
+                    "of": len(seq) - 1, "top": top})
+    out.sort(key=lambda r: r["net"])
+    return out
+
+
+def page_moved(d, manifest_total):
+    rows = coc_winners()
+    fell = [r for r in rows if r["net"] < 0]
+    rose = [r for r in rows if r["net"] >= 0]
+
+    def cell_orgs(recs):
+        if not recs:
+            return '<span class="dim">no mapped award</span>'
+        return " · ".join(f'<a href="/org/{r["oid"]}-{slug(r["name"])}.html">{esc(r["name"][:46])}</a>'
+                          f'<span class="dim"> ${(r["amt"] or 0)/1e6:,.1f}M</span>' for r in recs)
+
+    body_rows = [[f'<a href="/coc/{esc(r["coc"])}.html">{esc(r["coc"])}</a>', "", r["coc"],
+                  esc(r["state"]), "", r["state"],
+                  num(r["y0"]), "r", r["y0"], num(r["y1"]), "r", r["y1"],
+                  f'{r["net"]:+.1f}%', "r", r["net"],
+                  f'{r["downs"]}/{r["of"]}', "r", r["downs"],
+                  cell_orgs(r["top"]), "", " ".join(x["name"] for x in r["top"])] for r in fell]
+
+    body = banner("Analysis", "Where the count fell, and who was paid there",
+                  f"Of the {len(rows)} Continuums of Care that counted at least 300 people in both 2015 and 2025, "
+                  f"{len(fell)} counted fewer people in 2025 and {len(rose)} counted more. "
+                  f"This page lists the falls next to the organisations that received the most federal "
+                  f"homelessness money in that same region.") + f"""
+<div class="wrap">
+  <div class="panel" style="margin-top:18px">
+    <h3>What this can and cannot say</h3>
+    <p style="margin-bottom:.5em">It can say: in this region the one-night count fell, and these organisations
+    received these federal homelessness grants there. The money is {('Continuum of Care, Emergency Solutions Grant, '
+    'Supportive Housing, Shelter Plus Care, VA SSVF and Grant-and-Per-Diem, HVRP and YHDP')} awards whose
+    place of performance is a city that maps to the CoC.</p>
+    <p style="margin-bottom:.5em">It cannot say that any organisation caused the fall. No public dataset links a
+    provider to an outcome: HUD publishes System Performance Measures per Continuum of Care, not per agency, and
+    HMIS records are confidential. A count can also fall because the count changed, because people were moved on,
+    or because they left the area.</p>
+    <p class="dim" style="margin:0;font-size:.82rem">Two more limits: a grantee working statewide is credited to the
+    city where the money was recorded, and only federal homelessness programmes are counted — state and city money,
+    which is large in California, Houston and New York, is not in this table.</p>
+  </div>
+  <h2>Continuums of Care where the count fell, 2015 → 2025</h2>
+  <p class="dim" style="font-size:.84rem">Sorted by the size of the fall. "Down years" counts the years in which the
+  count was lower than the year before, out of the nine year-pairs present (2021 is omitted: the count was partial).</p>
+  {table([("CoC","nosort"),("State","nosort"),("2015","r"),("2025","r"),("Change","r"),("Down yrs","r"),
+          ("Largest federal homelessness grants in the region","nosort")], body_rows)}
+  <p class="dim" style="font-size:.8rem">Counts: HUD point-in-time counts. Money: USASpending awards for the eight
+  federal homelessness programmes, attributed to a CoC through the place-of-performance city.</p>
+</div>"""
+    return shell("", "Where the count fell", "", body, desc="CoCs whose homeless count fell 2015-2025, next to the organisations that received federal homelessness money there.", manifest_total=manifest_total)
+
+
 def page_404(d, manifest_total):
     body = banner("404", "That page is not in the atlas",
                   "The address is wrong, or the record it pointed at was withdrawn after a source check failed.") + """
@@ -1935,7 +2029,8 @@ def page_404(d, manifest_total):
     <div class="card"><h3><a href="/search.html">Search</a></h3><div class="m">every record in the archive</div></div>
   </div>
 </div>"""
-    return shell("../", "Not found", "", body, manifest_total=manifest_total)
+    # served at whatever path was requested, so every link must be root-absolute
+    return shell("", "Not found", "", body, manifest_total=manifest_total)
 
 
 def main():
@@ -1997,6 +2092,7 @@ def main():
     write("search.html", page_search(d, total))
     write("about.html", page_about(d, total))
     write("404.html", page_404(d, total))
+    write("moved.html", page_moved(d, total))
     write("method.html", page_method(d, total))
     write("sources.html", page_sources(d, total))
     write("report/san-francisco.html", page_report_sf(d, total))
