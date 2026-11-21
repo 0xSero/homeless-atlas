@@ -709,7 +709,7 @@ def page_index(d, manifest_total):
           <li><a href="/orgs.html">Organizations</a> ranked by public money</li>
           <li><a href="/budgets.html">Where the money goes</a></li>
           <li><a href="/facilities.html">Asylums and prisons</a>, open and closed</li>
-          <li><a href="/report/san-francisco.html">San Francisco brief</a></li>
+          <li><a href="/report/san-francisco.html">San Francisco brief</a> · <a href="/report/los-angeles.html">Los Angeles</a> · <a href="/report/new-york.html">New York</a></li>
           <li><a href="/method.html">How every number is produced</a></li>
         </ul>
       </div>
@@ -1514,22 +1514,33 @@ def page_sources(d, manifest_total):
     return shell("", "Sources", "sources.html", body, manifest_total=manifest_total)
 
 
-def page_report_sf(d, manifest_total):
-    src = ROOT / "reports" / "san-francisco.md"
+REPORT_META = {
+    "san-francisco": ("San Francisco", "The flagship case study: counts, contracts, organizations, institutions, law and cost."),
+    "los-angeles": ("Los Angeles", "The largest unsheltered population in the country, and the county that holds it."),
+    "new-york": ("New York", "The largest sheltered system in the country, built on a right to shelter."),
+}
+
+
+def page_report(d, slug, manifest_total):
+    title, blurb = REPORT_META[slug]
+    src = ROOT / "reports" / f"{slug}.md"
+    others = " · ".join(f'<a href="/report/{k}.html">{v[0]}</a>' for k, v in REPORT_META.items() if k != slug)
+    footer = f'<p class="dim" style="margin-top:34px;font-size:.82rem">Other briefs: {others}</p>'
     if src.exists():
-        text = src.read_text()
-        text = re.sub(r"\A\s*#\s+.*\n", "", text, count=1)
-        body = banner("Deep brief", "San Francisco", "The flagship case study: counts, contracts, organizations, institutions, law and cost.",
-                      crumbs="Report") + \
-            f'<div class="wrap wrap-narrow" style="margin-top:22px">{md(text)}</div>'
+        text = re.sub(r"\A\s*#\s+.*\n", "", src.read_text(), count=1)
+        body = banner("Deep brief", title, blurb, crumbs="Report") + \
+            f'<div class="wrap wrap-narrow" style="margin-top:22px">{md(text)}</div>' + footer
     else:
-        body = banner("Deep brief", "San Francisco", "Not written yet.") + (
-            '<div class="wrap wrap-narrow"><p class="dim">The San Francisco brief is generated from the database by '
-            '<code>scripts/sf_report.py</code>. It has not run yet.</p></div>')
-    return shell("../", "San Francisco", "", body, manifest_total=manifest_total)
+        body = banner("Deep brief", title, blurb, crumbs="Report") + (
+            f'<div class="wrap wrap-narrow"><p class="dim">Generated from the database by '
+            f'<code>scripts/metro_report.py {slug}</code>. It has not run yet.</p></div>' + footer)
+    return shell("../", title, "", body, manifest_total=manifest_total)
 
 
-# ---------- entity pages
+def page_report_sf(d, manifest_total):
+    return page_report(d, "san-francisco", manifest_total)
+
+
 def page_state(d, s, manifest_total):
     abbr = s["abbr"]
     cocs = [c for c in d["cocs"] if (c.get("state") or "") == abbr]
@@ -2095,7 +2106,9 @@ def main():
     write("moved.html", page_moved(d, total))
     write("method.html", page_method(d, total))
     write("sources.html", page_sources(d, total))
-    write("report/san-francisco.html", page_report_sf(d, total))
+    write("report/san-francisco.html", page_report(d, "san-francisco", total))
+    write("report/los-angeles.html", page_report(d, "los-angeles", total))
+    write("report/new-york.html", page_report(d, "new-york", total))
 
     n = 0
     for s in d["states"]:
