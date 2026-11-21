@@ -551,3 +551,32 @@ The tail is now exhausted: 1.7% acceptance means the remaining 18,000 organisati
 are mostly organisations with no site at all, or whose domain shares no run of nine letters with their
 name. Further passes would cost hours for a handful of rows. **4,435 of 5,000 (89%)**, and the honest
 unblock for the rest is SAM.gov's `entityURL`, keyed by UEI rather than guessed from a name.
+
+## 2026-11-21 — ProPublica holds the missing filings and refuses to hand over the PDFs
+
+The 7,191 organisations with no e-filed return still have paper in the world: ProPublica's Nonprofit
+Explorer API answers for them, returning filings from 2011 onward that the IRS XML indexes no longer
+reach. Three of six sampled organisations had them:
+
+```
+911727990 SAFE HAVEN ASSOCIATES           with_data=8   years 2011-2016  pdf=True
+752180083 PROMISE HOUSE INC               with_data=12  years 2011-2016  pdf=True
+760612493 MONTGOMERY COUNTY HOMELESS COA  with_data=6   years 2011-2018  pdf=True
+```
+
+That looked like the unblock for Part III: `pdftotext` the filed PDF, cut the Part III block, write the
+program text. `ingest/domains/efile_pdf.py` does exactly that and it works right up to the download.
+
+```
+GET https://projects.propublica.org/nonprofits/download-filing?path=10_2019_prefixes_86-92%2F911727990_2
+    with a browser user-agent, Referer and Accept: application/pdf
+-> HTTP 403, 6,057 bytes, "text/html"   (a bot wall, not a missing file)
+```
+
+Fetching past that wall would mean defeating bot protection, which this project does not do. The
+ingestor keeps its PDF path and progress table for the day a lawful route exists — an api.data.gov key
+for the IRS bulk PDFs, or a ProPublica API that includes document access.
+
+**Part III therefore stays at 2,903 of 5,000**, short by 2,097, with three documented causes: no e-filed
+return exists for 7,191 organisations, the 2019–2021 indexes carry no batch id for 438 filings, and the
+PDFs that would cover the rest are behind a 403.
