@@ -1,0 +1,2308 @@
+# Public records laws: one entry per jurisdiction (50 states, DC, and US = federal FOIA).
+# Hand-curated. Checked by `python3 -m ingest.domains.records_laws`, which fetches every
+# quote_url and confirms each quote appears in the official text. Never edit `verified_at`
+# here: the verifier writes verification into the database, not this file.
+#
+# Field shapes (any field may be null when the law is silent or the fact is not verified):
+#   law_name:          {value, short, quote, quote_url}   short = the name used in a sentence (flyer, letters)
+#   custodian_term:    {value, quote, quote_url}         what the law calls the person you write to
+#   who_may_request:   {value: any_person | state_residents_only | other, explain, quote, quote_url}
+#   response:          {days, day_type: business|calendar|promptly|other, clock_starts, note,
+#                       quote, quote_url, extension: {days, day_type, conditions, quote, quote_url}}
+#   written_required, must_cite_statute, form_required: {value: true|false|null, note, quote, quote_url}
+#   fees:              {summary, quote, quote_url}
+#   fee_waiver:        {provision, summary, quote, quote_url}
+#   deemed_denial:     {summary, quote, quote_url}
+#   appeal:            {body, deadline_days, day_type, url, note, quote, quote_url}
+# A field may carry `quotes: [{quote, quote_url}, ...]` instead of one quote; it is verified only
+# when every quote is found. Quotes are exact (whitespace, quote marks, dashes and section signs
+# are normalised before matching) and under 40 words.
+# basis: statute (the legislature or official code site) | official_guide (the attorney
+# general's or open records office's own guide, used only when no official code page loads).
+
+US:
+  name: United States (federal)
+  law_name: {value: Freedom of Information Act}
+  citation: 5 U.S.C. 552
+  statute_url: "https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title5-section552&num=0&edition=prelim"
+  publisher: Office of the Law Revision Counsel, U.S. House of Representatives
+  basis: statute
+  custodian_term:
+    value: FOIA Requester Service Center
+    quote: "Each agency shall establish one or more FOIA Requester Service Centers"
+    quote_url: "https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title5-section552&num=0&edition=prelim"
+  who_may_request:
+    value: any_person
+    quote: "shall make the records promptly available to any person."
+    quote_url: "https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title5-section552&num=0&edition=prelim"
+  response:
+    days: 20
+    day_type: business
+    clock_starts: receipt of the request by the agency
+    quote: "determine within 20 days (excepting Saturdays, Sundays, and legal public holidays) after the receipt of any such request whether to comply with such request"
+    quote_url: "https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title5-section552&num=0&edition=prelim"
+    extension:
+      days: 10
+      day_type: business
+      conditions: "unusual circumstances (records in field facilities, voluminous records, or consultation with another agency), by written notice"
+      quote: "No such notice shall specify a date that would result in an extension for more than ten working days"
+      quote_url: "https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title5-section552&num=0&edition=prelim"
+  written_required: null
+  must_cite_statute: null
+  form_required: null
+  fees:
+    summary: "Non-commercial requesters who are not news media or educational institutions pay only search and duplication; review costs apply only to commercial requests."
+    quote: "for any request not described in (I) or (II), fees shall be limited to reasonable standard charges for document search and duplication."
+    quote_url: "https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title5-section552&num=0&edition=prelim"
+  fee_categories:
+    summary: "Commercial use: search, duplication and review. Educational, noncommercial scientific, news media: duplication only. All others: search and duplication, with the first two hours of search and first 100 pages free."
+    quotes:
+      - quote: "fees shall be limited to reasonable standard charges for document search, duplication, and review, when records are requested for commercial use"
+        quote_url: "https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title5-section552&num=0&edition=prelim"
+      - quote: "for the first two hours of search time or for the first one hundred pages of duplication."
+        quote_url: "https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title5-section552&num=0&edition=prelim"
+  fee_waiver:
+    provision: 5 U.S.C. 552(a)(4)(A)(iii)
+    summary: "Fees are waived or reduced when disclosure is in the public interest because it is likely to contribute significantly to public understanding of government operations and is not primarily in the requester's commercial interest."
+    quotes:
+      - quote: "Documents shall be furnished without any charge or at a charge reduced below the fees established under clause (ii) if disclosure of the information is in the public interest"
+        quote_url: "https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title5-section552&num=0&edition=prelim"
+      - quote: "because it is likely to contribute significantly to public understanding of the operations or activities of the government and is not primarily in the commercial interest of the requester."
+        quote_url: "https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title5-section552&num=0&edition=prelim"
+  deemed_denial:
+    summary: "If the agency misses the time limit, the requester is treated as having exhausted administrative remedies and may go to federal court."
+    quote: "shall be deemed to have exhausted his administrative remedies with respect to such request if the agency fails to comply with the applicable time limit provisions of this paragraph."
+    quote_url: "https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title5-section552&num=0&edition=prelim"
+  appeal:
+    body: head of the agency (administrative appeal); then U.S. District Court
+    deadline_days: 90
+    day_type: calendar
+    note: "The agency sets the appeal period; the statute says it may not be less than 90 days."
+    quote: "the right of such person to appeal to the head of the agency, within a period determined by the head of the agency that is not less than 90 days after the date of such adverse determination"
+    quote_url: "https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title5-section552&num=0&edition=prelim"
+  route_hud:
+    agency: U.S. Department of Housing and Urban Development
+    url: "https://www.hud.gov/foia"
+    portal: "https://hud.secureocp.com"
+    email: FOIA@hud.gov
+    address: "HUD FOIA Office, U.S. Department of Housing and Urban Development, 451 7th St., S.W., Room 10139, Washington, D.C. 20410"
+    phone: "(202) 708-3866"
+    quotes:
+      - quote: "The online portal may be used to request records from HUD Headquarters or any Regional/Field Office"
+        quote_url: "https://www.hud.gov/foia"
+      - quote: "HUD Headquarters (HQ) records: Email your request to FOIA@HUD.gov"
+        quote_url: "https://www.hud.gov/foia"
+      - quote: "HUD FOIA Office U.S. Department of Housing and Urban Development 451 7th St., S.W., Room 10139 Washington, D.C. 20410"
+        quote_url: "https://www.hud.gov/foia"
+  route_va:
+    agency: U.S. Department of Veterans Affairs (Veterans Health Administration)
+    url: "https://department.va.gov/foia/"
+    portal: "https://va.secureocp.com"
+    email: null
+    address: null
+    note: "The VA FOIA page links every VA FOIA request type, including the Veterans Health Administration (which runs the homeless veteran grant programs), to its online portal; it lists no general mailing address."
+    quotes:
+      - quote: "Securely request police reports, awarded contracts, budget or financial records"
+        quote_url: "https://department.va.gov/foia/"
+      - quote: "Submit a VHA FOIA Request"
+        quote_url: "https://department.va.gov/foia/"
+  route_hhs:
+    agency: U.S. Department of Health and Human Services, Office of the Secretary FOIA Office (covers ACF and SAMHSA)
+    url: "https://www.hhs.gov/foia/contacts/index.html"
+    portal: "https://www.foia.gov"
+    email: null
+    address: "Department of Health and Human Services, Office of the Secretary, Freedom of Information Act Office, Hubert H. Humphrey Building, Room 729H, 200 Independence Avenue, SW, Washington, D.C. 20201"
+    phone: 202-690-7453
+    note: "FOIARequest@hhs.gov is listed for questions and referrals; requests go through FOIA.gov."
+    quotes:
+      - quote: "Administration for Children and Families (ACF)"
+        quote_url: "https://www.hhs.gov/foia/contacts/index.html"
+      - quote: "Substance Abuse and Mental Health Services Administration (SAMHSA) Address: Department of Health and Human Services Office of the Secretary Freedom of Information Act Office Hubert H. Humphrey Building, Room 729H"
+        quote_url: "https://www.hhs.gov/foia/contacts/index.html"
+      - quote: "Submit FOIA requests online at FOIA.gov."
+        quote_url: "https://www.hhs.gov/foia/contacts/index.html"
+  appeal_hud:
+    body: HUD FOIA Appeals
+    how: email
+    email: HUDFOIAappeals@hud.gov
+    deadline_days: 90
+    day_type: calendar
+    url: "https://www.hud.gov/foia"
+    note: "A mailed appeal must be postmarked within 90 calendar days of HUD's response; the response letter gives the mailing address."
+    quotes:
+      - quote: "You may submit an appeal of HUD's response to your FOIA request via email to HUDFOIAappeals@hud.gov"
+        quote_url: "https://www.hud.gov/foia"
+      - quote: "your FOIA appeal must be postmarked within 90 calendar days of the date of HUD response to your FOIA request."
+        quote_url: "https://www.hud.gov/foia"
+  appeal_va:
+    body: VA Office of General Counsel
+    how: portal
+    portal: "https://va.secureocp.com"
+    deadline_days: null
+    day_type: null
+    url: "https://department.va.gov/foia/"
+    note: "Use the Appeals tab in the VA FOIA portal. The appeal period is the one stated in the response letter (by statute at least 90 days)."
+    quotes:
+      - quote: "Requests to appeal a FOIA decision must be submitted to the Office of General Counsel."
+        quote_url: "https://department.va.gov/foia/"
+      - quote: "To submit your appeal, select the Appeals tab."
+        quote_url: "https://department.va.gov/foia/"
+  appeal_hhs:
+    body: review official named in the HHS FOIA response letter
+    how: as stated in the response letter
+    deadline_days: null
+    day_type: null
+    url: "https://www.hhs.gov/foia/appeals/index.html"
+    quotes:
+      - quote: "To file an appeal, follow the instructions in your FOIA response letter."
+        quote_url: "https://www.hhs.gov/foia/appeals/index.html"
+      - quote: "Be submitted within the deadline provided in your FOIA response letter"
+        quote_url: "https://www.hhs.gov/foia/appeals/index.html"
+  hud_coc_public_posting:
+    citation: "FY 2026 CoC Program NOFO Section V.B.1.a.(2), as applied in the FY 2026 CoC Application Detailed Instructions, question 1D-2a"
+    kind: scoring requirement in the HUD NOFO (not a statute or regulation)
+    summary: "HUD awards competition points only if the CoC posts its CoC-approved Consolidated Application (the CoC Application and the Project Priority Listing) on its own or a partner's website before the application deadline."
+    url: "https://www.hud.gov/sites/default/files/CPD/documents/CoC/FY26-CoC-Application-Detailed-Instructions.pdf"
+    quotes:
+      - quote: "We will only award points for the CoC-approved version of your CoC's Consolidated Application-this means your CoC must approve and post your CoC's Consolidated Application no later than the FY 2026 CoC Program application submission deadline"
+        quote_url: "https://www.hud.gov/sites/default/files/CPD/documents/CoC/FY26-CoC-Application-Detailed-Instructions.pdf"
+      - quote: "If your CoC does not have its own webpage, your CoC may use any partner's website to meet the public posting requirement."
+        quote_url: "https://www.hud.gov/sites/default/files/CPD/documents/CoC/FY26-CoC-Application-Detailed-Instructions.pdf"
+
+PA:
+  name: Pennsylvania
+  law_name:
+    value: Right-to-Know Law
+    quote: "This act shall be known and may be cited as the Right-to-Know Law."
+    quote_url: &PA "https://www.palegis.us/statutes/unconsolidated/law-information/view-statute?iFrame=true&txtType=HTM&SessYr=2008&SessInd=0&ActNum=0003."
+  citation: 65 P.S. 67.101 et seq. (Act 3 of 2008)
+  statute_url: *PA
+  publisher: Pennsylvania General Assembly
+  basis: statute
+  custodian_term:
+    value: open-records officer
+    quote: "A written request must be addressed to the open-records officer designated pursuant to section 502."
+    quote_url: *PA
+  who_may_request:
+    value: other
+    explain: "Any legal resident of the United States (the Act defines 'requester' that way); Pennsylvania residency is not required."
+    quote: "\"Requester.\" A person that is a legal resident of the United States and requests a record pursuant to this act."
+    quote_url: *PA
+  response:
+    days: 5
+    day_type: business
+    clock_starts: the date the written request is received by the agency's open-records officer
+    quote: "The time for response shall not exceed five business days from the date the written request is received by the open-records officer for an agency."
+    quote_url: *PA
+    extension:
+      days: 30
+      day_type: calendar
+      conditions: "written notice within the 5 business days citing a listed reason (redaction, off-site records, staffing, legal review, unpaid fees, requester has not followed policies); beyond 30 days only if the requester agrees in writing"
+      quote: "If the date that a response is expected to be provided is in excess of 30 days, following the five business days allowed for in section 901, the request for access shall be deemed denied"
+      quote_url: *PA
+  written_required:
+    value: false
+    note: "Agencies may answer verbal or anonymous requests, but only a written request preserves the appeal rights."
+    quote: "If the requester wishes to pursue the relief and remedies provided for in this act, the request for access to records must be a written request."
+    quote_url: *PA
+  must_cite_statute: null
+  form_required:
+    value: false
+    note: "Every agency must accept the Office of Open Records uniform form; the Act lists e-mail and mail as ways to submit a written request."
+    quotes:
+      - quote: "A written request for access to records may be submitted in person, by mail, by e-mail, by facsimile"
+        quote_url: *PA
+      - quote: "The Office of Open Records shall develop a uniform form which shall be accepted by all Commonwealth and local agencies"
+        quote_url: *PA
+  fees:
+    summary: "Postage at actual cost; duplication fees set by the Office of Open Records; no fee for the agency's legal review; prepayment may be required above $100."
+    quotes:
+      - quote: "No fee may be imposed for an agency's review of a record to determine whether the record is a public record"
+        quote_url: *PA
+      - quote: "an agency may require a requester to prepay an estimate of the fees authorized under this section if the fees required to fulfill the request are expected to exceed $100."
+        quote_url: *PA
+  fee_waiver:
+    provision: 65 P.S. 67.1307(f)
+    summary: "The agency may waive duplication fees, including when it deems a waiver in the public interest."
+    quote: "An agency may waive the fees for duplication of a record, including, but not limited to, when: (1) the requester duplicates the record; or (2) the agency deems it is in the public interest to do so."
+    quote_url: *PA
+  deemed_denial:
+    summary: "No response within 5 business days means the request is deemed denied, and the requester may appeal."
+    quote: "If the agency fails to send the response within five business days of receipt of the written request for access, the written request for access shall be deemed denied."
+    quote_url: *PA
+  appeal:
+    body: Pennsylvania Office of Open Records
+    deadline_days: 15
+    day_type: business
+    url: "https://www.openrecords.pa.gov"
+    note: "Judicial and legislative agencies and some district attorney records have their own appeals officers."
+    quote: "the requester may file an appeal with the Office of Open Records or judicial, legislative or other appeals officer designated under section 503(d) within 15 business days of the mailing date of the agency's response"
+    quote_url: *PA
+
+CA:
+  name: California
+  law_name:
+    value: California Public Records Act
+    quote: "This division shall be known and may be cited as the California Public Records Act."
+    quote_url: "https://leginfo.legislature.ca.gov/faces/codes_displaySection.xhtml?lawCode=GOV&sectionNum=7920.000"
+  citation: Cal. Gov. Code 7920.000 et seq.
+  statute_url: "https://leginfo.legislature.ca.gov/faces/codes_displaySection.xhtml?lawCode=GOV&sectionNum=7920.000"
+  publisher: California Legislative Counsel
+  basis: statute
+  custodian_term: null
+  who_may_request:
+    value: any_person
+    quote: "every person has a right to inspect any public record, except as otherwise provided."
+    quote_url: "https://leginfo.legislature.ca.gov/faces/codes_displaySection.xhtml?lawCode=GOV&sectionNum=7922.525"
+  response:
+    days: 10
+    day_type: calendar
+    clock_starts: receipt of the request
+    note: "Within 10 days the agency must say whether it has disclosable records and when they will be available; production itself must be prompt."
+    quote: "shall, within 10 days from receipt of the request, determine whether the request, in whole or in part, seeks copies of disclosable public records in the possession of the agency"
+    quote_url: "https://leginfo.legislature.ca.gov/faces/codes_displaySection.xhtml?lawCode=GOV&sectionNum=7922.535"
+    extension:
+      days: 14
+      day_type: calendar
+      conditions: "unusual circumstances (field facilities, voluminous records, consultation with another agency, data compilation), by written notice from the agency head or designee"
+      quote: "The notice shall not specify a date that would result in an extension for more than 14 days."
+      quote_url: "https://leginfo.legislature.ca.gov/faces/codes_displaySection.xhtml?lawCode=GOV&sectionNum=7922.535"
+  written_required: null
+  must_cite_statute: null
+  form_required: null
+  fees:
+    summary: "Copies at the direct cost of duplication, or a statutory fee where one applies."
+    quote: "shall make the records promptly available to any person upon payment of fees covering direct costs of duplication, or a statutory fee if applicable."
+    quote_url: "https://leginfo.legislature.ca.gov/faces/codes_displaySection.xhtml?lawCode=GOV&sectionNum=7922.530"
+  fee_waiver: null
+  deemed_denial: null
+  appeal:
+    body: court
+    deadline_days: null
+    day_type: null
+    url: null
+    note: "There is no administrative appeal body; a requester may sue in superior court."
+    quote: "Any person may institute a proceeding for injunctive or declarative relief, or for a writ of mandate, in any court of competent jurisdiction"
+    quote_url: "https://leginfo.legislature.ca.gov/faces/codes_displaySection.xhtml?lawCode=GOV&sectionNum=7923.000"
+
+AL:
+  name: Alabama
+  law_name: {value: Alabama Open Records Act}
+  citation: Code of Ala. 1975, 36-12-40 et seq.
+  statute_url: &AL "http://alisondb.legislature.state.al.us/alison/CodeOfAlabama/1975/36-12-40.htm"
+  publisher: Alabama Legislature (ALISON)
+  basis: statute
+  custodian_term: null
+  who_may_request:
+    value: other
+    explain: "The statute gives the right to 'every citizen' and does not say whether that means citizens of Alabama."
+    caution: "Alabama's law speaks of 'every citizen' without defining it. If you do not live in Alabama, consider asking an Alabama resident to file, or use the federal FOIA route for federal grant records."
+    quote: "Every citizen has a right to inspect and take a copy of any public writing of this state, except as otherwise expressly provided by statute."
+    quote_url: *AL
+  response:
+    days: null
+    day_type: other
+    note: "Section 36-12-40 grants the right to inspect and copy but sets no response deadline."
+    quote: "Every citizen has a right to inspect and take a copy of any public writing of this state"
+    quote_url: *AL
+  written_required: null
+  must_cite_statute: null
+  form_required: null
+  fees: null
+  fee_waiver: null
+  deemed_denial: null
+  appeal: {body: court, deadline_days: null, day_type: null, url: null, note: "No administrative appeal body; enforcement is by lawsuit."}
+
+AK:
+  name: Alaska
+  law_name: {value: Alaska Public Records Act}
+  citation: AS 40.25.100 to 40.25.295; 2 AAC 96 (state agency procedures)
+  statute_url: &AKS "https://www.akleg.gov/basis/statutes.asp?media=print&secStart=40.25.100&secEnd=40.25.295"
+  publisher: Alaska State Legislature
+  basis: statute
+  custodian_term:
+    value: public officer having custody of the records
+    quote: "The public officer having the custody of public records shall give on request and payment of the fee established under this section"
+    quote_url: *AKS
+  who_may_request:
+    value: any_person
+    quote: "the public records of all public agencies are open to inspection by the public under reasonable rules during regular office hours."
+    quote_url: *AKS
+  response:
+    days: 10
+    day_type: business
+    scope: state_agencies
+    clock_starts: the date the agency receives a request that complies with 2 AAC 96
+    note: "The 10-working-day limit is in regulation and covers state executive-branch agencies only; the statute sets no deadline for boroughs, cities or other local bodies."
+    quotes:
+      - quote: "as soon as practicable, but not later than the 10th working day after the date the agency receives a request for public records that complies with this chapter"
+        quote_url: &AKR "https://www.akleg.gov/basis/aac.asp?media=print&secStart=2.96.100&secEnd=2.96.900"
+      - quote: "\"public agency\" has the same meaning as in AS 40.25.220, but is limited to public agencies in the executive branch of the state"
+        quote_url: *AKR
+  written_required:
+    value: true
+    scope: state_agencies
+    note: "State agencies: requests in writing, though oral requests are also valid."
+    quote: "a request to a public agency for a public record must be in writing."
+    quote_url: *AKR
+  must_cite_statute: null
+  form_required:
+    value: false
+    scope: state_agencies
+    quote: "Request forms may be provided by a public agency, but a request may not be denied solely because it is not on that form."
+    quote_url: *AKR
+  fees:
+    summary: "Copies at the agency's standard unit cost; if one requester's records take more than five person-hours in a month, personnel costs may be charged in advance."
+    quote: "If the production of records for one requester in a calendar month exceeds five person-hours, the public agency shall require the requester to pay the personnel costs"
+    quote_url: *AKS
+  fee_waiver:
+    provision: AS 40.25.110(d)
+    summary: "An agency may reduce or waive a fee in the public interest."
+    quote: "A public agency may reduce or waive a fee when the public agency determines that the reduction or waiver is in the public interest."
+    quote_url: *AKS
+  deemed_denial: null
+  appeal:
+    body: "agency head (state agencies, within 60 working days), or superior court"
+    deadline_days: 60
+    day_type: business
+    url: null
+    quotes:
+      - quote: "may ask for reconsideration of the denial by submitting a written appeal to the agency head."
+        quote_url: *AKR
+      - quote: "must be mailed or hand-delivered to the agency head within 60 working days after the denial is issued"
+        quote_url: *AKR
+
+AZ:
+  name: Arizona
+  law_name: {value: Arizona Public Records Law}
+  citation: A.R.S. 39-121 et seq.
+  statute_url: &AZ "https://www.azleg.gov/ars/39/00121-01.htm"
+  publisher: Arizona State Legislature
+  basis: statute
+  custodian_term:
+    value: custodian of the records
+    quote: "The custodian of such records shall promptly furnish such copies, printouts or photographs"
+    quote_url: *AZ
+  who_may_request:
+    value: any_person
+    quote: "Any person may request to examine or be furnished copies, printouts or photographs of any public record during regular office hours"
+    quote_url: *AZ
+  response:
+    days: null
+    day_type: promptly
+    clock_starts: the request
+    quote: "The custodian of such records shall promptly furnish such copies, printouts or photographs and may charge a fee if the facilities are available"
+    quote_url: *AZ
+  written_required: null
+  must_cite_statute: null
+  form_required: null
+  letter_requirements:
+    items:
+      - text: "This request is not for a commercial purpose."
+        quote: "At the time of the request, the requesting person shall affirm that the public record is not for a commercial purpose"
+        quote_url: *AZ
+  fees:
+    summary: "The custodian may charge a fee for copies and may require advance payment of copying and postage for mailed copies."
+    quote: "The custodian may require any person requesting that the custodian mail a copy of any public record to pay in advance for any copying and postage charges."
+    quote_url: *AZ
+  fee_waiver: null
+  deemed_denial:
+    summary: "Failing to respond promptly is a denial."
+    quote: "Access to a public record is deemed denied if a custodian fails to promptly respond to a request for production of a public record"
+    quote_url: *AZ
+  appeal:
+    body: court (special action in superior court)
+    deadline_days: null
+    day_type: null
+    url: null
+    quote: "may appeal the denial through a special action in the superior court pursuant to the rules of procedure for special actions against the officer or public body."
+    quote_url: "https://www.azleg.gov/ars/39/00121-02.htm"
+
+CT:
+  name: Connecticut
+  law_name:
+    value: Freedom of Information Act
+    quote: "denied any other right conferred by the Freedom of Information Act may appeal therefrom to the Freedom of Information Commission"
+    quote_url: &CT "https://www.cga.ct.gov/current/pub/chap_014.htm"
+  citation: Conn. Gen. Stat. 1-200 et seq.
+  statute_url: *CT
+  publisher: Connecticut General Assembly
+  basis: statute
+  custodian_term:
+    value: public agency official who has custody or control of the record
+    quote: "by the public agency official who has custody or control of the public record, in writing, within four business days of such request"
+    quote_url: *CT
+  who_may_request:
+    value: any_person
+    quote: "shall be public records and every person shall have the right to (1) inspect such records promptly during regular office or business hours"
+    quote_url: *CT
+  response:
+    days: 4
+    day_type: business
+    clock_starts: the request
+    note: "Any denial must be in writing within 4 business days (10 business days for certain personnel and law enforcement records); failure to comply in that time is a denial."
+    quote: "Failure to comply with a request to so inspect or copy such public record within the applicable number of business days shall be deemed to be a denial."
+    quote_url: *CT
+  written_required:
+    value: true
+    note: "For copies, the statute speaks of a person applying in writing."
+    quote: "Any person applying in writing shall receive, promptly upon request, a plain, facsimile, electronic or certified copy of any public record."
+    quote_url: *CT
+  must_cite_statute: null
+  form_required: null
+  fees:
+    summary: "Copies from agencies other than state agencies may not exceed 50 cents a page."
+    quote: "By all other public agencies, as defined in section 1-200, shall not exceed fifty cents per page."
+    quote_url: *CT
+  fee_waiver:
+    provision: Conn. Gen. Stat. 1-212(d)
+    summary: "The agency shall waive fees for indigent requesters and when, in its judgment, the request benefits the general welfare."
+    quote: "In its judgment, compliance with the applicant's request benefits the general welfare"
+    quote_url: *CT
+  deemed_denial:
+    summary: "No compliance within the business-day limit is a denial."
+    quote: "Failure to comply with a request to so inspect or copy such public record within the applicable number of business days shall be deemed to be a denial."
+    quote_url: *CT
+  appeal:
+    body: Connecticut Freedom of Information Commission
+    deadline_days: 30
+    day_type: calendar
+    url: "https://portal.ct.gov/foi"
+    quote: "A notice of appeal shall be filed not later than thirty days after such denial"
+    quote_url: *CT
+
+DE:
+  name: Delaware
+  law_name: {value: Delaware Freedom of Information Act}
+  citation: 29 Del. C. 10001 et seq.
+  statute_url: &DE "https://delcode.delaware.gov/title29/c100/index.html"
+  publisher: Delaware General Assembly
+  basis: statute
+  custodian_term:
+    value: FOIA coordinator
+    quote: "Each public body shall designate a FOIA coordinator who shall serve as the point of contact for FOIA requests"
+    quote_url: *DE
+  who_may_request:
+    value: other
+    explain: "The Act guarantees access to 'any citizen' and does not define the term."
+    caution: "Delaware's law guarantees access to 'any citizen' and does not define the word. If you do not live in Delaware, consider asking a Delaware resident to file, or use the federal FOIA route for federal grant records."
+    quote: "Reasonable access to and reasonable facilities for copying of these records shall not be denied to any citizen."
+    quote_url: *DE
+  response:
+    days: 15
+    day_type: business
+    clock_starts: receipt of the request
+    quote: "The public body shall respond to a FOIA request as soon as possible, but in any event within 15 business days after the receipt thereof"
+    quote_url: *DE
+    extension:
+      days: null
+      day_type: null
+      conditions: "voluminous records, legal advice needed, or records in storage; the body must give a good-faith estimate of the added time"
+      quote: "If access cannot be provided within 15 business days, the public body shall cite 1 of the reasons hereunder why more time is needed"
+      quote_url: *DE
+  written_required: null
+  must_cite_statute: null
+  form_required:
+    value: null
+    note: "Public bodies must run a web portal that uses the Attorney General's standard request form."
+    quote: "Such portals shall utilize the standard request form promulgated by the Attorney General."
+    quote_url: *DE
+  fees:
+    summary: "First 20 black-and-white pages free, then 10 cents a sheet; administrative fees for requests needing more than 1 hour of staff time."
+    quotes:
+      - quote: "The first 20 pages of standard-sized, black and white copies material shall be provided free of charge."
+        quote_url: *DE
+      - quote: "Administrative fees shall be levied for requests requiring more than 1 hour of staff time to process."
+        quote_url: *DE
+  fee_waiver: null
+  deemed_denial: null
+  appeal:
+    body: Delaware Attorney General (petition), or court within 60 days
+    deadline_days: 60
+    day_type: calendar
+    url: "https://attorneygeneral.delaware.gov"
+    quotes:
+      - quote: "Any citizen may petition the Attorney General to determine whether a violation of this chapter has occurred or is about to occur."
+        quote_url: *DE
+      - quote: "Any citizen denied access to public records as provided in this chapter may bring suit within 60 days of such denial."
+        quote_url: *DE
+
+DC:
+  name: District of Columbia
+  law_name: {value: District of Columbia Freedom of Information Act, short: D.C. Freedom of Information Act}
+  citation: D.C. Code 2-531 et seq.
+  statute_url: &DC "https://code.dccouncil.gov/us/dc/council/code/sections/2-532"
+  publisher: Council of the District of Columbia
+  basis: statute
+  custodian_term: null
+  who_may_request:
+    value: any_person
+    quote: "Any person has a right to inspect, and at his or her discretion, to copy any public record of a public body"
+    quote_url: *DC
+  response:
+    days: 15
+    day_type: business
+    clock_starts: receipt of the request
+    quote: "shall within 15 days (except Saturdays, Sundays, and legal public holidays) of the receipt of any such request either make the requested public record accessible"
+    quote_url: *DC
+    extension:
+      days: 10
+      day_type: business
+      conditions: "unusual circumstances (voluminous records, consultation), by written notice"
+      quote: "Such extension shall not exceed 10 days (except Saturdays, Sundays, and legal public holidays) for records requested under subsection (c)(1) of this section"
+      quote_url: *DC
+  written_required: null
+  must_cite_statute: null
+  form_required: null
+  fees:
+    summary: "Fees may not exceed the actual cost of searching, reviewing, redacting and copying."
+    quote: "A public body may establish and collect fees not to exceed the actual cost of searching for, reviewing, redacting, and making copies of records."
+    quote_url: *DC
+  fee_waiver:
+    provision: D.C. Code 2-532(b)
+    summary: "Fees may be waived or reduced when furnishing the records primarily benefits the general public."
+    quote: "Documents may be furnished without charge or at a reduced charge where a public body determines that waiver or reduction of the fee is in the public interest"
+    quote_url: *DC
+  deemed_denial:
+    summary: "Missing the time limits is a denial; the requester may petition the Mayor or go to court."
+    quote: "within the time provisions of subsections (c) and (d) of this section shall be deemed a denial of the request"
+    quote_url: *DC
+  appeal:
+    body: Mayor of the District of Columbia (administrative appeal), or Superior Court
+    deadline_days: null
+    day_type: null
+    url: "https://www.open-dc.gov/public-bodies/foia-appeals"
+    quote: "any person denied the right to inspect a public record of a public body may petition the Mayor to review the public record"
+    quote_url: "https://code.dccouncil.gov/us/dc/council/code/sections/2-537"
+
+AR:
+  name: Arkansas
+  law_name: {value: Arkansas Freedom of Information Act}
+  citation: Ark. Code Ann. 25-19-101 et seq.
+  statute_url: &AR "https://media.ark.org/ag/APA-045-2026-FOIA-Handbook-22nd-Edition.pdf"
+  publisher: Arkansas Attorney General (FOIA Handbook, 22nd edition, reprinting the Act)
+  basis: official_guide
+  basis_note: "Arkansas publishes its official code only through a commercial publisher's site; the Attorney General's FOIA Handbook reprints the Act."
+  custodian_term:
+    value: custodian of the records
+    quote: "during the regular business hours of the custodian of the records."
+    quote_url: *AR
+  who_may_request:
+    value: state_residents_only
+    explain: "Only citizens of the State of Arkansas."
+    caution: "Only citizens of Arkansas may use the Arkansas FOIA. If you live elsewhere, ask an Arkansas resident to file, or use the federal FOIA route for federal grant records."
+    quote: "by any citizen of the State of Arkansas during the regular business hours of the custodian of the records."
+    quote_url: *AR
+  response:
+    days: 3
+    day_type: business
+    clock_starts: the request
+    note: "Records not in active use or storage must be provided immediately; records in use or storage must be made available within 3 working days."
+    quotes:
+      - quote: "The requirements of this subsection do not affect the obligation of a custodian to immediately provide to the requestor any responsive records not in active use or storage."
+        quote_url: *AR
+      - quote: "set a date and hour within three (3) working days at which time the record will be available for the exercise of the right given by this chapter."
+        quote_url: *AR
+  written_required: null
+  must_cite_statute: null
+  form_required: null
+  fees:
+    summary: "Copies at actual cost of reproduction, not counting existing staff time spent searching or reviewing."
+    quote: "any fee for copies shall not exceed the actual costs of reproduction, including the costs of the medium of reproduction, supplies, equipment, and maintenance"
+    quote_url: *AR
+  fee_waiver: null
+  deemed_denial: null
+  appeal:
+    body: court (circuit court)
+    deadline_days: null
+    day_type: null
+    url: null
+    quote: "may appeal immediately from the denial to the Pulaski County Circuit Court or to the circuit court of the residence of the aggrieved party"
+    quote_url: *AR
+
+CO:
+  name: Colorado
+  law_name:
+    value: Colorado Open Records Act
+    quote: "Part 2 of this article shall be known and may be cited as the \"Colorado Open Records Act\" or \"CORA\"."
+    quote_url: &CO "https://leg.colorado.gov/sites/default/files/images/olls/crs2024-title-24.pdf"
+  citation: C.R.S. 24-72-200.1 et seq.
+  statute_url: *CO
+  publisher: Colorado Office of Legislative Legal Services (C.R.S. 2024 printout)
+  basis: statute
+  custodian_term:
+    value: official custodian
+    quote: "the official custodian of any public records may make such rules with reference to the inspection of such records"
+    quote_url: *CO
+  who_may_request:
+    value: any_person
+    quote: "All public records shall be open for inspection by any person at reasonable times"
+    quote_url: *CO
+  response:
+    days: 3
+    day_type: business
+    clock_starts: the request
+    quote: "a \"reasonable time\" shall be presumed to be three working days or less."
+    quote_url: *CO
+    extension:
+      days: 7
+      day_type: business
+      conditions: "extenuating circumstances found in writing by the custodian"
+      quote: "However, such period of extension shall not exceed seven working days."
+      quote_url: *CO
+  written_required: null
+  must_cite_statute: null
+  form_required: null
+  fees:
+    summary: "No charge for the first hour of research and retrieval; after that an hourly fee set by law."
+    quote: "the custodian shall not impose a charge for the first hour of time expended in connection with the research and retrieval of public records."
+    quote_url: *CO
+  fee_waiver: null
+  deemed_denial: null
+  appeal:
+    body: court (district court), after 14 days' written notice to the custodian
+    deadline_days: null
+    day_type: null
+    url: null
+    quote: "at least fourteen days prior to filing an application with the district court, the person who has been denied the right to inspect the record shall file a written notice with the custodian"
+    quote_url: *CO
+
+FL:
+  name: Florida
+  law_name: {value: Florida Public Records Act}
+  citation: Fla. Stat. ch. 119
+  statute_url: &FL "http://www.leg.state.fl.us/statutes/index.cfm?App_mode=Display_Statute&URL=0100-0199/0119/0119.html"
+  publisher: Florida Legislature
+  basis: statute
+  custodian_term:
+    value: custodian of public records
+    quote: "A custodian of public records and his or her designee must acknowledge requests to inspect or copy records promptly and respond to such requests in good faith."
+    quote_url: *FL
+  who_may_request:
+    value: any_person
+    quote: "It is the policy of this state that all state, county, and municipal records are open for personal inspection and copying by any person."
+    quote_url: *FL
+  response:
+    days: null
+    day_type: promptly
+    clock_starts: the request
+    quote: "must acknowledge requests to inspect or copy records promptly and respond to such requests in good faith."
+    quote_url: *FL
+  written_required: null
+  must_cite_statute: null
+  form_required: null
+  fees:
+    summary: "Actual cost of duplication; a reasonable special service charge when a request needs extensive staff or technology time."
+    quote: "the agency may charge, in addition to the actual cost of duplication, a special service charge, which shall be reasonable"
+    quote_url: *FL
+  fee_waiver: null
+  deemed_denial: null
+  appeal:
+    body: court (circuit court, with an immediate hearing)
+    deadline_days: null
+    day_type: null
+    url: null
+    quote: "Whenever an action is filed to enforce the provisions of this chapter, the court shall set an immediate hearing, giving the case priority over other pending cases."
+    quote_url: *FL
+
+GA:
+  name: Georgia
+  law_name: {value: Georgia Open Records Act}
+  citation: O.C.G.A. 50-18-70 et seq.
+  statute_url: &GA "https://law.georgia.gov/document/document/citizens-guide-open-government/download"
+  publisher: Georgia Attorney General (Sunshine Laws guide, 6th ed. 2019, reprinting the Act)
+  basis: official_guide
+  basis_note: "Georgia's official code is published through a commercial publisher's site; this guide, issued with the Attorney General and hosted on law.georgia.gov, reprints the Act as of 2019."
+  custodian_term:
+    value: records custodian
+    quote: "An Open Records Request should be made directly to the government agency's custodian of the records."
+    quote_url: "https://law.georgia.gov/key-issues/open-government/how-make-open-records-request"
+  who_may_request:
+    value: any_person
+    quote: "The right of access extends to \"any person,\" including individuals outside the state"
+    quote_url: *GA
+  response:
+    days: 3
+    day_type: business
+    clock_starts: receipt of the request
+    note: "If records cannot be produced in 3 business days, the agency must give a description and a timetable within that time."
+    quote: "Agencies shall produce for inspection all records responsive to a request within a reasonable amount of time not to exceed three business days of receipt of a request"
+    quote_url: *GA
+  written_required:
+    value: false
+    note: "Oral requests are allowed, but enforcement actions can be based only on written requests."
+    quote: "A request to inspect or copy records may be made either orally or in writing."
+    quote_url: "https://law.georgia.gov/key-issues/open-government/how-make-open-records-request"
+  must_cite_statute: null
+  form_required: null
+  fees:
+    summary: "Search and retrieval at the lowest-paid qualified employee's rate, with no charge for the first quarter hour; copies at a set per-page rate."
+    quote: "No charge may be made for the first quarter hour of administrative time."
+    quote_url: *GA
+  fee_waiver: null
+  deemed_denial: null
+  appeal:
+    body: court (civil action); the Attorney General offers mediation
+    deadline_days: null
+    day_type: null
+    url: "https://law.georgia.gov/key-issues/open-government/open-government-complaint"
+    quote: "the Open Records Act allows any person, firm, corporation or other entity to bring a civil action"
+    quote_url: *GA
+
+HI:
+  name: Hawaii
+  law_name: {value: Uniform Information Practices Act (Modified), short: Hawaii public records (UIPA)}
+  citation: HRS chapter 92F; HAR chapter 2-71
+  statute_url: &HI "https://www.capitol.hawaii.gov/hrscurrent/Vol02_Ch0046-0115/HRS0092F/HRS_0092F-0011.htm"
+  publisher: Hawaii State Legislature; Office of Information Practices
+  basis: statute
+  custodian_term: null
+  who_may_request:
+    value: any_person
+    quote: "each agency upon request by any person shall make government records available for inspection and copying during regular business hours."
+    quote_url: *HI
+  response:
+    days: 10
+    day_type: business
+    clock_starts: receipt of the request
+    source_kind: official_guide
+    note: "Set by OIP rules (HAR 2-71), summarized in OIP's guide: 10 business days to disclose or give notice; with extenuating circumstances, acknowledgment in 10 and notice in 20 business days."
+    quote: "The agency has 10 business days to disclose public government records in their entirety."
+    quote_url: &HIG "https://ags.hawaii.gov/oip/rules/quick-guide-to-oips-administrative-rules/"
+    extension:
+      days: 20
+      day_type: business
+      conditions: "extenuating circumstances, with a written acknowledgment within 10 business days"
+      quote: "the agency must provide a notice within 20 business days after receiving the request"
+      quote_url: *HIG
+  written_required: null
+  must_cite_statute: null
+  form_required: null
+  fees: null
+  fee_waiver: null
+  deemed_denial: null
+  appeal:
+    body: Hawaii Office of Information Practices
+    deadline_days: 365
+    day_type: calendar
+    url: "https://oip.hawaii.gov"
+    source_kind: official_guide
+    quote: "the rules require a UIPA appeal to be filed within one year of the agency's denial of access in response to a UIPA request."
+    quote_url: "https://ags.hawaii.gov/oip/guide-to-oip-appeals/"
+
+ID:
+  name: Idaho
+  law_name: {value: Idaho Public Records Act}
+  citation: Idaho Code 74-101 et seq.
+  statute_url: &ID "https://legislature.idaho.gov/statutesrules/idstat/title74/t74ch1/sect74-103/"
+  publisher: Idaho Legislature
+  basis: statute
+  custodian_term:
+    value: designated custodian
+    quote: "All requests to examine public records shall be made to the designated custodian of such records"
+    quote_url: *ID
+  who_may_request:
+    value: any_person
+    explain: "Anyone may request, but non-residents get longer deadlines and residents get some free time and copies."
+    quote: "Every person has a right to examine and take a copy of any public record of this state"
+    quote_url: "https://legislature.idaho.gov/statutesrules/idstat/title74/t74ch1/sect74-102/"
+  response:
+    days: 3
+    day_type: business
+    clock_starts: receipt of the request
+    nonresident: {days: 21, day_type: calendar}
+    note: "3 working days for Idaho residents; 21 days for non-residents."
+    quotes:
+      - quote: "shall either grant or deny a resident's request to examine or copy public records within three (3) working days of the date of the receipt of the request"
+        quote_url: *ID
+      - quote: "a request from a person who is not a resident and not employed by a resident to examine or copy public records within twenty-one (21) days of the date of the receipt"
+        quote_url: *ID
+    extension:
+      days: 10
+      day_type: business
+      conditions: "written notice that more time is needed to locate or retrieve records; records due within 10 working days of the request (35 days for non-residents)"
+      quote: "shall provide the public records no later than ten (10) working days following the person's request, if such person is a resident"
+      quote_url: *ID
+  written_required: null
+  must_cite_statute: null
+  form_required: null
+  letter_requirements:
+    items:
+      - text: "This is a public records request under the Idaho Public Records Act."
+        quote: "A public records request must clearly indicate that it is a public records request."
+        quote_url: *ID
+  fees:
+    summary: "For residents, no charge for the first 2 hours of labor or the first 100 pages; actual costs after that."
+    quote: "no fee shall be charged for the first two (2) hours of labor in responding to a request submitted by a resident for public records"
+    quote_url: "https://legislature.idaho.gov/statutesrules/idstat/title74/t74ch1/sect74-102/"
+  fee_waiver: null
+  deemed_denial:
+    summary: "No response in the time allowed is a denial."
+    quote: "If the public agency or custodian fails to respond within the time allotted for the response, the request shall be deemed to be denied."
+    quote_url: *ID
+  appeal:
+    body: court (district court petition)
+    deadline_days: 180
+    day_type: calendar
+    url: null
+    quote: "The petition contesting the public agency's decision shall be filed within one hundred eighty (180) calendar days from the date of mailing of the notice of denial"
+    quote_url: "https://legislature.idaho.gov/statutesrules/idstat/title74/t74ch1/sect74-115/"
+
+IL:
+  name: Illinois
+  law_name:
+    value: Freedom of Information Act
+    quote: "This Act may be cited as the Freedom of Information Act."
+    quote_url: &IL "https://www.ilga.gov/legislation/ilcs/ilcs3.asp?ActID=85&ChapterID=2"
+  citation: 5 ILCS 140
+  statute_url: *IL
+  publisher: Illinois General Assembly
+  basis: statute
+  custodian_term:
+    value: Freedom of Information officer
+    quote: "All requests for inspection and copying received by a public body shall immediately be forwarded to its Freedom of Information officer or designee."
+    quote_url: *IL
+  who_may_request:
+    value: any_person
+    quote: "Each public body shall make available to any person for inspection or copying all public records"
+    quote_url: *IL
+  response:
+    days: 5
+    day_type: business
+    clock_starts: receipt of the request
+    quote: "Each public body shall, promptly, either comply with or deny a request for public records within 5 business days after its receipt of the request"
+    quote_url: *IL
+    extension:
+      days: 5
+      day_type: business
+      conditions: "listed reasons (records elsewhere, voluminous, review needed), with written notice within the first 5 business days"
+      quote: "may be extended by the public body for not more than 5 business days from the original due date"
+      quote_url: *IL
+  written_required: null
+  must_cite_statute: null
+  form_required: null
+  fees:
+    summary: "No charge for the first 50 black-and-white pages; at most 15 cents a page after that; electronic copies in the format requested if feasible."
+    quote: "No fees shall be charged for the first 50 pages of black and white, letter or legal sized copies requested by a requester."
+    quote_url: *IL
+  fee_waiver:
+    provision: 5 ILCS 140/6(c)
+    summary: "Fees may be waived or reduced when the requester states the purpose and the principal purpose is to disseminate information about public health, safety, welfare or legal rights."
+    quote: "Waiver or reduction of the fee is in the public interest if the principal purpose of the request is to access and disseminate information regarding the health, safety and welfare or the legal rights of the general public"
+    quote_url: *IL
+  deemed_denial:
+    summary: "No compliance, extension or denial within 5 business days is a denial."
+    quote: "Failure to comply with a written request, extend the time for response, or deny a request within 5 business days after its receipt shall be considered a denial of the request."
+    quote_url: *IL
+  appeal:
+    body: Public Access Counselor, Office of the Illinois Attorney General
+    deadline_days: 60
+    day_type: calendar
+    url: null
+    quote: "may file a request for review with the Public Access Counselor established in the Office of the Attorney General not later than 60 days after the date of the final denial."
+    quote_url: *IL
+
+IN:
+  name: Indiana
+  law_name: {value: Access to Public Records Act}
+  citation: IC 5-14-3
+  statute_url: &IN "https://www.in.gov/pac/files/pac-handbook.pdf"
+  publisher: Indiana Public Access Counselor (handbook reprinting IC 5-14-3)
+  basis: official_guide
+  basis_note: "The Indiana Code site is a JavaScript application the ladder cannot read; the Public Access Counselor's handbook reprints the Act. HEA 1360 (effective July 1, 2026) added portal, priority and out-of-state fee rules summarized by the Counselor."
+  custodian_term: null
+  who_may_request:
+    value: any_person
+    caution: "Since July 1, 2026, Indiana agencies may give priority to Indiana residents and charge out-of-state requesters a supplemental fee."
+    quotes:
+      - quote: "Any person may inspect and copy the public records of any public agency during the regular business hours of the agency"
+        quote_url: *IN
+      - quote: "Agencies can deprioritize both out-of-state requests and automated requests while charging a supplemental fee for these requests."
+        quote_url: "https://www.in.gov/pac/files/Overview_of_APRA_Changes_under_HEA_1360.pdf"
+  response:
+    days: null
+    day_type: other
+    clock_starts: receipt of the request
+    note: "Copies within a reasonable time; a mailed or faxed request not answered within 7 days is deemed denied."
+    quote: "Within a reasonable time after the request is received by the agency, the public agency shall either: (1) provide the requested copies to the person making the request"
+    quote_url: *IN
+  written_required: null
+  must_cite_statute: null
+  form_required: null
+  fees:
+    summary: "Out-of-state and automated requests may carry a supplemental fee up to 25 cents a page or $25 an hour."
+    quote: "It may not exceed $0.25 per page or $25 per hour of staff time."
+    quote_url: "https://www.in.gov/pac/files/Overview_of_APRA_Changes_under_HEA_1360.pdf"
+  fee_waiver:
+    provision: IC 5-14-3-8(o)
+    summary: "The out-of-state supplemental fee may be waived when the request serves the public interest."
+    quote: "An agency may waive the fee if the request serves the public interest."
+    quote_url: "https://www.in.gov/pac/files/Overview_of_APRA_Changes_under_HEA_1360.pdf"
+  deemed_denial:
+    summary: "No response within 7 days to a request made by mail or fax is a denial."
+    quote: "within seven (7) days of receiving the request for a record made by mail or facsimile; the request for the record is deemed denied."
+    quote_url: *IN
+  appeal:
+    body: Indiana Public Access Counselor (formal complaint)
+    deadline_days: 30
+    day_type: calendar
+    url: "https://www.in.gov/pac/"
+    quote: "A formal complaint must be filed within thirty (30) days of the denial of records"
+    quote_url: *IN
+
+IA:
+  name: Iowa
+  law_name: {value: Iowa Open Records Law}
+  citation: Iowa Code chapter 22
+  statute_url: &IA "https://www.legis.iowa.gov/docs/code/22.pdf"
+  publisher: Iowa Legislature
+  basis: statute
+  custodian_term:
+    value: lawful custodian
+    quote: "The fee for the copying service as determined by the lawful custodian shall not exceed the actual cost of providing the service."
+    quote_url: *IA
+  who_may_request:
+    value: any_person
+    quote: "Every person shall have the right to examine and copy a public record"
+    quote_url: *IA
+  response:
+    days: null
+    day_type: other
+    note: "No fixed deadline; a good-faith delay to decide whether a record is confidential may not exceed 20 calendar days and ordinarily should not exceed 10 business days."
+    quote: "A reasonable delay for this purpose shall not exceed twenty calendar days and ordinarily should not exceed ten business days."
+    quote_url: *IA
+  written_required: null
+  must_cite_statute: null
+  form_required: null
+  fees:
+    summary: "Copy fees may not exceed the actual cost of providing the service."
+    quote: "The fee for the copying service as determined by the lawful custodian shall not exceed the actual cost of providing the service."
+    quote_url: *IA
+  fee_waiver: null
+  deemed_denial: null
+  appeal:
+    body: Iowa Public Information Board (complaint), or court
+    deadline_days: 60
+    day_type: calendar
+    url: "https://ipib.iowa.gov"
+    quote: "The complaint must be filed within sixty days from the time the alleged violation occurred"
+    quote_url: "https://www.legis.iowa.gov/docs/code/23.pdf"
+
+KS:
+  name: Kansas
+  law_name: {value: Kansas Open Records Act}
+  citation: K.S.A. 45-215 et seq.
+  statute_url: &KS "https://www.ksrevisor.gov/statutes/chapters/ch45/045_002_0018.html"
+  publisher: Kansas Office of Revisor of Statutes
+  basis: statute
+  custodian_term:
+    value: custodian of the record
+    quote: "without the written permission of the custodian of the record."
+    quote_url: *KS
+  who_may_request:
+    value: any_person
+    quote: "All public records shall be open for inspection by any person, except as otherwise provided by this act"
+    quote_url: *KS
+  response:
+    days: 3
+    day_type: business
+    clock_starts: the date the request is received
+    note: "If access is not immediate, the custodian must explain the delay and give the earliest time the records will be available."
+    quote: "Each request for access to a public record shall be acted upon as soon as possible, but not later than the end of the third business day following the date that the request is received."
+    quote_url: *KS
+  written_required: null
+  must_cite_statute: null
+  form_required: null
+  fees:
+    summary: "Copy fees may not exceed actual cost, which may include staff time."
+    quote: "the fees shall not exceed the actual cost of furnishing the requested records, including the cost of staff time required to make the information available."
+    quote_url: "https://www.ksrevisor.gov/statutes/chapters/ch45/045_002_0019.html"
+  fee_waiver: null
+  deemed_denial: null
+  appeal: null
+
+KY:
+  name: Kentucky
+  law_name: {value: Kentucky Open Records Act}
+  citation: KRS 61.870 to 61.884
+  statute_url: &KY "https://apps.legislature.ky.gov/law/statutes/statute.aspx?id=51391"
+  publisher: Kentucky General Assembly
+  basis: statute
+  custodian_term:
+    value: official custodian of public records
+    quote: "Sent via e-mail to the public agency's official custodian of public records or his or her designee"
+    quote_url: *KY
+  who_may_request:
+    value: state_residents_only
+    explain: "Only a 'resident of the Commonwealth' as defined in KRS 61.870(10): people living or working in Kentucky, Kentucky businesses, property owners, their agents, and news organizations."
+    caution: "Only residents of Kentucky (people who live or work there, Kentucky businesses or property owners, their authorized agents, and news organizations) may use this law. If you are not one, ask a Kentucky resident to file, or use the federal FOIA route for federal grant records."
+    quotes:
+      - quote: "All public records shall be open for inspection by any resident of the Commonwealth, except as otherwise provided by KRS 61.870 to 61.884"
+        quote_url: *KY
+      - quote: "\"Resident of the Commonwealth\" means: (a) An individual residing in the Commonwealth"
+        quote_url: "https://apps.legislature.ky.gov/law/statutes/statute.aspx?id=54794"
+  response:
+    days: 5
+    day_type: business
+    clock_starts: receipt of the request
+    quote: "shall determine within five (5) days, excepting Saturdays, Sundays, and legal holidays, after the receipt of any such request whether to comply with the request"
+    quote_url: &KY880 "https://apps.legislature.ky.gov/law/statutes/statute.aspx?id=51394"
+  written_required:
+    value: null
+    note: "The custodian may require a signed written application with the name printed legibly."
+    quote: "The official custodian may require a written application, signed by the applicant and with his or her name printed legibly on the application"
+    quote_url: *KY
+  must_cite_statute: null
+  form_required:
+    value: false
+    quote: "A public agency shall not require the use of any particular form for the submission of an open records request"
+    quote_url: *KY
+  letter_requirements:
+    items:
+      - text: "I am a resident of the Commonwealth of Kentucky under KRS 61.870(10)."
+        caution: "The custodian may ask how you are a Kentucky resident. Add one line saying how (for example, that you live or work in Kentucky)."
+        quote: "The official custodian may require the applicant to provide a statement in the written application of the manner in which the applicant is a resident of the Commonwealth"
+        quote_url: *KY
+      - caution: "Kentucky agencies may require a signed request with your name printed legibly. Sign the letter above your printed name."
+        quote: "signed by the applicant and with his or her name printed legibly on the application"
+        quote_url: *KY
+  fees:
+    summary: "Copies for noncommercial use at actual cost of reproduction, not including staff time."
+    quote: "which shall not exceed the actual cost of reproduction, including the costs of the media and any mechanical processing cost incurred by the public agency, but not including the cost of staff required."
+    quote_url: "https://apps.legislature.ky.gov/law/statutes/statute.aspx?id=23061"
+  fee_waiver: null
+  deemed_denial: null
+  appeal:
+    body: Kentucky Attorney General (open records appeal), or circuit court
+    deadline_days: null
+    day_type: null
+    url: "https://www.ag.ky.gov"
+    quote: "If a complaining party wishes the Attorney General to review a public agency's denial of a request to inspect a public record, the complaining party shall forward to the Attorney General a copy of the written request"
+    quote_url: *KY880
+
+ME:
+  name: Maine
+  law_name: {value: Maine Freedom of Access Act}
+  citation: 1 M.R.S. 400 et seq.
+  statute_url: &ME "https://legislature.maine.gov/statutes/1/title1sec408-A.html"
+  publisher: Maine Legislature
+  basis: statute
+  custodian_term:
+    value: agency or official having custody or control of the record
+    quote: "The agency or official having custody or control of a public record shall acknowledge receipt of a request made according to this section within 5 working days of receiving the request"
+    quote_url: *ME
+  who_may_request:
+    value: any_person
+    quote: "Except as otherwise provided by statute, a person has the right to inspect and copy any public record in accordance with this section within a reasonable time of making the request"
+    quote_url: *ME
+  response:
+    days: 5
+    day_type: business
+    clock_starts: receipt of the request
+    note: "Acknowledgment within 5 working days; records within a reasonable time; a denial must be in writing within 5 working days."
+    quote: "shall acknowledge receipt of a request made according to this section within 5 working days of receiving the request"
+    quote_url: *ME
+  written_required: null
+  must_cite_statute: null
+  form_required: null
+  fees: null
+  fee_waiver:
+    provision: 1 M.R.S. 408-A(11)
+    summary: "Fees may be waived for indigent requesters or when release is in the public interest."
+    quote: "may waive part or all of the total fee charged pursuant to subsection 8 if: A. The requester is indigent"
+    quote_url: *ME
+  deemed_denial: null
+  appeal:
+    body: court (Superior Court)
+    deadline_days: 30
+    day_type: calendar
+    url: null
+    quote: "may appeal the refusal, denial or failure within 30 calendar days of the receipt of the written notice of refusal, denial or failure to the Superior Court"
+    quote_url: "https://legislature.maine.gov/statutes/1/title1sec409.html"
+
+MD:
+  name: Maryland
+  law_name: {value: Maryland Public Information Act}
+  citation: Md. Code, Gen. Provis. 4-101 et seq.
+  statute_url: &MD "https://mgaleg.maryland.gov/mgawebsite/Laws/StatuteText?article=ggp&section=4-203&enactments=false"
+  publisher: Maryland General Assembly
+  basis: statute
+  custodian_term:
+    value: custodian
+    quote: "a custodian shall allow a person or governmental unit to inspect any public record at any reasonable time."
+    quote_url: "https://mgaleg.maryland.gov/mgawebsite/Laws/StatuteText?article=ggp&section=4-201&enactments=false"
+  who_may_request:
+    value: any_person
+    quote: "a custodian shall allow a person or governmental unit to inspect any public record at any reasonable time."
+    quote_url: "https://mgaleg.maryland.gov/mgawebsite/Laws/StatuteText?article=ggp&section=4-201&enactments=false"
+  response:
+    days: 30
+    day_type: calendar
+    clock_starts: receipt of the application
+    note: "If production will take more than 10 working days, the custodian must say so in writing within 10 working days with a time and cost estimate."
+    quotes:
+      - quote: "shall produce the public record immediately or within a reasonable period that is needed to retrieve the public record, but not more than 30 days after receipt of the application."
+        quote_url: *MD
+      - quote: "the custodian shall indicate in writing or by electronic mail within 10 working days after receipt of the request"
+        quote_url: *MD
+  written_required: null
+  must_cite_statute: null
+  form_required: null
+  fees: null
+  fee_waiver: null
+  deemed_denial: null
+  appeal: null
+
+MA:
+  name: Massachusetts
+  law_name: {value: Massachusetts Public Records Law}
+  citation: M.G.L. c. 66, 10 and 10A; c. 4, 7(26)
+  statute_url: &MA "https://malegislature.gov/Laws/GeneralLaws/PartI/TitleX/Chapter66/Section10"
+  publisher: Massachusetts General Court
+  basis: statute
+  custodian_term:
+    value: records access officer
+    quote: "A request for public records may be delivered to the records access officer by hand or via first class mail at the record officer's business address, or via electronic mail"
+    quote_url: *MA
+  who_may_request:
+    value: any_person
+    explain: "Section 10 places no limit on who may ask; the records access officer must furnish 'any public record' and may not demand the purpose."
+    quotes:
+      - quote: "shall at reasonable times and without unreasonable delay permit inspection or furnish a copy of any public record"
+        quote_url: *MA
+      - quote: "a records access officer may not require the requester to specify the purpose for a request"
+        quote_url: *MA
+  response:
+    days: 10
+    day_type: business
+    clock_starts: receipt of the request
+    quote: "or any segregable portion of a public record, not later than 10 business days following the receipt of the request"
+    quote_url: *MA
+  written_required: null
+  must_cite_statute: null
+  form_required: null
+  fees: null
+  fee_waiver:
+    provision: M.G.L. c. 66, 10(d)(v)
+    summary: "The records access officer may waive or reduce fees when disclosure is in the public interest."
+    quote: "the records access officer may waive or reduce the amount of any fee charged under this subsection upon a showing that disclosure of a requested record is in the public interest"
+    quote_url: *MA
+  deemed_denial: null
+  appeal:
+    body: Supervisor of Records (Secretary of the Commonwealth), or superior court
+    deadline_days: null
+    day_type: null
+    url: null
+    quote: "the person who submitted the initial request for public records may petition the supervisor of records for a determination as to whether a violation has occurred."
+    quote_url: "https://malegislature.gov/Laws/GeneralLaws/PartI/TitleX/Chapter66/Section10A"
+
+MI:
+  name: Michigan
+  law_name: {value: Michigan Freedom of Information Act}
+  citation: MCL 15.231 et seq.
+  statute_url: &MI "https://www.legislature.mi.gov/Laws/MCL?objectName=mcl-15-235"
+  publisher: Michigan Legislature
+  basis: statute
+  custodian_term:
+    value: FOIA coordinator
+    quote: "upon providing a public body's FOIA coordinator with a written request that describes a public record sufficiently to enable the public body to find the public record"
+    quote_url: &MI233 "https://www.legislature.mi.gov/Laws/MCL?objectName=mcl-15-233"
+  who_may_request:
+    value: any_person
+    quote: "a person has a right to inspect, copy, or receive copies of the requested public record of the public body."
+    quote_url: *MI233
+  response:
+    days: 5
+    day_type: business
+    clock_starts: receipt of the request
+    quote: "respond to a request for a public record within 5 business days after the public body receives the request"
+    quote_url: *MI
+    extension:
+      days: 10
+      day_type: business
+      conditions: "one written notice of extension"
+      quote: "Issuing a notice extending for not more than 10 business days the period during which the public body shall respond to the request."
+      quote_url: *MI
+  written_required:
+    value: true
+    quote: "upon providing a public body's FOIA coordinator with a written request"
+    quote_url: *MI233
+  must_cite_statute: null
+  form_required: null
+  letter_requirements:
+    items:
+      - text: "This is a request under the Michigan Freedom of Information Act."
+        quote: "specifically included the words, characters, or abbreviations for \"freedom of information\""
+        quote_url: *MI
+  fees: null
+  fee_waiver: null
+  deemed_denial:
+    summary: "Silence is a final denial if it was willful or if the written request said 'freedom of information' (this letter does)."
+    quote: "Failure to respond to a request under subsection (2) constitutes a public body's final determination to deny the request if either of the following applies"
+    quote_url: *MI
+  appeal:
+    body: head of the public body (written appeal stating the word "appeal"), or circuit court
+    deadline_days: null
+    day_type: null
+    url: null
+    quote: "Submit to the head of the public body a written appeal that specifically states the word \"appeal\" and identifies the reason or reasons for reversal of the disclosure denial."
+    quote_url: *MI
+
+MN:
+  name: Minnesota
+  law_name: {value: Minnesota Government Data Practices Act}
+  citation: Minn. Stat. chapter 13
+  statute_url: &MN "https://www.revisor.mn.gov/statutes/cite/13.03"
+  publisher: Minnesota Office of the Revisor of Statutes
+  basis: statute
+  custodian_term:
+    value: responsible authority
+    quote: "Upon request to a responsible authority or designee, a person shall be"
+    quote_url: *MN
+  who_may_request:
+    value: any_person
+    quote: "Upon request to a responsible authority or designee, a person shall be"
+    quote_url: *MN
+  response:
+    days: null
+    day_type: promptly
+    quote: "to insure that requests for government data are received and complied with in an appropriate and prompt manner."
+    quote_url: *MN
+  written_required: null
+  must_cite_statute: null
+  form_required: null
+  fees: null
+  fee_waiver: null
+  deemed_denial: null
+  appeal: null
+
+LA:
+  name: Louisiana
+  law_name: {value: Louisiana Public Records Law}
+  citation: La. R.S. 44:1 et seq.
+  statute_url: &LA "https://legis.la.gov/Legis/Law.aspx?d=99688"
+  publisher: Louisiana State Legislature
+  basis: statute
+  custodian_term:
+    value: custodian
+    quote: "The custodian shall present any public record to any person of the age of majority who so requests."
+    quote_url: "https://legis.la.gov/Legis/Law.aspx?d=99691"
+  who_may_request:
+    value: other
+    explain: "Any person of the age of majority (18 or older); no residency requirement."
+    quote: "any person of the age of majority may inspect, copy, or reproduce any public record."
+    quote_url: *LA
+  response:
+    days: 5
+    day_type: business
+    clock_starts: the date of the in-person, written or electronic request
+    note: "Without a written determination or time estimate within 5 business days the requester may go to court; records in active use must be made available within 3 business days."
+    quote: "by the passage of five days, exclusive of Saturdays, Sundays, and legal public holidays, from the date of his in-person, written, or electronic request without receiving a determination in writing by the custodian"
+    quote_url: &LA35 "https://legis.la.gov/Legis/Law.aspx?d=99703"
+  written_required: null
+  must_cite_statute: null
+  form_required: null
+  fees:
+    summary: "No fee for reviewing whether a record is public."
+    quote: "no fee shall be charged for examination or review to determine if a record is subject to disclosure"
+    quote_url: "https://legis.la.gov/Legis/Law.aspx?d=99691"
+  fee_waiver: null
+  deemed_denial:
+    summary: "Five business days without a written determination or estimate counts as a denial for going to court."
+    quote: "either by a determination of the custodian or by the passage of five days, exclusive of Saturdays, Sundays, and legal public holidays"
+    quote_url: *LA35
+  appeal:
+    body: court (district court)
+    deadline_days: null
+    day_type: null
+    url: null
+    quote: "may institute proceedings for the issuance of a writ of mandamus, injunctive or declaratory relief"
+    quote_url: *LA35
+
+MS:
+  name: Mississippi
+  law_name: {value: Mississippi Public Records Act of 1983, short: Mississippi Public Records Act}
+  citation: Miss. Code Ann. 25-61-1 et seq.
+  statute_url: &MS "https://www.ethics.ms.gov/title-25-chapter-61-public-access-public-records"
+  publisher: Mississippi Ethics Commission (reprinting Title 25, Chapter 61)
+  basis: official_guide
+  basis_note: "Mississippi's official code is published through a commercial publisher's site; the Ethics Commission, which enforces the Act, reprints it."
+  custodian_term: null
+  who_may_request:
+    value: any_person
+    quote: "any person shall have the right to inspect, copy or mechanically reproduce or obtain a reproduction of any public record of a public body"
+    quote_url: *MS
+  response:
+    days: 7
+    day_type: business
+    clock_starts: receipt of the request
+    note: "If not produced by the seventh working day, the body must explain in writing; production may not be later than 14 working days."
+    quote: "No public body shall adopt procedures which will authorize the public body to produce or deny production of a public record later than seven (7) working days from the date of the receipt of the request"
+    quote_url: *MS
+    extension:
+      days: 14
+      day_type: business
+      conditions: "written explanation by the seventh working day; 14 working days from the original request is the outer limit"
+      quote: "in no event shall the date for the public body's production of the requested records be any later than fourteen (14) working days from the receipt by the public body of the original request."
+      quote_url: *MS
+  written_required: null
+  must_cite_statute: null
+  form_required: null
+  fees:
+    summary: "Fees may not exceed the actual cost of searching, reviewing, duplicating and mailing."
+    quote: "in no case to exceed, the actual cost of searching, reviewing and/or duplicating and, if applicable, mailing copies of public records."
+    quote_url: *MS
+  fee_waiver: null
+  deemed_denial: null
+  appeal:
+    body: Mississippi Ethics Commission (complaint), or chancery court
+    deadline_days: null
+    day_type: null
+    url: null
+    quote: "The Mississippi Ethics Commission shall have the authority to enforce the provisions of this chapter upon a complaint filed by any person denied the right"
+    quote_url: *MS
+
+MO:
+  name: Missouri
+  law_name: {value: Missouri Sunshine Law}
+  citation: RSMo 610.010 et seq.
+  statute_url: &MO "https://revisor.mo.gov/main/OneSection.aspx?section=610.023"
+  publisher: Missouri Revisor of Statutes
+  basis: statute
+  custodian_term:
+    value: custodian of records
+    quote: "Each public governmental body is to appoint a custodian who is to be responsible for the maintenance of that body's records."
+    quote_url: *MO
+  who_may_request:
+    value: any_person
+    quote: "Each public governmental body shall make available for inspection and copying by the public of that body's public records."
+    quote_url: *MO
+  response:
+    days: 3
+    day_type: business
+    clock_starts: the date the custodian receives the request
+    note: "May exceed 3 days for reasonable cause, with a detailed explanation and the earliest date the records will be available."
+    quote: "shall be acted upon as soon as possible, but in no event later than the end of the third business day following the date the request is received by the custodian of records"
+    quote_url: *MO
+  written_required: null
+  must_cite_statute: null
+  form_required: null
+  fees: null
+  fee_waiver: null
+  deemed_denial: null
+  appeal: null
+
+MT:
+  name: Montana
+  law_name: {value: Montana Public Records Act}
+  citation: MCA 2-6-1001 et seq.; Mont. Const. art. II, sec. 9
+  statute_url: &MT "https://leg.mt.gov/bills/mca/title_0020/chapter_0060/part_0100/section_0030/0020-0060-0100-0030.html"
+  publisher: Montana Legislature
+  basis: statute
+  custodian_term: null
+  who_may_request:
+    value: any_person
+    quote: "every person has a right to examine and obtain a copy of any public information of this state."
+    quote_url: *MT
+  response:
+    days: null
+    day_type: other
+    note: "Local governments must respond in a timely manner, either with the records or with a time and fee estimate; fixed deadlines in 2-6-1006(3) apply only to state agencies."
+    quote: "Upon receiving a request for public information, a local government shall respond in a timely manner to the requesting person"
+    quote_url: &MT6 "https://leg.mt.gov/bills/mca/title_0020/chapter_0060/part_0100/section_0060/0020-0060-0100-0060.html"
+  written_required: null
+  must_cite_statute: null
+  form_required: null
+  fees:
+    summary: "Agencies may charge a documented fee and may require the estimated fee in advance."
+    quote: "The public agency may require the requesting person to pay the estimated fee prior to identifying and gathering the requested public information."
+    quote_url: *MT6
+  fee_waiver: null
+  deemed_denial: null
+  appeal: null
+
+NE:
+  name: Nebraska
+  law_name: {value: Nebraska Public Records Statutes, short: Nebraska public records}
+  citation: Neb. Rev. Stat. 84-712 to 84-712.09
+  statute_url: &NE "https://nebraskalegislature.gov/laws/statutes.php?statute=84-712"
+  publisher: Nebraska Legislature
+  basis: statute
+  custodian_term:
+    value: custodian of the record
+    quote: "Upon receipt of a written request for access to or copies of a public record, the custodian of such record shall provide to the requester"
+    quote_url: *NE
+  who_may_request:
+    value: any_person
+    quote: "all residents of this state and all other persons interested in the examination of the public records"
+    quote_url: *NE
+  response:
+    days: 4
+    day_type: business
+    clock_starts: actual receipt of a written request
+    note: "Within 4 business days: access or copies, a written denial, or a written explanation with the earliest practicable date, plus a cost estimate."
+    quote: "as soon as is practicable and without delay, but not more than four business days after actual receipt of the request"
+    quote_url: *NE
+  written_required: null
+  must_cite_statute: null
+  form_required: null
+  fees:
+    summary: "Copy fees may not exceed the actual added cost of making the copies."
+    quote: "which fee shall not exceed the actual added cost of making the copies available."
+    quote_url: *NE
+  fee_waiver: null
+  deemed_denial: null
+  appeal: null
+
+NV:
+  name: Nevada
+  law_name: {value: Nevada Public Records Act}
+  citation: NRS chapter 239
+  statute_url: &NV "https://www.leg.state.nv.us/NRS/NRS-239.html"
+  publisher: Nevada Legislature
+  basis: statute
+  custodian_term:
+    value: person who has legal custody or control of the record
+    quote: "the person who has legal custody or control of a public book or record of a governmental entity receives a written or oral request"
+    quote_url: *NV
+  who_may_request:
+    value: any_person
+    quote: "all public books and public records of a governmental entity must be open at all times during office hours to inspection by any person"
+    quote_url: *NV
+  response:
+    days: 5
+    day_type: business
+    clock_starts: receipt of the request
+    quote: "Not later than the end of the fifth business day after the date on which the person who has legal custody or control of a public book or record of a governmental entity receives a written or oral request"
+    quote_url: *NV
+  written_required: null
+  must_cite_statute: null
+  form_required: null
+  fees: null
+  fee_waiver: null
+  deemed_denial: null
+  appeal:
+    body: court (district court)
+    deadline_days: null
+    day_type: null
+    url: null
+    quote: "the requester may apply to the district court in the county in which the book or record is located for an order"
+    quote_url: *NV
+
+NH:
+  name: New Hampshire
+  law_name: {value: Right-to-Know Law}
+  citation: RSA 91-A
+  statute_url: &NH "https://gc.nh.gov/rsa/html/VI/91-A/91-A-4.htm"
+  publisher: New Hampshire General Court
+  basis: statute
+  custodian_term: null
+  who_may_request:
+    value: other
+    explain: "The statute gives the right to 'every citizen' and does not define it."
+    caution: "New Hampshire's law speaks of 'every citizen' without defining it. If you do not live in New Hampshire, consider asking a resident to file, or use the federal FOIA route for federal grant records."
+    quote: "Every citizen during the regular or business hours of all public bodies or agencies, and on the regular business premises of such public bodies or agencies, has the right to inspect all governmental records"
+    quote_url: *NH
+  response:
+    days: 5
+    day_type: business
+    clock_starts: the request
+    quote: "If a public body or agency is unable to make a governmental record available for immediate inspection and copying the public body or agency shall, within 5 business days of a request"
+    quote_url: *NH
+  written_required: null
+  must_cite_statute: null
+  form_required: null
+  fees:
+    summary: "Copies at actual cost; no fee for inspection or delivery without copying."
+    quote: "No cost or fee shall be charged for the inspection or delivery, without copying, of governmental records"
+    quote_url: *NH
+  fee_waiver: null
+  deemed_denial: null
+  appeal: null
+
+NJ:
+  name: New Jersey
+  law_name: {value: Open Public Records Act}
+  citation: N.J.S.A. 47:1A-1 et seq.
+  statute_url: &NJ "https://www.nj.gov/grc/laws/act/"
+  publisher: New Jersey Government Records Council (annotated text of OPRA)
+  basis: official_guide
+  basis_note: "The Legislature's statute site is a JavaScript application; the Government Records Council publishes the Act's text."
+  custodian_term:
+    value: custodian of a government record
+    quote: "\"Custodian of a government record\" or \"custodian\" means in the case of a municipality, the municipal clerk"
+    quote_url: *NJ
+  who_may_request:
+    value: other
+    explain: "The Act's policy section speaks of access by 'the citizens of this State'; requesters must identify themselves accurately to keep the deemed-denial remedy."
+    caution: "New Jersey's law states its purpose as access for 'the citizens of this State'. If you live elsewhere, consider asking a New Jersey resident to file, or use the federal FOIA route for federal grant records."
+    quote: "government records shall be readily accessible for inspection, copying, or examination by the citizens of this State"
+    quote_url: *NJ
+  response:
+    days: 7
+    day_type: business
+    clock_starts: receipt of the request
+    note: "14 business days for commercial requests or records needing review under P.L.2021, c.371."
+    quote: "as soon as possible, but not later than seven business days after receiving the request"
+    quote_url: *NJ
+  written_required: null
+  must_cite_statute: null
+  form_required: null
+  fees: null
+  fee_waiver: null
+  deemed_denial:
+    summary: "No response in 7 business days is a denial, unless the requester did not give an accurate name and contact details."
+    quote: "In the event a custodian fails to respond within seven business days or 14 business days, as appropriate, after receiving a request, the failure to respond shall be deemed a denial of the request"
+    quote_url: *NJ
+  appeal:
+    body: Government Records Council (complaint), or Superior Court
+    deadline_days: null
+    day_type: null
+    url: "https://www.nj.gov/grc/"
+    quote: "in lieu of filing an action in Superior Court, file a complaint with the Government Records Council"
+    quote_url: *NJ
+
+NM:
+  name: New Mexico
+  law_name: {value: Inspection of Public Records Act}
+  citation: NMSA 1978, 14-2-1 et seq.
+  statute_url: &NM "https://nmdoj.gov/wp-content/uploads/NMDOJ-IPRA-Guide-Ninth-Edition-25.03.21.pdf"
+  publisher: New Mexico Department of Justice (IPRA Compliance Guide, 9th edition, reprinting the Act)
+  basis: official_guide
+  basis_note: "The official compilation (NMOneSource) is a JavaScript application; the Attorney General's IPRA guide reprints the Act."
+  custodian_term: null
+  who_may_request:
+    value: any_person
+    quote: "Every person has a right to inspect public records of this state except"
+    quote_url: *NM
+  response:
+    days: 15
+    day_type: calendar
+    clock_starts: receipt of a written request
+    note: "If inspection is not allowed within 3 business days, the custodian must explain in writing when records will be available."
+    quote: "a written request for inspection of public records that has not been permitted within fifteen days of receipt by the office of the custodian may be deemed denied."
+    quote_url: *NM
+  written_required: null
+  must_cite_statute: null
+  form_required: null
+  fees: null
+  fee_waiver: null
+  deemed_denial:
+    summary: "A written request not granted within 15 days may be deemed denied."
+    quote: "a written request for inspection of public records that has not been permitted within fifteen days of receipt by the office of the custodian may be deemed denied."
+    quote_url: *NM
+  appeal: null
+
+NY:
+  name: New York
+  law_name: {value: Freedom of Information Law}
+  citation: N.Y. Public Officers Law 84 to 90
+  statute_url: &NY "https://www.nysenate.gov/legislation/laws/PBO/89"
+  publisher: New York State Senate (official laws of New York)
+  basis: statute
+  custodian_term: null
+  who_may_request:
+    value: any_person
+    explain: "The law requires agencies to make all records available for public inspection and copying, with listed exceptions."
+    quote: "make available for public inspection and copying all records, except those records or portions thereof that may be withheld"
+    quote_url: "https://www.nysenate.gov/legislation/laws/PBO/87"
+  response:
+    days: 5
+    day_type: business
+    clock_starts: receipt of a written request
+    note: "Within 5 business days: the records, a written denial, or an acknowledgment with an approximate date; if granted, normally within 20 business days of the acknowledgment."
+    quote: "within five business days of the receipt of a written request for a record reasonably described, shall make such record available to the person requesting it, deny such request in writing or furnish a written acknowledge"
+    quote_url: *NY
+    extension:
+      days: 20
+      day_type: business
+      conditions: "from the acknowledgment; beyond that the agency must give reasons and a date certain"
+      quote: "if circumstances prevent disclosure to the person requesting the record or records within twenty business days from the date of the acknowledgement of the receipt of the request"
+      quote_url: *NY
+  written_required: null
+  must_cite_statute: null
+  form_required: null
+  fees: null
+  fee_waiver: null
+  deemed_denial:
+    summary: "Failing to meet the response rules is a denial, which can be appealed."
+    quote: "Failure by an agency to conform to the provisions of subdivision three of this section shall constitute a denial."
+    quote_url: *NY
+  appeal:
+    body: head, chief executive or governing body of the agency
+    deadline_days: 30
+    day_type: calendar
+    url: null
+    quote: "any person denied access to a record may within thirty days appeal in writing such denial to the head, chief executive or governing body of the entity"
+    quote_url: *NY
+
+NC:
+  name: North Carolina
+  law_name: {value: North Carolina Public Records Law}
+  citation: N.C.G.S. 132-1 et seq.
+  statute_url: &NC "https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/BySection/Chapter_132/GS_132-6.html"
+  publisher: North Carolina General Assembly
+  basis: statute
+  custodian_term:
+    value: custodian of public records
+    quote: "Every custodian of public records shall permit any record in the custodian's custody to be inspected and examined"
+    quote_url: *NC
+  who_may_request:
+    value: any_person
+    quote: "inspected and examined at reasonable times and under reasonable supervision by any person"
+    quote_url: *NC
+  response:
+    days: null
+    day_type: other
+    note: "No fixed number of days; copies must be furnished as promptly as possible."
+    quote: "as promptly as possible, furnish copies thereof upon payment of any fees as may be prescribed by law."
+    quote_url: *NC
+  written_required: null
+  must_cite_statute: null
+  form_required: null
+  fees: null
+  fee_waiver: null
+  deemed_denial: null
+  appeal: null
+
+ND:
+  name: North Dakota
+  law_name: {value: North Dakota Open Records Law}
+  citation: N.D.C.C. 44-04-18
+  statute_url: &ND "https://www.ndlegis.gov/cencode/t44c04.pdf"
+  publisher: North Dakota Legislative Branch
+  basis: statute
+  custodian_term: null
+  who_may_request:
+    value: any_person
+    explain: "Records are open to the public, and the entity may not ask who is requesting or why."
+    quote: "may not ask for the motive or reason for requesting the records or for the identity of the person requesting public records."
+    quote_url: *ND
+  response:
+    days: null
+    day_type: other
+    note: "No fixed number of days; an unreasonable delay violates the law."
+    quote: "This section is violated when a person's right to review or receive a copy of a record that is not exempt or confidential is denied or unreasonably delayed"
+    quote_url: *ND
+  written_required:
+    value: false
+    quote: "An initial request need not be made in person or in writing, and the copy must be mailed upon request."
+    quote_url: *ND
+  must_cite_statute: null
+  form_required: null
+  fees:
+    summary: "Up to 25 cents per paper copy page; actual cost for other copies; payment may be required first."
+    quote: "A public entity may charge up to twenty-five cents per impression of a paper copy."
+    quote_url: *ND
+  fee_waiver: null
+  deemed_denial: null
+  appeal:
+    body: North Dakota Attorney General (opinion review)
+    deadline_days: 30
+    day_type: calendar
+    url: null
+    quote: "A request made under this section must be made within thirty days of the alleged violation"
+    quote_url: *ND
+
+OH:
+  name: Ohio
+  law_name: {value: Ohio Public Records Act}
+  citation: Ohio Rev. Code 149.43
+  statute_url: &OH "https://codes.ohio.gov/ohio-revised-code/section-149.43"
+  publisher: Ohio Legislative Service Commission
+  basis: statute
+  custodian_term:
+    value: person responsible for public records
+    quote: "a public office or person responsible for public records shall make copies of the requested public record available to the requester at cost"
+    quote_url: *OH
+  who_may_request:
+    value: any_person
+    quote: "Upon request by any person and subject to division (B)(8) of this section, all public records responsive to the request shall be promptly prepared"
+    quote_url: *OH
+  response:
+    days: null
+    day_type: other
+    note: "No fixed number of days; records must be promptly prepared, and copies provided within a reasonable period of time."
+    quote: "shall make copies of the requested public record available to the requester at cost and within a reasonable period of time."
+    quote_url: *OH
+  written_required: null
+  must_cite_statute: null
+  form_required: null
+  fees:
+    summary: "Copies at cost."
+    quote: "shall make copies of the requested public record available to the requester at cost"
+    quote_url: *OH
+  fee_waiver: null
+  deemed_denial: null
+  appeal: null
+
+OK:
+  name: Oklahoma
+  law_name: {value: Oklahoma Open Records Act}
+  citation: 51 O.S. 24A.1 et seq.
+  statute_url: &OK "https://www.oscn.net/applications/oscn/DeliverDocument.asp?CiteID=80292"
+  publisher: Oklahoma State Courts Network (official statutes)
+  basis: statute
+  custodian_term: null
+  who_may_request:
+    value: any_person
+    quote: "All records of public bodies and public officials shall be open to any person for inspection, copying, or mechanical reproduction during regular business hours"
+    quote_url: *OK
+  response:
+    days: null
+    day_type: other
+    note: "No fixed number of days; access must be prompt and reasonable."
+    quote: "A public body must provide prompt, reasonable access to its records"
+    quote_url: *OK
+  written_required: null
+  must_cite_statute: null
+  form_required: null
+  fees:
+    summary: "Copy fees limited to reasonable direct costs, and no more than 25 cents a page for standard paper; advance payment allowed over $75."
+    quote: "a public body may charge a fee only for recovery of the reasonable, direct costs of record copying, or mechanical reproduction."
+    quote_url: *OK
+  fee_waiver: null
+  deemed_denial: null
+  appeal: null
+
+OR:
+  name: Oregon
+  law_name: {value: Oregon Public Records Law}
+  citation: ORS 192.311 to 192.478
+  statute_url: &OR "https://www.oregonlegislature.gov/bills_laws/ors/ors192.html"
+  publisher: Oregon State Legislature
+  basis: statute
+  custodian_term: null
+  who_may_request:
+    value: any_person
+    quote: "Every person has a right to inspect any public record of a public body in this state"
+    quote_url: *OR
+  response:
+    days: 5
+    day_type: business
+    clock_starts: receipt of a written request
+    note: "Within 5 business days the body must acknowledge or complete the response; it must then complete or update within 10 more business days."
+    quote: "shall within five business days after receiving the request acknowledge receipt of the request or complete the"
+    quote_url: *OR
+    extension:
+      days: 10
+      day_type: business
+      conditions: "counted from the acknowledgment deadline"
+      quote: "not later than 10 business days after the date by which a public body is required to acknowledge receipt of the request"
+      quote_url: *OR
+  written_required: null
+  must_cite_statute: null
+  form_required: null
+  fees: null
+  fee_waiver:
+    standard: "the waiver or reduction is in the public interest because the record primarily benefits the general public"
+    quote: "the waiver or reduction of fees is in the public interest because making the record available primarily benefits the general public."
+    quote_url: *OR
+  deemed_denial: null
+  appeal:
+    body: District attorney of the county (local bodies) or Attorney General (state agencies)
+    deadline_days: null
+    day_type: null
+    url: null
+    quote: "The district attorney of the county in which the public body is located"
+    quote_url: *OR
+
+RI:
+  name: Rhode Island
+  law_name: {value: Access to Public Records Act}
+  citation: R.I. Gen. Laws 38-2-1 et seq.
+  statute_url: &RI "http://webserver.rilegislature.gov/Statutes/TITLE38/38-2/38-2-3.htm"
+  publisher: Rhode Island General Assembly
+  basis: statute
+  custodian_term:
+    value: public records officer
+    quote: "the identification of a designated public records officer or unit, how to make a public records request, and where a public record request should be made"
+    quote_url: *RI
+  who_may_request:
+    value: any_person
+    quote: "every person or entity shall have the right to inspect and/or copy those records"
+    quote_url: *RI
+  response:
+    days: 10
+    day_type: business
+    clock_starts: receipt of the request
+    quote: "A public body receiving a request shall permit the inspection or copying within ten (10) business days after receiving a request."
+    quote_url: *RI
+    extension:
+      days: 20
+      day_type: business
+      conditions: "written, particularized explanation; voluminous or difficult requests"
+      quote: "the public body may have up to an additional twenty (20) business days to comply with the request"
+      quote_url: *RI
+  written_required: null
+  must_cite_statute: null
+  form_required:
+    value: false
+    quote: "A written request for public records need not be made on a form established by a public body"
+    quote_url: *RI
+  fees:
+    summary: "Search and retrieval up to $15 an hour, first hour free; 15 cents a page; fees waived if the body misses the deadline."
+    quote: "Hourly costs for a search and retrieval shall not exceed fifteen dollars ($15.00) per hour and no costs shall be charged for the first hour"
+    quote_url: "http://webserver.rilegislature.gov/Statutes/TITLE38/38-2/38-2-4.htm"
+  fee_waiver:
+    standard: "a court may reduce or waive search fees in the public interest"
+    quote: "A court may reduce or waive the fees for costs charged for search or retrieval if it determines that the information requested is in the public interest"
+    quote_url: "http://webserver.rilegislature.gov/Statutes/TITLE38/38-2/38-2-4.htm"
+  deemed_denial:
+    summary: "No compliance within 10 business days is a denial, and search and copy fees are then waived."
+    quotes:
+      - quote: "Failure to comply with a request to inspect or copy the public record within the ten (10) business day period shall be deemed to be a denial."
+        quote_url: &RI7 "http://webserver.rilegislature.gov/Statutes/TITLE38/38-2/38-2-7.htm"
+      - quote: "All copying and search and retrieval fees shall be waived if a public body fails to produce requested records in a timely manner"
+        quote_url: *RI7
+  appeal:
+    body: chief administrative officer of the public body, then the Attorney General
+    deadline_days: null
+    day_type: null
+    url: null
+    note: "The chief administrative officer must decide within 10 business days."
+    quote: "may petition the chief administrative officer of that public body for a review of the determinations made by his or her subordinate."
+    quote_url: "http://webserver.rilegislature.gov/Statutes/TITLE38/38-2/38-2-8.htm"
+
+SC:
+  name: South Carolina
+  law_name: {value: South Carolina Freedom of Information Act}
+  citation: S.C. Code 30-4-10 et seq.
+  statute_url: &SC "https://www.scstatehouse.gov/code/t30c004.php"
+  publisher: South Carolina Legislature
+  basis: statute
+  custodian_term: null
+  who_may_request:
+    value: any_person
+    explain: "Any person may request records; people serving a prison sentence are excluded. Only a citizen of South Carolina may sue to enforce."
+    quote: "A person has a right to inspect, copy, or receive an electronic transmission of any public record of a public body"
+    quote_url: *SC
+  response:
+    days: 10
+    day_type: business
+    clock_starts: receipt of a written request
+    note: "10 business days for a determination (20 if the records are over 24 months old); then 30 calendar days to produce (35 for older records)."
+    quote: "shall within ten days (excepting Saturdays, Sundays, and legal public holidays) of the receipt of the request, notify the person making the request of its determination"
+    quote_url: *SC
+  written_required:
+    value: true
+    note: "The deadline applies to written requests."
+    quote: "Each public body, upon written request for records made under this chapter, shall within ten days"
+    quote_url: *SC
+  must_cite_statute: null
+  form_required: null
+  fees:
+    summary: "Actual cost of search, retrieval and redaction; no charge for review; deposit up to 25 percent."
+    quote: "Fees may not be charged for examination and review to determine if the documents are subject to disclosure."
+    quote_url: *SC
+  fee_waiver:
+    standard: "waiver or reduction in the public interest when the information primarily benefits the general public"
+    quote: "waiver or reduction of the fee is in the public interest because furnishing the information can be considered as primarily benefiting the general public."
+    quote_url: *SC
+  deemed_denial:
+    effect: approved
+    summary: "If the body sends no determination in time, the request is considered approved for records that are not exempt."
+    quote: "the request must be considered approved as to nonexempt records or information."
+    quote_url: *SC
+  appeal:
+    body: court (circuit court; a citizen of South Carolina may file)
+    deadline_days: null
+    day_type: null
+    url: null
+    note: "Within one year of the violation."
+    quote: "A citizen of the State may apply to the circuit court for a declaratory judgment, injunctive relief, or both"
+    quote_url: *SC
+
+SD:
+  name: South Dakota
+  law_name: {value: South Dakota Public Records Law}
+  citation: SDCL 1-27
+  statute_url: &SD "https://sdlegislature.gov/api/Statutes/1-27-37.html"
+  publisher: South Dakota Legislature
+  basis: statute
+  custodian_term:
+    value: public record officer
+    quote: "A written request may be made to the public record officer of the public entity involved."
+    quote_url: *SD
+  who_may_request:
+    value: any_person
+    quote: "all citizens of this state, and all other persons interested in the examination of the public records"
+    quote_url: "https://sdlegislature.gov/api/Statutes/1-27-1.html"
+  response:
+    days: 10
+    day_type: business
+    clock_starts: receipt of a written request
+    quote: "The public record officer shall promptly respond to the written request but in no event later than ten business days from receipt of the request."
+    quote_url: *SD
+  written_required: null
+  must_cite_statute: null
+  form_required: null
+  fees: null
+  fee_waiver: null
+  deemed_denial:
+    summary: "No response to a written request in 10 business days is a denial."
+    quote: "If the public record officer fails to respond to a written request within ten business days"
+    quote_url: *SD
+  appeal:
+    body: Office of Hearing Examiners (written notice of review), or circuit court
+    deadline_days: 90
+    day_type: calendar
+    how: mail
+    note: "Send the notice of review by registered or certified mail."
+    url: null
+    quote: "a requestor may within ninety days of the denial commence a civil action by summons or, in the alternative, file a written notice of review with the Office of Hearing Examiners."
+    quote_url: "https://sdlegislature.gov/api/Statutes/1-27-38.html"
+
+TN:
+  name: Tennessee
+  law_name: {value: Tennessee Public Records Act}
+  citation: Tenn. Code Ann. 10-7-503
+  statute_url: &TN "https://comptroller.tn.gov/office-functions/open-records-counsel/open-meetings/frequently-asked-questions/tennessee-public-records-act-faqs.html"
+  publisher: Tennessee Comptroller of the Treasury, Office of Open Records Counsel
+  basis: official_guide
+  basis_note: "Tennessee's code is published through a commercial publisher's site; the Comptroller's Office of Open Records Counsel explains the Act and cites 10-7-503."
+  custodian_term:
+    value: Public Record Request Coordinator
+    quote: "the name and title of the entity's Public Record Request Coordinator (PRRC)"
+    quote_url: *TN
+  who_may_request:
+    value: state_residents_only
+    explain: "Only Tennessee citizens have a right of access; entities may serve others but need not."
+    caution: "Tennessee's law gives the right to Tennessee citizens only. If you live elsewhere, ask a Tennessee resident to file, or use the federal FOIA route for federal grant records. The agency may ask to see a photo ID with an address."
+    quote: "Only citizens of Tennessee have the right to inspect and receive copies of public records under the Tennessee Public Records Act."
+    quote_url: *TN
+  response:
+    days: 7
+    day_type: business
+    clock_starts: the request
+    quote: "the records custodian is required to take one of the following actions within seven (7) business days"
+    quote_url: *TN
+  written_required: null
+  must_cite_statute: null
+  form_required: null
+  fees: null
+  fee_waiver: null
+  deemed_denial: null
+  appeal:
+    body: court (circuit or chancery court petition)
+    deadline_days: null
+    day_type: null
+    url: null
+    quote: "may file a petition for access to the records in the appropriate circuit or chancery court"
+    quote_url: *TN
+  letter_requirements:
+    items:
+      - text: "I am a citizen of Tennessee."
+        quote: "Only citizens of Tennessee have the right to inspect and receive copies of public records"
+        quote_url: *TN
+
+TX:
+  name: Texas
+  law_name: {value: Texas Public Information Act}
+  citation: Tex. Gov't Code ch. 552
+  statute_url: &TX "https://www.texasattorneygeneral.gov/sites/default/files/files/divisions/open-government/publicinfo_hb.pdf"
+  publisher: Office of the Texas Attorney General (Public Information Act Handbook, quoting the Act)
+  basis: official_guide
+  basis_note: "The Legislature's statute site is a JavaScript application; the Attorney General's handbook quotes the Act's sections."
+  custodian_term:
+    value: officer for public information
+    quote: "An officer for public information of a governmental body shall promptly produce public information for inspection, duplication, or both"
+    quote_url: *TX
+  who_may_request:
+    value: any_person
+    quote: "shall promptly produce public information for inspection, duplication, or both on application by any person to the officer."
+    quote_url: *TX
+  response:
+    days: 10
+    day_type: business
+    clock_starts: the date the information is requested
+    note: "Information must be produced promptly; if it cannot be produced within 10 business days, the officer must certify that in writing and set a date."
+    quote: "If an officer for public information cannot produce public information for inspection or duplication within 10 business days after the date the information is requested"
+    quote_url: *TX
+  written_required:
+    value: true
+    note: "Written requests go to the officer for public information by mail, email, hand delivery, or another approved method."
+    quote: "A person may make a written request for public information under this chapter only by delivering the request by one of the following methods to the applicable officer for public information"
+    quote_url: *TX
+  must_cite_statute: null
+  form_required: null
+  fees: null
+  fee_waiver: null
+  deemed_denial:
+    effect: presumed_public
+    summary: "If the body does not ask the Attorney General for a ruling within 10 business days, the information is presumed public."
+    quote: "the information requested in writing is presumed to be subject to required public disclosure and must be released unless there is a compelling reason to withhold the information."
+    quote_url: *TX
+  appeal: null
+
+UT:
+  name: Utah
+  law_name: {value: Government Records Access and Management Act, short: Utah GRAMA}
+  citation: Utah Code 63G-2
+  statute_url: &UT "https://le.utah.gov/xcode/Title63G/Chapter2/C63G-2-S204_2023050320230503.html"
+  publisher: Utah State Legislature
+  basis: statute
+  custodian_term: null
+  who_may_request:
+    value: any_person
+    quote: "a person has the right to inspect a public record free of charge, and the right to take a copy of a public record during normal working hours"
+    quote_url: "https://le.utah.gov/xcode/Title63G/Chapter2/C63G-2-S201_2026050620260701.html"
+  response:
+    days: 10
+    day_type: business
+    clock_starts: receipt of a written request
+    note: "5 business days if the requester shows an expedited response benefits the public."
+    quote: "as soon as reasonably possible, but no later than 10 business days after receiving a written request"
+    quote_url: *UT
+  written_required:
+    value: true
+    note: "The request must give your name, mailing address, email (if willing), daytime phone, and a description of the record."
+    quote: "A person making a request for a record shall submit to the governmental entity that retains the record a written request containing"
+    quote_url: *UT
+  must_cite_statute: null
+  form_required: null
+  fees: null
+  fee_waiver: null
+  deemed_denial: null
+  appeal:
+    body: chief administrative officer of the governmental entity
+    deadline_days: 30
+    day_type: calendar
+    url: null
+    quote: "to the chief administrative officer of the governmental entity by filing a notice of appeal with the chief administrative officer within 30 days after"
+    quote_url: "https://le.utah.gov/xcode/Title63G/Chapter2/C63G-2-S401_2025050720250507.html"
+  letter_requirements:
+    items:
+      - caution: "Utah requires a daytime telephone number in the request. Add yours under your address before sending."
+        quote: "daytime telephone number"
+        quote_url: *UT
+
+VT:
+  name: Vermont
+  law_name: {value: Vermont Public Records Act}
+  citation: 1 V.S.A. 315 to 320
+  statute_url: &VT "https://legislature.vermont.gov/statutes/section/01/005/00318"
+  publisher: Vermont General Assembly
+  basis: statute
+  custodian_term: null
+  who_may_request:
+    value: any_person
+    quote: "Any person may inspect or copy any public record of a public agency"
+    quote_url: "https://legislature.vermont.gov/statutes/section/01/005/00316"
+  response:
+    days: 3
+    day_type: business
+    clock_starts: receipt of the request
+    quote: "\"promptly\" means immediately, with little or no delay, and, unless otherwise provided in this section, not more than three business days"
+    quote_url: *VT
+    extension:
+      days: 10
+      day_type: business
+      conditions: "unusual circumstances, with written notice; 10 business days from receipt is the outer limit"
+      quote: "No such notice shall specify a date that would result in an extension for more than ten business days from receipt of the request"
+      quote_url: *VT
+  written_required: null
+  must_cite_statute: null
+  form_required: null
+  fees: null
+  fee_waiver: null
+  deemed_denial:
+    summary: "Missing the time limit is a denial."
+    quote: "A custodian or head of the agency who fails to comply with the applicable time limit provisions of this section shall be deemed to have denied the request"
+    quote_url: *VT
+  appeal:
+    body: head of the agency
+    deadline_days: null
+    day_type: null
+    url: null
+    note: "The head of the agency must decide within 5 business days."
+    quote: "Any denial of access by the custodian of a public record may be appealed to the head of the agency."
+    quote_url: *VT
+
+VA:
+  name: Virginia
+  law_name: {value: Virginia Freedom of Information Act}
+  citation: Va. Code 2.2-3700 et seq.
+  statute_url: &VA "https://law.lis.virginia.gov/vacode/title2.2/chapter37/section2.2-3704/"
+  publisher: Virginia Division of Legislative Services
+  basis: statute
+  custodian_term: null
+  who_may_request:
+    value: state_residents_only
+    explain: "Records are open to citizens of the Commonwealth and to media that circulate or broadcast in Virginia."
+    caution: "Virginia's law gives the right to Virginia citizens and Virginia media only. If you live elsewhere, ask a Virginia resident to file, or use the federal FOIA route for federal grant records."
+    quote: "all public records shall be open to citizens of the Commonwealth, representatives of newspapers and magazines with circulation in the Commonwealth"
+    quote_url: *VA
+  response:
+    days: 5
+    day_type: business
+    clock_starts: receipt of the request
+    quote: "shall promptly, but in all cases within five working days of receiving a request, provide the requested records to the requester or make one of the following responses in writing"
+    quote_url: *VA
+    extension:
+      days: 7
+      day_type: business
+      conditions: "if the body says within 5 working days that a response is not practically possible"
+      quote: "the public body shall have an additional seven work days"
+      quote_url: *VA
+  written_required: null
+  must_cite_statute: null
+  form_required: null
+  fees:
+    summary: "Reasonable charges up to actual cost; a cost estimate must be given on request."
+    quote: "a public body may make reasonable charges not to exceed its actual cost incurred in accessing, duplicating, supplying, or searching for the requested records"
+    quote_url: *VA
+  fee_waiver: null
+  deemed_denial:
+    summary: "No response is a denial and a violation of the Act."
+    quote: "Failure to respond to a request for records shall be deemed a denial of the request and shall constitute a violation of this chapter."
+    quote_url: *VA
+  appeal: null
+  letter_requirements:
+    items:
+      - text: "I am a citizen of Virginia."
+        quote: "all public records shall be open to citizens of the Commonwealth"
+        quote_url: *VA
+
+WA:
+  name: Washington
+  law_name: {value: Washington Public Records Act}
+  citation: RCW 42.56
+  statute_url: &WA "https://app.leg.wa.gov/RCW/default.aspx?cite=42.56.520"
+  publisher: Washington State Legislature
+  basis: statute
+  custodian_term: null
+  who_may_request:
+    value: any_person
+    quote: "make them promptly available to any person"
+    quote_url: "https://app.leg.wa.gov/RCW/default.aspx?cite=42.56.080"
+  response:
+    days: 5
+    day_type: business
+    clock_starts: receipt of the request
+    note: "Within 5 business days: the records, a link, an acknowledgment with a time estimate, or a denial."
+    quote: "Within five business days of receiving a public record request, an agency"
+    quote_url: *WA
+  written_required: null
+  must_cite_statute: null
+  form_required: null
+  fees: null
+  fee_waiver: null
+  deemed_denial: null
+  appeal:
+    body: court (superior court)
+    deadline_days: null
+    day_type: null
+    url: null
+    note: "Within one year of the claim of exemption or last production."
+    quote: "Actions under this section must be filed within one year of the agency's claim of exemption or the last production of a record"
+    quote_url: "https://app.leg.wa.gov/RCW/default.aspx?cite=42.56.550"
+
+WV:
+  name: West Virginia
+  law_name: {value: West Virginia Freedom of Information Act}
+  citation: W. Va. Code 29B-1-1 et seq.
+  statute_url: &WV "https://code.wvlegislature.gov/29B-1-3/"
+  publisher: West Virginia Legislature
+  basis: statute
+  custodian_term:
+    value: custodian
+    quote: "A request to inspect or copy any public record of a public body shall be made directly to the custodian of such public record."
+    quote_url: *WV
+  who_may_request:
+    value: any_person
+    quote: "Every person has a right to inspect or copy any public record of a public body in this state"
+    quote_url: *WV
+  response:
+    days: 5
+    day_type: business
+    clock_starts: the request
+    quote: "shall as soon as is practicable but within a maximum of five days not including Saturdays, Sundays or legal holidays"
+    quote_url: *WV
+  written_required: null
+  must_cite_statute: null
+  form_required: null
+  fees: null
+  fee_waiver: null
+  deemed_denial: null
+  appeal:
+    body: court (circuit court of the county where the record is kept)
+    deadline_days: null
+    day_type: null
+    url: null
+    quote: "institute proceedings for injunctive or declaratory relief in the circuit court in the county where the public record is kept."
+    quote_url: *WV
+
+WI:
+  name: Wisconsin
+  law_name: {value: Wisconsin Public Records Law}
+  citation: Wis. Stat. 19.31 to 19.39
+  statute_url: &WI "https://docs.legis.wisconsin.gov/statutes/statutes/19/II/35"
+  publisher: Wisconsin State Legislature
+  basis: statute
+  custodian_term: null
+  who_may_request:
+    value: any_person
+    quote: "Except as otherwise provided by law, any requester has a right to inspect any record."
+    quote_url: *WI
+  response:
+    days: null
+    day_type: other
+    note: "No fixed number of days; as soon as practicable and without delay."
+    quote: "Each authority, upon request for any record, shall, as soon as practicable and without delay, either fill the request or notify the requester"
+    quote_url: *WI
+  written_required: null
+  must_cite_statute: null
+  form_required: null
+  fees:
+    summary: "Actual, necessary and direct cost of copies; location fees only if $50 or more; prepayment over $5."
+    quote: "may not exceed the actual, necessary and direct cost of reproduction and transcription of the record"
+    quote_url: *WI
+  fee_waiver:
+    standard: "waiver or reduction in the public interest"
+    quote: "An authority may provide copies of a record without charge or at a reduced charge where the authority determines that waiver or reduction of the fee is in the public interest."
+    quote_url: *WI
+  deemed_denial: null
+  appeal:
+    body: court (mandamus), the Attorney General, or the district attorney
+    deadline_days: null
+    day_type: null
+    url: null
+    quote: "the determination is subject to review by mandamus under s. 19.37 (1) or upon application to the attorney general or a district attorney."
+    quote_url: *WI
+
+WY:
+  name: Wyoming
+  law_name: {value: Wyoming Public Records Act}
+  citation: Wyo. Stat. 16-4-201 et seq.
+  statute_url: &WY "https://wyoleg.gov/statutes/compress/title16.pdf"
+  publisher: Wyoming Legislature
+  basis: statute
+  custodian_term:
+    value: designated public records person
+    quote: "All applications for public records shall be made to the designated public records person."
+    quote_url: *WY
+  who_may_request:
+    value: any_person
+    quote: "All public records shall be open for inspection by any person at reasonable times, during business hours of the governmental entity"
+    quote_url: *WY
+  response:
+    days: 30
+    day_type: calendar
+    clock_starts: the date of acknowledged receipt of the request
+    note: "Readily available records must be released immediately; the body must give notice within 7 business days if records are not available."
+    quote: "All public records shall be released not later than thirty (30) calendar days from the date of acknowledged receipt of the request"
+    quote_url: *WY
+  written_required: null
+  must_cite_statute: null
+  form_required: null
+  fees: null
+  fee_waiver: null
+  deemed_denial: null
+  appeal:
+    body: Public Records Ombudsman (complaint)
+    deadline_days: null
+    day_type: null
+    url: null
+    quote: "the applicant may file a complaint with the ombudsman"
+    quote_url: *WY

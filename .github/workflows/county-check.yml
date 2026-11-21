@@ -1,0 +1,60 @@
+# Checks every county research file a pull request adds or changes: re-fetches each source,
+# verifies each quoted claim and each office phone and email, and writes the table to the job
+# summary. The job fails when any changed county file fails `scripts/county.py check`.
+# No secrets: the token is read-only and is not left in the checkout. No database either:
+# `check` reads the file and the live pages only (data/atlas.db is needed for `new` prefill and
+# `preview`, never for `check`), so nothing has to be built from ingest/schema.sql here.
+name: county-check
+
+on:
+  pull_request:
+    paths:
+      - "research/county/**"
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - name: Install requests, pyyaml and pdftotext
+        run: |
+          python3 -m pip install requests pyyaml
+          sudo apt-get install -y --no-install-recommends poppler-utils
+      - name: List changed county files
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          git diff --name-only --diff-filter=AMR "$BASE_SHA"...HEAD -- research/county/ \
+            | grep -E '^research/county/[A-Z]{2}/[0-9]{5}-[^/]+\.md$' > "$RUNNER_TEMP/county-files.txt" || true
+          echo "County files to check:"
+          cat "$RUNNER_TEMP/county-files.txt"
+      - name: Check each changed county file
+        run: |
+          fail=0
+          printf '## County check\n\n' >> "$GITHUB_STEP_SUMMARY"
+          if [ ! -s "$RUNNER_TEMP/county-files.txt" ]; then
+            echo "No county files changed (README.md, TEMPLATE.md and CHECK.md are not checked)." | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          while IFS= read -r f; do
+            echo "::group::$f"
+            if python3 scripts/county.py check --markdown "$f" | tee -a "$GITHUB_STEP_SUMMARY"; then
+              echo "PASS $f"
+            else
+              echo "::error file=$f::county.py check failed; see the job summary"
+              fail=1
+            fi
+            echo "::endgroup::"
+          done < "$RUNNER_TEMP/county-files.txt"
+          printf '\nRe-run locally: `python3 scripts/county.py check <FIPS>`\n' >> "$GITHUB_STEP_SUMMARY"
+          exit "$fail"

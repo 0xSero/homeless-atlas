@@ -1,0 +1,447 @@
+{
+ "checked_at": "2026-11-21T01:21:43+00:00",
+ "domains": {
+  "australia": {
+   "last_ingest": null,
+   "probes": {
+    "abs_cube_state": {
+     "accepted_at": "2026-11-21T01:21:43+00:00",
+     "checked_at": "2026-11-21T01:21:43+00:00",
+     "fingerprint": {
+      "content_length": 182646,
+      "etag": null,
+      "last_modified": "Mon, 20 Mar 2023 02:53:36 GMT",
+      "via": "HEAD"
+     },
+     "kind": "http",
+     "url": "https://www.abs.gov.au/statistics/people/housing/estimating-homelessness-census/2021/20490do001_2021.xlsx"
+    },
+    "rogs_homelessness_csv": {
+     "accepted_at": "2026-11-21T01:21:43+00:00",
+     "checked_at": "2026-11-21T01:21:44+00:00",
+     "fingerprint": {
+      "content_length": 1133782,
+      "etag": "\"9eeee108440108f691a642f92e23870f\"",
+      "last_modified": "Tue, 27 Jan 2026 01:59:22 GMT",
+      "via": "HEAD"
+     },
+     "kind": "http",
+     "url": "https://assets.pc.gov.au/2026-01/rogs-2026-partg-section19-homelessness-services-dataset.csv?VersionId=oou7gCfLtIUjLTYmqVgZgevEBezJo44g"
+    }
+   }
+  },
+  "canada": {
+   "last_ingest": null,
+   "probes": {
+    "bc_count_2024_25": {
+     "accepted_at": "2026-11-21T01:21:43+00:00",
+     "checked_at": "2026-11-21T01:21:46+00:00",
+     "fingerprint": {
+      "content_length": 15648978,
+      "etag": "\"eec8d2-6586380d95fc0\"",
+      "last_modified": "Thu, 06 Aug 2026 16:37:27 GMT",
+      "via": "HEAD"
+     },
+     "kind": "http",
+     "url": "https://hsa-bc.ca/_Library/2024_25_HC/2024-2025_Report_on_Homeless_Counts_in_BC.pdf"
+    },
+    "statcan_98100252": {
+     "accepted_at": "2026-11-21T01:21:43+00:00",
+     "checked_at": "2026-11-21T01:21:45+00:00",
+     "fingerprint": {
+      "content_length": 48589259,
+      "etag": "\"2e569cb-5e92f1f226d2d\"",
+      "last_modified": "Wed, 21 Sep 2022 12:31:18 GMT",
+      "via": "HEAD"
+     },
+     "kind": "http",
+     "url": "https://www150.statcan.gc.ca/n1/tbl/csv/98100252-eng.zip"
+    }
+   }
+  },
+  "coc_geometry": {
+   "last_ingest": null,
+   "probes": {
+    "coc_geo_type_layer": {
+     "accepted_at": "2026-11-21T01:21:43+00:00",
+     "checked_at": "2026-11-21T01:21:47+00:00",
+     "fingerprint": {
+      "data_last_edit_date": 1738592383660,
+      "last_edit_date": 1738592383660,
+      "name": "CoC_Geo_type"
+     },
+     "kind": "arcgis",
+     "url": "https://services.arcgis.com/VTyQ9soqVukalItT/arcgis/rest/services/CoC_Geo_Type/FeatureServer/0"
+    }
+   }
+  },
+  "county": {
+   "last_ingest": null,
+   "probes": {
+    "acs5_next": {
+     "accepted_at": "2026-11-21T01:21:43+00:00",
+     "checked_at": "2026-11-21T01:21:48+00:00",
+     "fingerprint": {
+      "current": 2024,
+      "next_exists": false,
+      "next_status": 401,
+      "next_year": 2025
+     },
+     "kind": "next_vintage",
+     "url": "https://www2.census.gov/programs-surveys/acs/summary_file/{year}/table-based-SF/data/5YRData/"
+    },
+    "cdc_places_county": {
+     "accepted_at": "2026-11-21T01:21:43+00:00",
+     "checked_at": "2026-11-21T01:21:49+00:00",
+     "fingerprint": {
+      "name": "PLACES: Local Data for Better Health, County Data, 2025 release",
+      "rows_updated_at": 1764844506,
+      "view_last_modified": 1790118324
+     },
+     "kind": "socrata",
+     "url": "https://data.cdc.gov/api/views/swc5-untb.json"
+    },
+    "hrsa_hpsa_mental_health": {
+     "accepted_at": "2026-11-21T01:21:43+00:00",
+     "checked_at": "2026-11-21T01:21:50+00:00",
+     "fingerprint": {
+      "content_length": 25689007,
+      "etag": "\"98f5ad2e778dd1:0\"",
+      "last_modified": "Fri, 20 Nov 2026 12:02:26 GMT",
+      "via": "GET bytes=0-0"
+     },
+     "kind": "http",
+     "url": "https://data.hrsa.gov/DataDownload/DD_Files/BCD_HPSA_FCT_DET_MH.csv"
+    },
+    "usaspending_last_updated": {
+     "accepted_at": "2026-11-21T01:21:43+00:00",
+     "checked_at": "2026-11-21T01:21:51+00:00",
+     "fingerprint": {
+      "value": "11/20/2026"
+     },
+     "kind": "json",
+     "url": "https://api.usaspending.gov/api/v2/awards/last_updated/"
+    }
+   }
+  },
+  "health": {
+   "last_ingest": null,
+   "probes": {
+    "brfss": {
+     "accepted_at": "2026-11-21T01:21:43+00:00",
+     "checked_at": "2026-11-21T01:21:58+00:00",
+     "fingerprint": {
+      "name": "Behavioral Risk Factor Surveillance System (BRFSS) Prevalence Data (2011 to present)",
+      "rows_updated_at": 1789482408,
+      "view_last_modified": 1790117023
+     },
+     "kind": "socrata",
+     "url": "https://data.cdc.gov/api/views/dttw-5yxu.json"
+    },
+    "ct_ocme": {
+     "accepted_at": "2026-11-21T01:21:43+00:00",
+     "checked_at": "2026-11-21T01:21:57+00:00",
+     "fingerprint": {
+      "name": "Accidental Drug Related Deaths 2012-2024",
+      "rows_updated_at": 1749665034,
+      "view_last_modified": 1784326289
+     },
+     "kind": "socrata",
+     "url": "https://data.ct.gov/api/views/rybz-nyjw.json"
+    },
+    "nchs_state": {
+     "accepted_at": "2026-11-21T01:21:43+00:00",
+     "checked_at": "2026-11-21T01:21:52+00:00",
+     "fingerprint": {
+      "name": "NCHS - Drug Poisoning Mortality by State: United States",
+      "rows_updated_at": 1528125665,
+      "view_last_modified": 1790116747
+     },
+     "kind": "socrata",
+     "url": "https://data.cdc.gov/api/views/xbxb-epbu.json"
+    },
+    "sf_dph": {
+     "accepted_at": "2026-11-21T01:21:43+00:00",
+     "checked_at": "2026-11-21T01:21:55+00:00",
+     "fingerprint": {
+      "name": "Preliminary Unintentional Drug Overdose Deaths",
+      "rows_updated_at": 1793038999,
+      "view_last_modified": 1793038999
+     },
+     "kind": "socrata",
+     "url": "https://data.sfgov.org/api/views/jxrr-bmra.json"
+    },
+    "vsrr_county": {
+     "accepted_at": "2026-11-21T01:21:43+00:00",
+     "checked_at": "2026-11-21T01:21:54+00:00",
+     "fingerprint": {
+      "name": "VSRR Provisional County-Level Drug Overdose Death Counts",
+      "rows_updated_at": 1791986660,
+      "view_last_modified": 1791986404
+     },
+     "kind": "socrata",
+     "url": "https://data.cdc.gov/api/views/gb4e-yj24.json"
+    },
+    "vsrr_state": {
+     "accepted_at": "2026-11-21T01:21:43+00:00",
+     "checked_at": "2026-11-21T01:21:53+00:00",
+     "fingerprint": {
+      "name": "VSRR Provisional Drug Overdose Death Counts",
+      "rows_updated_at": 1794323014,
+      "view_last_modified": 1794322986
+     },
+     "kind": "socrata",
+     "url": "https://data.cdc.gov/api/views/xkb8-kh2a.json"
+    }
+   }
+  },
+  "hic": {
+   "last_ingest": null,
+   "probes": {
+    "hic_next_year": {
+     "accepted_at": "2026-11-21T01:21:43+00:00",
+     "checked_at": "2026-11-21T01:22:01+00:00",
+     "fingerprint": {
+      "current": 2025,
+      "next_exists": false,
+      "next_status": 404,
+      "next_year": 2026
+     },
+     "kind": "next_vintage",
+     "url": "https://www.huduser.gov/portal/sites/default/files/xls/2007-{year}-HIC-Counts-by-CoC.xlsx"
+    },
+    "hic_projects_csv": {
+     "accepted_at": "2026-11-21T01:21:43+00:00",
+     "checked_at": "2026-11-21T01:22:00+00:00",
+     "fingerprint": {
+      "content_length": 11334278,
+      "etag": "\"3f10be3198efdc1:0\"",
+      "last_modified": "Fri, 29 May 2026 18:23:06 GMT",
+      "via": "HEAD"
+     },
+     "kind": "http",
+     "url": "https://www.huduser.gov/portal/sites/default/files/xls/2025-HIC-Counts-by-State.csv"
+    },
+    "hic_workbook": {
+     "accepted_at": "2026-11-21T01:21:43+00:00",
+     "checked_at": "2026-11-21T01:21:59+00:00",
+     "fingerprint": {
+      "content_length": 2598803,
+      "etag": "\"b353bf2c98efdc1:0\"",
+      "last_modified": "Fri, 29 May 2026 18:22:57 GMT",
+      "via": "HEAD"
+     },
+     "kind": "http",
+     "url": "https://www.huduser.gov/portal/sites/default/files/xls/2007-2025-HIC-Counts-by-CoC.xlsx"
+    }
+   }
+  },
+  "hud_pit": {
+   "last_ingest": null,
+   "probes": {
+    "ahar_2025_files": {
+     "accepted_at": "2026-11-21T01:21:43+00:00",
+     "checked_at": "2026-11-21T01:22:04+00:00",
+     "fingerprint": {
+      "count": 9,
+      "hrefs": [
+       "https://www.huduser.gov/portal/About/style-guide-for-reports.pdf",
+       "https://www.huduser.gov/portal/sites/default/files/pdf/2025-AHAR-Part-1.pdf",
+       "https://www.huduser.gov/portal/sites/default/files/xls/2007-2025-HIC-Counts-by-CoC.xlsx",
+       "https://www.huduser.gov/portal/sites/default/files/xls/2007-2025-HIC-Counts-by-State.xlsx",
+       "https://www.huduser.gov/portal/sites/default/files/xls/2007-2025-PIT-Counts-by-CoC.xlsb",
+       "https://www.huduser.gov/portal/sites/default/files/xls/2007-2025-PIT-Counts-by-State.xlsb",
+       "https://www.huduser.gov/portal/sites/default/files/xls/2011-2025-PIT-Veteran-Counts-by-CoC.xlsx",
+       "https://www.huduser.gov/portal/sites/default/files/xls/2011-2025-PIT-Veteran-Counts-by-State.xlsx",
+       "https://www.huduser.gov/portal/sites/default/files/xls/2025-HIC-Counts-by-State.csv"
+      ],
+      "sha256": "d80d47808707df2f5e2f5b5b46f6650cfe9070f9754e6e0b4245c2e163847543"
+     },
+     "kind": "listing",
+     "url": "https://www.huduser.gov/portal/datasets/ahar/2025-ahar-part-1-pit-estimates-of-homelessness-in-the-us.html"
+    },
+    "coc_grantee_layer": {
+     "accepted_at": "2026-11-21T01:21:43+00:00",
+     "checked_at": "2026-11-21T01:22:05+00:00",
+     "fingerprint": {
+      "data_last_edit_date": 1755631411617,
+      "last_edit_date": 1755631411617,
+      "name": "Continuum_of_Care_Grantee_Areas"
+     },
+     "kind": "arcgis",
+     "url": "https://services.arcgis.com/VTyQ9soqVukalItT/arcgis/rest/services/Continuum_of_Care_Grantee_Areas/FeatureServer/0"
+    },
+    "gazetteer_next": {
+     "accepted_at": "2026-11-21T01:21:43+00:00",
+     "checked_at": "2026-11-21T01:22:06+00:00",
+     "fingerprint": {
+      "current": 2024,
+      "next_exists": true,
+      "next_status": 200,
+      "next_year": 2025
+     },
+     "kind": "next_vintage",
+     "url": "https://www2.census.gov/geo/docs/maps-data/data/gazetteer/{year}_Gazetteer/"
+    },
+    "pit_next_year": {
+     "accepted_at": "2026-11-21T01:21:43+00:00",
+     "checked_at": "2026-11-21T01:22:03+00:00",
+     "fingerprint": {
+      "current": 2025,
+      "next_exists": false,
+      "next_status": 404,
+      "next_year": 2026
+     },
+     "kind": "next_vintage",
+     "url": "https://www.huduser.gov/portal/sites/default/files/xls/2007-{year}-PIT-Counts-by-CoC.xlsb"
+    },
+    "pit_workbook": {
+     "accepted_at": "2026-11-21T01:21:43+00:00",
+     "checked_at": "2026-11-21T01:22:02+00:00",
+     "fingerprint": {
+      "content_length": 8859426,
+      "etag": "\"bd44cde335e2dc1:0\"",
+      "last_modified": "Tue, 12 May 2026 17:36:39 GMT",
+      "via": "HEAD"
+     },
+     "kind": "http",
+     "url": "https://www.huduser.gov/portal/sites/default/files/xls/2007-2025-PIT-Counts-by-CoC.xlsb"
+    }
+   }
+  },
+  "places": {
+   "last_ingest": null,
+   "probes": {
+    "gazetteer_next": {
+     "accepted_at": "2026-11-21T01:21:43+00:00",
+     "checked_at": "2026-11-21T01:22:09+00:00",
+     "fingerprint": {
+      "current": 2023,
+      "next_exists": true,
+      "next_status": 200,
+      "next_year": 2024
+     },
+     "kind": "next_vintage",
+     "url": "https://www2.census.gov/geo/docs/maps-data/data/gazetteer/{year}_Gazetteer/"
+    },
+    "popest_next": {
+     "accepted_at": "2026-11-21T01:21:43+00:00",
+     "checked_at": "2026-11-21T01:22:08+00:00",
+     "fingerprint": {
+      "current": 2024,
+      "next_exists": true,
+      "next_status": 200,
+      "next_year": 2025
+     },
+     "kind": "next_vintage",
+     "url": "https://www2.census.gov/programs-surveys/popest/datasets/2020-{year}/"
+    },
+    "sub_est2024": {
+     "accepted_at": "2026-11-21T01:21:43+00:00",
+     "checked_at": "2026-11-21T01:22:07+00:00",
+     "fingerprint": {
+      "content_length": 7087080,
+      "etag": null,
+      "last_modified": "Thu, 15 May 2025 12:15:26 GMT",
+      "via": "HEAD"
+     },
+     "kind": "http",
+     "url": "https://www2.census.gov/programs-surveys/popest/datasets/2020-2024/cities/totals/sub-est2024.csv"
+    }
+   }
+  },
+  "sf": {
+   "last_ingest": null,
+   "probes": {
+    "budget": {
+     "accepted_at": "2026-11-21T01:21:43+00:00",
+     "checked_at": "2026-11-21T01:22:10+00:00",
+     "fingerprint": {
+      "name": "Budget",
+      "rows_updated_at": 1794962591,
+      "view_last_modified": 1794961558
+     },
+     "kind": "socrata",
+     "url": "https://data.sfgov.org/api/views/xdgd-c79v.json"
+    },
+    "budget_fte": {
+     "accepted_at": "2026-11-21T01:21:43+00:00",
+     "checked_at": "2026-11-21T01:22:11+00:00",
+     "fingerprint": {
+      "name": "Budget - FTE",
+      "rows_updated_at": 1786960816,
+      "view_last_modified": 1786960734
+     },
+     "kind": "socrata",
+     "url": "https://data.sfgov.org/api/views/4zfx-f2ts.json"
+    },
+    "supplier_contracts": {
+     "accepted_at": "2026-11-21T01:21:43+00:00",
+     "checked_at": "2026-11-21T01:22:12+00:00",
+     "fingerprint": {
+      "name": "Supplier Contracts",
+      "rows_updated_at": 1794960948,
+      "view_last_modified": 1794960896
+     },
+     "kind": "socrata",
+     "url": "https://data.sfgov.org/api/views/cqi5-hm2d.json"
+    }
+   }
+  },
+  "uk": {
+   "last_ingest": null,
+   "probes": {
+    "live_tables_page": {
+     "accepted_at": "2026-11-21T01:21:43+00:00",
+     "checked_at": "2026-11-21T01:22:14+00:00",
+     "fingerprint": {
+      "count": 56,
+      "sha256": "390a1f3f474d25624b06ae4be1fd84085d82739ec08b4dbe7a8f0bac6b5126ba"
+     },
+     "kind": "listing",
+     "url": "https://www.gov.uk/government/statistical-data-sets/live-tables-on-homelessness"
+    },
+    "ni_bulletin_tables": {
+     "accepted_at": "2026-11-21T01:21:43+00:00",
+     "checked_at": "2026-11-21T01:22:15+00:00",
+     "fingerprint": {
+      "content_length": 1507427,
+      "etag": null,
+      "last_modified": "Fri, 12 Jun 2026 09:38:14 GMT",
+      "via": "HEAD"
+     },
+     "kind": "http",
+     "url": "https://www.communities-ni.gov.uk/system/files/2026-06/ni-homelessness-bulletin-oct-mar-2026-tables.xlsx"
+    },
+    "rough_sleeping_page": {
+     "accepted_at": "2026-11-21T01:21:43+00:00",
+     "checked_at": "2026-11-21T01:22:13+00:00",
+     "fingerprint": {
+      "count": 2,
+      "hrefs": [
+       "https://assets.publishing.service.gov.uk/media/699daac73e672177d0bc759b/Rough_sleeping_snapshot_in_England__autumn_2025.ods",
+       "https://assets.publishing.service.gov.uk/media/6a8d6feef5b35599aec18cfd/Rough_Sleeping_Data_Framework_April_to_June_2026.ods"
+      ],
+      "sha256": "a8cd2d24e16c7fa6331051bce07d089f75c08ade44e664b9b1ac85e7dc7d9984"
+     },
+     "kind": "listing",
+     "url": "https://www.gov.uk/government/statistical-data-sets/tables-on-rough-sleeping"
+    }
+   }
+  },
+  "usaspending": {
+   "last_ingest": null,
+   "probes": {
+    "awards_last_updated": {
+     "accepted_at": "2026-11-21T01:21:43+00:00",
+     "checked_at": "2026-11-21T01:22:16+00:00",
+     "fingerprint": {
+      "value": "11/20/2026"
+     },
+     "kind": "json",
+     "url": "https://api.usaspending.gov/api/v2/awards/last_updated/"
+    }
+   }
+  }
+ }
+}

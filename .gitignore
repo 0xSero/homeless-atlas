@@ -9,6 +9,7 @@ data/recovered/
 data/raw/*
 !data/raw/.gitkeep
 data/baseline-counts.json
+data/lastmod.json
 logs/
 site/
 site.staging/

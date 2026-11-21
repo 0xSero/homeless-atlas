@@ -81,6 +81,15 @@ def main() -> int:
         fails += 0 if ok else 1
         rows.append({"gate": "search index entities", "value": n_entities, "target": 10000, "ok": ok})
 
+    # the street flyers: every flyer the atlas can make obeys the kit's rules (scripts/verify_flyers.py)
+    if "metric" in tables and "pit" in tables:
+        r = subprocess.run([sys.executable, str(ROOT / "scripts" / "verify_flyers.py")], capture_output=True, text=True)
+        summary = next((l for l in r.stdout.splitlines() if "flyers pass" in l), r.stderr.strip()[-120:])
+        made = int(summary.split()[0]) if summary[:1].isdigit() else 0
+        fails += 0 if r.returncode == 0 else 1
+        rows.append({"gate": "street flyers (no broken rule)", "value": made, "target": made, "ok": r.returncode == 0,
+                     "note": "" if r.returncode == 0 else summary})
+
     # the SF report gate: no uncited numeric paragraphs is checked by a linter
     rep = ROOT / "reports" / "san-francisco.md"
     if rep.exists():
