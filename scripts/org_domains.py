@@ -37,6 +37,7 @@ from ingest.common import DB, fetch, now  # noqa: E402
 
 RANKS = ROOT / "data" / "raw" / "org_domains" / "cc-domain-ranks.txt.gz"
 CAND = ROOT / "data" / "raw" / "org_domains" / "candidates.json"
+CAND2 = ROOT / "data" / "raw" / "org_domains" / "candidates2.json"
 SUFFIX = {"inc", "incorporated", "llc", "co", "corp", "corporation", "ltd", "the", "of", "and",
           "a", "an", "dba", "usa", "us"}
 GENERIC_WORD = {"inc", "the", "of", "and", "for", "services", "service", "center", "centre",
@@ -79,7 +80,7 @@ def label_of(host_rev: str) -> str:
     return re.sub(r"[^a-z0-9]", "", parts[-1]) if parts else ""
 
 
-def scan(conn, dry: bool) -> int:
+def scan(conn, dry: bool, out_path: str | None = None) -> int:
     rows = conn.execute("SELECT id, name, city, state FROM org WHERE website IS NULL AND name IS NOT NULL").fetchall()
     want: dict[str, list] = {}
     for r in rows:
@@ -92,9 +93,13 @@ def scan(conn, dry: bool) -> int:
 
     exact = dict(uniq)                                    # label == key
     buckets: dict[str, list] = {}                          # first 12 chars -> [(key, org)]
+    wider: dict[str, list] = {}                            # first/last 9 chars -> [(key, org)]
     for k, v in uniq.items():
         if len(k) >= 12:
             buckets.setdefault(k[:12], []).append((k, v))
+        if len(k) >= 9:
+            wider.setdefault(k[:9], []).append((k, v))
+            wider.setdefault(k[-9:], []).append((k, v))
 
     hits: dict[int, dict] = {}
     n = 0
@@ -118,6 +123,13 @@ def scan(conn, dry: bool) -> int:
                     if abs(len(k) - len(lab)) <= 6 and (k in lab or lab in k):
                         hit = v
                         break
+            if hit is None and len(lab) >= 9:
+                # looser pass: the page check is the real guard, so allow containment anywhere with a
+                # wider length window rather than only a shared 12-character prefix
+                for k, v in wider.get(lab[:9], []) + wider.get(lab[-9:], []):
+                    if abs(len(k) - len(lab)) <= 10 and (k in lab or lab in k):
+                        hit = v
+                        break
             if hit is not None:
                 oid, name, city, state = hit
                 if oid not in hits:
@@ -128,7 +140,8 @@ def scan(conn, dry: bool) -> int:
     print(f"scanned {n:,} domains -> {len(hits):,} candidates")
     if not dry:
         CAND.parent.mkdir(parents=True, exist_ok=True)
-        CAND.write_text(json.dumps(sorted(hits.values(), key=lambda h: h["rank"]), indent=0))
+        target = Path(out_path) if out_path else CAND
+        target.write_text(json.dumps(sorted(hits.values(), key=lambda h: h["rank"]), indent=0))
     return len(hits)
 
 
@@ -163,8 +176,9 @@ def _check(c: dict, path: str = "") -> tuple[dict, int, int, str]:
     return c, status, matched, (site + path if matched else "")
 
 
-def verify(conn, limit: int | None, dry: bool, shard: str | None = None, workers: int = 6) -> None:
-    cands = json.loads(CAND.read_text())
+def verify(conn, limit: int | None, dry: bool, shard: str | None = None, workers: int = 6,
+           src: str | None = None) -> None:
+    cands = json.loads((Path(src) if src else CAND).read_text())
     if shard:
         n, m = (int(x) for x in shard.split("/"))
         cands = [c for i, c in enumerate(cands) if i % m == n]
@@ -205,6 +219,7 @@ def main():
     ap.add_argument("--scan", action="store_true")
     ap.add_argument("--verify", type=int, nargs="?", const=0, default=None,
                     help="verify candidates (optionally cap the count)")
+    ap.add_argument("--out", default=None, help="candidate file to read/write")
     ap.add_argument("--shard", default=None, help="N/M — verify only candidates where index %% M == N (%%)")
     ap.add_argument("--dry-run", action="store_true")
     a = ap.parse_args()
@@ -212,9 +227,9 @@ def main():
     conn.execute("PRAGMA busy_timeout=300000")
     conn.row_factory = sqlite3.Row
     if a.scan:
-        scan(conn, a.dry_run)
+        scan(conn, a.dry_run, a.out)
     if a.verify is not None or (not a.scan and CAND.exists()):
-        verify(conn, a.verify, a.dry_run, a.shard)
+        verify(conn, a.verify, a.dry_run, a.shard, src=a.out)
 
 
 if __name__ == "__main__":
