@@ -132,7 +132,38 @@ def scan(conn, dry: bool) -> int:
     return len(hits)
 
 
-def verify(conn, limit: int | None, dry: bool, shard: str | None = None) -> None:
+def _check(c: dict, path: str = "") -> tuple[dict, int, int, str]:
+    """Fetch one candidate and decide whether the page is that organisation's. No DB access."""
+    name_key = key_of(c["name"])
+    toks = [t for t in re.split(r"[^a-z0-9]+", (c["name"] or "").lower()) if len(t) > 3]
+    distinct = [t for t in toks if t not in GENERIC_WORD]
+    site = "https://" + c["domain"]
+    status, matched = 0, 0
+    body = ""
+    try:
+        body = fetch(site + path, domain="org_domains", timeout=12).decode("utf-8", "replace")
+        status = 200
+    except Exception:
+        return c, 0, 0, ""
+    low = re.sub(r"[^a-z0-9 ]", " ", body[:500_000].lower())
+    flat = low.replace(" ", "")
+    city = (c.get("city") or "").lower().strip()
+    st = (c.get("state") or "").lower().strip()
+    city_hit = bool(city) and city in low
+    state_hit = bool(st) and re.search(r"\b" + re.escape(st) + r"\b", low) is not None
+    all_distinct = bool(distinct) and all(t in low for t in distinct)
+    if not distinct:
+        matched = 0
+    elif name_key and name_key in flat and (city_hit or not city):
+        matched = 1
+    elif all_distinct and city_hit:
+        matched = 1
+    elif all_distinct and len(distinct) >= 2 and state_hit:
+        matched = 1
+    return c, status, matched, (site + path if matched else "")
+
+
+def verify(conn, limit: int | None, dry: bool, shard: str | None = None, workers: int = 6) -> None:
     cands = json.loads(CAND.read_text())
     if shard:
         n, m = (int(x) for x in shard.split("/"))
@@ -145,60 +176,35 @@ def verify(conn, limit: int | None, dry: bool, shard: str | None = None) -> None
     cands = [c for c in cands if c["org_id"] not in seen]
     if limit:
         cands = cands[:limit]
-    print(f"to verify: {len(cands):,}")
+    print(f"to verify: {len(cands):,} with {workers} fetch workers, one writer")
     ok = 0
-    for i, c in enumerate(cands, 1):
-        name_key = key_of(c["name"])
-        toks = [t for t in re.split(r"[^a-z0-9]+", (c["name"] or "").lower()) if len(t) > 3]
-        distinct = [t for t in toks if t not in GENERIC_WORD]
-        site = "https://" + c["domain"]
-        status, matched, page = 0, 0, ""
-        for path in ("", ):
-            try:
-                body = fetch(site + path, domain="org_domains", timeout=12).decode("utf-8", "replace")
-                status = 200
-            except Exception:
-                continue
-            low = re.sub(r"[^a-z0-9 ]", " ", body[:500_000].lower())
-            flat = low.replace(" ", "")
-            city = (c.get("city") or "").lower().strip()
-            st = (c.get("state") or "").lower().strip()
-            city_hit = bool(city) and city in low
-            state_hit = bool(st) and re.search(r"\b" + re.escape(st) + r"\b", low) is not None
-            all_distinct = bool(distinct) and all(t in low for t in distinct)
-            if not distinct:
-                matched = 0                      # nothing distinctive to confirm against
-            elif name_key and name_key in flat and (city_hit or not city):
-                matched = 1                      # the whole name, unspaced, on the page
-            elif all_distinct and city_hit:
-                matched = 1                      # every distinctive word plus the city
-            elif all_distinct and len(distinct) >= 2 and state_hit:
-                matched = 1                      # two distinctive words plus the state
-            else:
-                matched = 0
-            if matched:
-                page = site + path
-            break
-        if matched and not dry:
-            conn.execute("UPDATE org SET website=?, updated_at=? WHERE id=?", (site, now(), c["org_id"]))
-            ok += 1
-        if not dry:
-            conn.execute("INSERT OR REPLACE INTO org_domain_mine VALUES(?,?,?,?,?,?)",
-                         (c["org_id"], c["domain"], status, matched, page, now()))
-            if i % 25 == 0:
-                conn.commit()
-                print(f"  [{i}/{len(cands)}] verified={ok}", flush=True)
-        time.sleep(1)
+    from concurrent.futures import ThreadPoolExecutor
+    done = 0
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        for c, status, matched, page in pool.map(lambda x: _check(x), cands):
+            done += 1
+            if matched and not dry:
+                conn.execute("UPDATE org SET website=?, updated_at=? WHERE id=?",
+                             ("https://" + c["domain"], now(), c["org_id"]))
+                ok += 1
+            if not dry:
+                conn.execute("INSERT OR REPLACE INTO org_domain_mine VALUES(?,?,?,?,?,?)",
+                             (c["org_id"], c["domain"], status, matched, page, now()))
+                if done % 25 == 0:
+                    conn.commit()
+                    print(f"  [{done}/{len(cands)}] verified={ok}", flush=True)
     if not dry:
         conn.commit()
     total = conn.execute("SELECT COUNT(*) FROM org WHERE website IS NOT NULL").fetchone()[0]
     print(json.dumps({"candidates": len(cands), "written": ok, "websites_total_now": total}))
+    return
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--scan", action="store_true")
-    ap.add_argument("--verify", type=int, default=None)
+    ap.add_argument("--verify", type=int, nargs="?", const=0, default=None,
+                    help="verify candidates (optionally cap the count)")
     ap.add_argument("--shard", default=None, help="N/M — verify only candidates where index %% M == N (%%)")
     ap.add_argument("--dry-run", action="store_true")
     a = ap.parse_args()
