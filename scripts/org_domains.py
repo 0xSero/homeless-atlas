@@ -80,6 +80,49 @@ def label_of(host_rev: str) -> str:
     return re.sub(r"[^a-z0-9]", "", parts[-1]) if parts else ""
 
 
+def scan3(conn, dry: bool, out_path: str | None) -> int:
+    """Any 9-letter run of a distinctive name found anywhere in the domain label."""
+    rows = conn.execute("SELECT id, name, city, state FROM org WHERE website IS NULL AND name IS NOT NULL").fetchall()
+    grams: dict[str, list] = {}
+    for r in rows:
+        k = key_of(r["name"])
+        if len(k) < 11 or k in GENERIC:
+            continue
+        for i in range(len(k) - 8):
+            grams.setdefault(k[i:i + 9], []).append((k, (r["id"], r["name"], r["city"], r["state"])))
+    print(f"9-gram index: {len(grams):,} runs from distinctive names", flush=True)
+    hits: dict[int, dict] = {}
+    n = 0
+    with gzip.open(RANKS, "rt", errors="replace") as fh:
+        for line in fh:
+            if line.startswith("#"):
+                continue
+            n += 1
+            parts = line.rstrip("\n").split("\t")
+            if len(parts) < 5:
+                continue
+            host_rev = parts[4]
+            if any(b in host_rev for b in BLOCK):
+                continue
+            lab = label_of(host_rev)
+            if len(lab) < 11:
+                continue
+            for i in range(len(lab) - 8):
+                for k, v in grams.get(lab[i:i + 9], ()):
+                    oid = v[0]
+                    if oid in hits or abs(len(k) - len(lab)) > 12:
+                        continue
+                    hits[oid] = {"org_id": v[0], "name": v[1], "city": v[2], "state": v[3],
+                                 "domain": ".".join(reversed(host_rev.split("."))), "rank": n}
+            if n % 20_000_000 == 0:
+                print(f"  scanned {n:,} domains, {len(hits)} candidates", flush=True)
+    print(f"scanned {n:,} domains -> {len(hits):,} candidates")
+    if not dry:
+        target = Path(out_path) if out_path else CAND2
+        target.write_text(json.dumps(sorted(hits.values(), key=lambda h: h["rank"]), indent=0))
+    return len(hits)
+
+
 def scan(conn, dry: bool, out_path: str | None = None) -> int:
     rows = conn.execute("SELECT id, name, city, state FROM org WHERE website IS NULL AND name IS NOT NULL").fetchall()
     want: dict[str, list] = {}
@@ -217,6 +260,8 @@ def verify(conn, limit: int | None, dry: bool, shard: str | None = None, workers
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--scan", action="store_true")
+    ap.add_argument("--pass3", action="store_true",
+                    help="third pass: match any 9-letter run of the name inside the domain label")
     ap.add_argument("--verify", type=int, nargs="?", const=0, default=None,
                     help="verify candidates (optionally cap the count)")
     ap.add_argument("--out", default=None, help="candidate file to read/write")
@@ -226,7 +271,9 @@ def main():
     conn = sqlite3.connect(DB, timeout=300)
     conn.execute("PRAGMA busy_timeout=300000")
     conn.row_factory = sqlite3.Row
-    if a.scan:
+    if a.pass3:
+        scan3(conn, a.dry_run, a.out)
+    elif a.scan:
         scan(conn, a.dry_run, a.out)
     if a.verify is not None or (not a.scan and CAND.exists()):
         verify(conn, a.verify, a.dry_run, a.shard, src=a.out)

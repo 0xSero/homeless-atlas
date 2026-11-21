@@ -538,3 +538,16 @@ the page, *and* the state (abbreviation or full name).
 
 Websites **3,937 → 4,275**; contact addresses mined from those same cached pages took emails to
 **2,382**. Housing authorities yield badly (9%) because the small ones have no site at all.
+
+### Third pass: any 9-letter run of the name, anywhere in the domain
+
+Passes 1 and 2 only matched a name at the start or end of the domain label. Pass 3 indexed every
+9-letter run of each distinctive name (an organisation called "Homes for Hope" is findable inside
+`siouxlandhomesforhope`). Candidates exploded to 16,590 — most of them nonsense, "Strategic Research
+Group" matching `researchgate.net` — so the result rests entirely on the page check: 7,694 candidates
+fetched, **134 written (1.7%)**, websites **4,275 → 4,435**.
+
+The tail is now exhausted: 1.7% acceptance means the remaining 18,000 organisations without a website
+are mostly organisations with no site at all, or whose domain shares no run of nine letters with their
+name. Further passes would cost hours for a handful of rows. **4,435 of 5,000 (89%)**, and the honest
+unblock for the rest is SAM.gov's `entityURL`, keyed by UEI rather than guessed from a name.
