@@ -729,8 +729,8 @@ def page_index(d, manifest_total):
     <div class="card"><h3>{num(d['meta']['counts']['source'])}</h3><div class="m">registered sources</div></div>
   </div>
 </div>
-<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+<script src="/assets/maplibre-gl.js"></script>
+<link href="/assets/maplibre-gl.css" rel="stylesheet">
 <script>
 fetch('/data/map-states.geojson').then(r=>r.json()).then(gj=>{{
   var m=atlasMap.base('map',{{zoom:3.0}});
@@ -773,8 +773,8 @@ def page_map(d, manifest_total):
     <span class="dim">Data: HUD PIT/AHAR, Census, Wikidata. Click a feature.</span>
   </div>
 </div>
-<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+<script src="/assets/maplibre-gl.js"></script>
+<link href="/assets/maplibre-gl.css" rel="stylesheet">
 <script>
 var m=atlasMap.base('map',{zoom:3.2});
 window.__atlasMap=m;
@@ -1018,8 +1018,8 @@ def page_facilities(d, manifest_total):
   <h2>All institutions</h2>
   {table([("Institution",""),("Kind",""),("Status",""),("City",""),("State",""),("Beds","r"),("Opened","r"),("Closed","r")], rows)}
 </div>
-<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+<script src="/assets/maplibre-gl.js"></script>
+<link href="/assets/maplibre-gl.css" rel="stylesheet">
 <script>
 var m=atlasMap.base('map',{{zoom:3.1}});
 m.on('load',function(){{
@@ -2077,6 +2077,8 @@ def main():
     (SITE / "assets").mkdir(exist_ok=True)
     for f in ("atlas.css", "app.js"):
         shutil.copy(SRC / f, SITE / "assets" / f)
+    for f in ("maplibre-gl.js", "maplibre-gl.css"):   # vendored, so the map has no CDN dependency
+        shutil.copy(SRC / "vendor" / f, SITE / "assets" / f)
 
     PERSON_OK = {person_slug(p) for p in d["people_top"][:PERSON_PAGE_MAX]}
     ORG_URL = {o["id"]: f"/org/{o['id']}-{slug(o['name'])}.html" for o in d["top_orgs"][:ORG_PAGE_MAX]}

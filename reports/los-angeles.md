@@ -36,101 +36,148 @@ Between 2007 and 2025 the count moved from 47,862 to 67,777 (+41.6%). A change i
 
 ## 2. Where the federal money went
 
-Organisations addressed in these cities hold **0 mapped federal homelessness awards worth $0** across the 8 programmes this archive tracks (Continuum of Care, ESG, Supportive Housing, Shelter Plus Care, VA SSVF and Grant-and-Per-Diem, HVRP, YHDP). Awards are matched on the recipient organisation's own address, because the place-of-performance field is only partly populated.
+Organisations addressed in these cities hold **400 mapped federal homelessness awards worth $1.67B** across the 8 programmes this archive tracks (Continuum of Care, ESG, Supportive Housing, Shelter Plus Care, VA SSVF and Grant-and-Per-Diem, HVRP, YHDP). Awards are matched on the recipient organisation's own address, because the place-of-performance field is only partly populated.
+
+| Programme | Awards | Obligated | Source |
+|---|---|---|---|
+| Emergency Solutions Grant Program | 22 | $283.36M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| Continuum of Care Program | 186 | $628.49M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| VA Supportive Services for Veteran Families Program | 89 | $363.90M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| VA Homeless Providers Grant and Per Diem Program | 60 | $291.39M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| Shelter Plus Care | 39 | $89.81M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| Youth Homelessness Demonstration Program | 3 | $13.31M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| Homeless Veterans’ Reintegration Program | 1 | $1.50M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
 
 | Recipient | Awards | Obligated | Source |
 |---|---|---|---|
+| HOUSING AUTHORITY OF THE CITY OF LOS ANGELES | 126 | $423.13M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| THE WORKFORCE INVESTMENT BOARD OF THE CITY OF LOS ANGELES | 13 | $249.20M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| LOS ANGELES HOMELESS SERVICES AUTHORITY | 71 | $225.83M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| UNITED STATES VETERANS INITIATIVE | 35 | $181.02M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| VOLUNTEERS OF AMERICA OF LOS ANGELES | 33 | $140.87M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| THE SALVATION ARMY | 27 | $116.17M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| PATH | 16 | $65.66M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| MENTAL HEALTH AMERICA OF LOS ANGELES | 14 | $62.61M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| CITY OF SANTA MONICA | 22 | $60.24M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| NEW DIRECTIONS, INC. | 8 | $38.57M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| CITY OF LOS ANGELES | 5 | $20.23M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| STEP UP ON SECOND STREET, INC. | 7 | $19.14M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| SINGLE ROOM OCCUPANCY HOUSING CORP | 5 | $14.61M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| VILLAGE FOR VETS | 5 | $14.30M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| JVS SOCAL | 4 | $12.91M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| WEINGART CENTER ASSOCIATION | 2 | $8.04M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| LOS ANGELES, CITY OF | 2 | $6.33M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| CITY OF PASADENA | 2 | $5.48M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| CITY OF GLENDALE | 1 | $3.62M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| SAFE REFUGE | 1 | $2.08M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| NEW LIFE SOCIAL SERVICES OF ATLANTA CORP | 1 | $1.71M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
 
 ## 3. The organisations themselves
 
-The 70 largest organisations addressed in these cities reported **$178.70M** of revenue on their latest Form 990 [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0). Revenue is self-reported and the fiscal years differ between filers, so the figures are not a single-year total.
+The 70 largest organisations addressed in these cities reported **$659.44M** of revenue on their latest Form 990 [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0). Revenue is self-reported and the fiscal years differ between filers, so the figures are not a single-year total.
 
 | Organisation | City | Revenue (990) | Federal $ | Awards | Site | Source |
 |---|---|---|---|---|---|---|
 | People Assisting The Homeless | Los Angeles | $175.14M | not published | 0 | [site](https://www.epath.org) | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
+| THE PEOPLE CONCERN | SANTA MONICA | $117.22M | $7.05M | 29 | [site](https://www.thepeopleconcern.org) | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| WEINGART CENTER ASSOCIATION | LOS ANGELES | $89.67M | $13.85M | 24 | [site](https://www.weingart.org) | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| UNION RESCUE MISSION | LOS ANGELES | $68.44M | not published | 0 | [site](http://www.urm.org/) | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/951709293) |
+| UNION STATION HOMELESS SERVICES | PASADENA | $46.76M | $143.45K | 1 | [site](http://www.unionstationhs.org/) | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| DEEP GREEN HOUSING AND COMMUNITY DEVELOPMENT | LOS ANGELES | $36.28M | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/954313200) |
+| HOMELESS HEALTH CARE LOS ANGELES | LOS ANGELES | $27.06M | $2.02M | 4 | [site](https://www.hhcla.org) | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| LOS ANGELES MISSION INC | LOS ANGELES | $19.79M | not published | 0 | [site](http://losangelesmission.org) | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/953134049) |
+| MIDNIGHT MISSION | LOS ANGELES | $15.15M | not published | 0 | [site](http://www.midnightmission.org) | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/951691293) |
+| SHELTER PARTNERSHIP INC | LOS ANGELES | $14.11M | not published | 0 | [site](http://www.shelterpartnership.org) | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/953976214) |
+| ASCENCIA | GLENDALE | $6.02M | $0 | 1 | [site](https://www.ascenciaca.org) | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| CENTER FOR THE PACIFIC-ASIAN FAMILY, INC. | LOS ANGELES | $5.73M | $3.33M | 6 | [site](https://www.cpaf.ngo) | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| A STEP TO FREEDOM | LOS ANGELES | $5.28M | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/954704879) |
+| SAFE PARKING LA | LOS ANGELES | $4.55M | not published | 0 | [site](https://safeparkingla.org) | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/873148967) |
+| HOUSING ON MERIT | LOS ANGELES | $3.56M | not published | 0 | [site](https://housingonmerit.org) | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/452991692) |
+| ABUNDANT BLESSINGS INC | LOS ANGELES | $3.18M | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/320595986) |
+| ALEXANDRIA HOUSE | LOS ANGELES | $2.44M | not published | 0 | [site](https://www.alexandriahouse.org) | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/954809755) |
+| BRYANT TEMPLE AME | LOS ANGELES | $2.06M | not published | 0 | [site](https://www.btame-cdc.org) | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/814792341) |
+| THURSDAYS CHILD | LOS ANGELES | $1.77M | not published | 0 | [site](https://www.thursdayschildofli.org) | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/113068809) |
 | Homeless Not Toothless | Los Angeles | $1.07M | not published | 0 | [site](https://www.homelessnottoothless.org) | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/200615767) |
 | Motorcycle Riders For Homeless Parolees | Los Angeles | $986.07K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/010946864) |
 | Selah Neighborhood Homeless Coalition | Los Angeles | $975.96K | not published | 0 | [site](https://www.selahnhc.org) | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/832538392) |
+| AMPLIFI DBA IMAGINE LOS ANGELES INC AND IMAGINE LA | LOS ANGELES | $954.42K | not published | 0 | [site](https://www.amplifi.org) | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/204637089) |
+| DC DISCIPLESHIP INC | LOS ANGELES | $920.86K | not published | 0 | [site](https://www.dreamcenter.org) | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/542110694) |
+| WILLING 2 MOVE FORWARD | LONG BEACH | $859.14K | not published | 0 | [site](https://www.willing2moveforward.org) | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/811644616) |
+| LONG BEACH RESCUE MISSION FOUNDATION | LONG BEACH | $811.97K | not published | 0 | [site](https://lbrm.org) | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/050525157) |
+| HAMPTON SUPPORTIVE HOUSING INC | LONG BEACH | $641.49K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/311663924) |
+| THE SKID ROW DEVELOPMENT CORPORATION | LOS ANGELES | $582.63K | $2.04M | 2 | [site](https://www.srdcla.org) | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| WORLD HARVEST CHARITIES & FAMILY SERVICES | LOS ANGELES | $574.54K | not published | 0 | [site](https://www.worldharvestla.org) | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/392064653) |
+| UNSEEN FACES FOUNDATION INC | LOS ANGELES | $537.19K | not published | 0 | [site](https://www.unseenfacesfdn.org) | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/833605201) |
+| SHELTER HOPE ENTERPRISES INC | LOS ANGELES | $503.62K | not published | 0 | [site](https://www.shelterhopepetshop.org) | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/462376346) |
+| LAVELLE YOUTH HOMES | LOS ANGELES | $479.47K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/912018634) |
+| INTEGRATED RECOVERY NETWORK | LOS ANGELES | $397.97K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/273493736) |
+| SANTA MONICA NEW HOPE COURTYARD APARTMENTS | GLENDALE | $379.45K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/954479136) |
+| REUNIFICATION TRANSITIONAL HOUSING INC | LOS ANGELES | $362.56K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/463502196) |
+| HOLMANS FAMILY ADULT RESIDENTIAL CARE | LONG BEACH | $300.00K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/455294488) |
+| RESIDENCY | LOS ANGELES | $293.43K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/800554997) |
+| WATER DROP | LOS ANGELES | $286.49K | not published | 0 | [site](https://www.waterdropla.org) | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/852327993) |
+| PATHWAYS HOUSING FIRST INSTITUTE | SANTA MONICA | $286.05K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/825337449) |
+| URBAN HEALTH INC | PASADENA | $271.50K | not published | 0 | [site](https://www.urbanhealth.org) | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/301222750) |
+| CARTER HOUSE INC | LOS ANGELES | $245.89K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/954294433) |
+| NEW IMAGE SHELTER | LONG BEACH | $220.46K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/820708106) |
+| DEYAMPERT HOUSE CORPORATION | LOS ANGELES | $209.54K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/861718854) |
+| WOULD-WORKS INC | LOS ANGELES | $209.06K | not published | 0 | [site](https://www.wouldworks.com) | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/811484179) |
+| FRIENDZ INC | LOS ANGELES | $174.73K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/834012197) |
+| A MEANINGFUL GOAL HOUSING SHELTER INC | PASADENA | $171.68K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/460534390) |
 | Homeless No More Inc | Los Angeles | $166.81K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/954660291) |
+| NEW IMAGE EMERGENCY SHELTER FOR THE HOMELESS, INC. | LONG BEACH | $159.42K | $71.72K | 1 | — | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| FRIENDS HELPING FRIENDS SOBERTRANSITIONAL LIVING INC | LOS ANGELES | $156.07K | not published | 0 | [site](https://www.fhfla.org) | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/205003506) |
+| B M & B ASSOCIATES | LOS ANGELES | $120.77K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/830371094) |
+| TREE HOUSE TRANSITIONAL HOUSING INC | LOS ANGELES | $105.26K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/473813031) |
+| VETERAN SOCIAL SERVICES INC | LOS ANGELES | $101.17K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/832172065) |
+| NEW BEGINNINGS CHRISTIAN DISCIPLESHIP | LOS ANGELES | $88.15K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/954800334) |
 | Cover The Homeless Ministry | Los Angeles | $79.06K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/912094255) |
 | South Los Angeles Homeless Tay And Foster Care Collaborati | Los Angeles | $75.00K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/464430310) |
 | Ashlees Homeless Fund | Long Beach | $61.13K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/843677250) |
+| HOUSE OF POP SQUALLY | LONG BEACH | $52.40K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/863146997) |
 | Westla Homeless | Los Angeles | $52.27K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/850908840) |
+| STEP BY STEP INDEPENDENT AND SOBER LIVING | LOS ANGELES | $49.20K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/822969543) |
 | Us Homeless Vets Inc | Los Angeles | $48.36K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/831600409) |
+| HELP ME CARE AND BOARD | LOS ANGELES | $46.17K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/473919853) |
+| NEIGHBORHOOD IN DEVELOPMENT | LOS ANGELES | $35.62K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/510513322) |
+| AISHA ACADEMY | LOS ANGELES | $31.06K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/371762784) |
 | Healing & Hope 4 Homeless | Los Angeles | $26.41K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/412255955) |
+| I LOVE YOU COMPANY | LOS ANGELES | $17.65K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/842956380) |
+| NEW LEASE ON LIFE TRANSITIONAL SHELTER | LOS ANGELES | $11.90K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/300254314) |
+| AZUSA REFUGE FOUNDATION INC | LOS ANGELES | $7.81K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/202994866) |
+| GIVING BACK FOR BATYA | LOS ANGELES | $7.38K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/882627172) |
 | Flaunt Homeless Foundation | Los Angeles | $7.33K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/833778230) |
 | Homeless Shelter Workshop Inc | Los Angeles | $6.12K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/331146764) |
-| Homeless Jesus | Los Angeles | $4.62K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/862947090) |
-| Im Still Standing Inc | Los Angeles | $4.03K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/134334683) |
-| Emergency Intervention 4 Our Homeless Veterans Of America | Los Angeles | $500 | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/842065462) |
-| Motorcycle Riders Homeless Services | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Dare To Care For The Homeless | Long Beach | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Cyberworld International Homeless Foundation | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| From Hungry And Homeless To Hope Inc | Long Beach | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Homeless Opportunities For Minorities To Excel | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Homeless Advocates Helping Hands | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Our Fallen Homeless Heroes California | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Homeless Logic | Long Beach | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Homeless Solutions Inc | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Ccam The New Beginnings Homeless Center | Long Beach | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Homies 4 Da Homeless | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Justiceville Homeless Usa | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Long Beach Area Coalition For The Homeless | Long Beach | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Sister Jackie Feeding The Homeless Incorporated | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Good Faith Homeless Shelter | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Homeless Action Of Brentwood | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Melanin Magic Homeless Initiative | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| No More Homeless Vets | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Patricia Franklin Homeless Outreach | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| I Love Homeless La Foundation | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Open Hands Homeless Assistance Ministry | Glendale | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| From Homeless To Home Living Transitional Living | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Feed The Homeless Initiative For The People By Rayvon Will | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Rossmore Homeless Housing Plaza And State Pre-school After | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| End Homelessness In La | Los Angeles | $0 | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/813511696) |
-| Black Ecumenical Congress On Homelessness | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Experts United For Homelessness And Housing Solutions | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Hannahs Homes Inc | Long Beach | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Gods Pride Shelter International | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Angel Band Shelter Program Inc | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Shipps Transitional Housing Inc | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Safety Grounds Transitional Housing Program | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| J&g Community Outreach Transitional Housing | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Lindras Transitional Housing A Non Profit Organization | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Cw Housing Supportive Services Inc | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Safe Passage With Fame Family Supportive Housing | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Central Coast Veterans Safe Haven | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Aunt Sara S Safe Haven Inc | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
 
 **Who runs them.** Named officers and their disclosed compensation, as filed. Professional roles only — this archive holds no personal contact details.
 
 | Person | Title | Organisation | Compensation | Year | Source |
 |---|---|---|---|---|---|
+| Kevin Murray | President Ceo | WEINGART CENTER ASSOCIATION | 481,271 | 2025 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/956054617) |
+| Senator Kevin Murray Retired | President & Ceo | WEINGART CENTER ASSOCIATION | 408,026 | 2023 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/956054617) |
+| Kevin Murray | President Ceo | WEINGART CENTER ASSOCIATION | 394,237 | 2024 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/956054617) |
+| Andrew Bales | Chief Executive Officer (retired) | UNION RESCUE MISSION | 349,336 | 2024 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/951709293) |
+| Andrew Bales | Chief Executive Officer | UNION RESCUE MISSION | 349,336 | 2023 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/951709293) |
+| Tonja Boykin | Chief Operating Officer | WEINGART CENTER ASSOCIATION | 328,107 | 2025 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/956054617) |
 | Jennifer Hark Dietz | Chief Executive Officer | People Assisting The Homeless | 311,188 | 2025 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/953950196) |
 | Jennifer Hark Dietz | Chief Executive Officer | People Assisting The Homeless | 308,143 | 2024 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/953950196) |
+| Sara Choe Hyoun | Medical Director | THE PEOPLE CONCERN | 301,497 | 2025 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/956143865) |
+| Sara Choe Hyoun | Medical Director | THE PEOPLE CONCERN | 300,680 | 2024 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/956143865) |
 | Joel Roberts | Chief Executive Officer | People Assisting The Homeless | 298,601 | 2022 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/953950196) |
 | Jennifer Hark Dietz | Chief Executive Officer | People Assisting The Homeless | 297,156 | 2023 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/953950196) |
+| John J Maceri | Chief Executive Officer | THE PEOPLE CONCERN | 293,721 | 2024 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/956143865) |
+| Jaymie Beckett | Chief Executive Officer | HOUSING ON MERIT | 291,923 | 2024 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/452991692) |
+| John J Maceri | Chief Executive Officer | THE PEOPLE CONCERN | 290,677 | 2025 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/956143865) |
+| Sara Choe Hyoun | Medical Director | THE PEOPLE CONCERN | 287,580 | 2023 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/956143865) |
 | Joel Roberts | Chief Executive Officer | People Assisting The Homeless | 281,574 | 2021 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/953950196) |
+| Tonja Boykin | Chief Operating Officer | WEINGART CENTER ASSOCIATION | 271,813 | 2024 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/956054617) |
+| Brian Benjamin | Psychiatrist | THE PEOPLE CONCERN | 270,359 | 2025 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/956143865) |
 | Joel Roberts | Chief Executive Officer | People Assisting The Homeless | 265,951 | 2020 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/953950196) |
-| Jennifer Hark-dietz | Deputy Ceo | People Assisting The Homeless | 249,958 | 2022 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/953950196) |
-| Jennifer Hark-dietz | Deputy Ceo | People Assisting The Homeless | 232,896 | 2021 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/953950196) |
-| Tescia Uribe | Chief Program Officer | People Assisting The Homeless | 228,983 | 2025 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/953950196) |
-| Sarah Kolish | Chief Operating Officer | People Assisting The Homeless | 216,605 | 2025 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/953950196) |
-| Tescia Uribe | Chief Program Officer | People Assisting The Homeless | 216,000 | 2024 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/953950196) |
-| Jennifer Hark-dietz | Deputy Ceo | People Assisting The Homeless | 214,664 | 2020 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/953950196) |
-| Sarah Kolish | Chief Operating Officer | People Assisting The Homeless | 214,431 | 2024 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/953950196) |
-| Katherine Tell | Chief External Affairs Off | People Assisting The Homeless | 213,897 | 2025 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/953950196) |
-| Jonathan Castillo | Chief Regional Officer | People Assisting The Homeless | 213,729 | 2025 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/953950196) |
-| Katherine Tell | Chief External Affairs Officer | People Assisting The Homeless | 208,534 | 2024 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/953950196) |
-| Sarah Kolish | Chief Operating Officer | People Assisting The Homeless | 207,866 | 2023 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/953950196) |
-| Claudia Garcia Godinez | Director Of Programs Lcsw | People Assisting The Homeless | 205,521 | 2024 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/953950196) |
-| Sarah Kolish | Chief Administrative Offic | People Assisting The Homeless | 199,670 | 2022 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/953950196) |
-| Tescia Uribe | Chief Program Officer | People Assisting The Homeless | 198,459 | 2023 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/953950196) |
-| Lakeishia Childers | Chief Compliance And Adminstrative Off | People Assisting The Homeless | 198,457 | 2025 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/953950196) |
-| Jonathan Castillo | Chief Regional Officer | People Assisting The Homeless | 189,887 | 2024 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/953950196) |
-| Tescia Uribe | Chief Program Officer | People Assisting The Homeless | 184,537 | 2022 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/953950196) |
-| Sarah Kolish | Chief Administrative Offic | People Assisting The Homeless | 182,888 | 2021 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/953950196) |
-| Jonathan Castillo | Chief Regional Officer | People Assisting The Homeless | 182,381 | 2023 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/953950196) |
+| David L Prentice | President & Ceo | MIDNIGHT MISSION | 265,172 | 2025 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/951691293) |
+| John J Maceri | Chief Executive Officer | THE PEOPLE CONCERN | 261,872 | 2023 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/956143865) |
+| Anne Miskey | Chief Executive Officer | Union Station Homeless Services | 261,273 | 2024 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/953958741) |
+| Katherine Peters | Chief Operating Officer | THE PEOPLE CONCERN | 256,409 | 2025 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/956143865) |
+| Tonja Boykin | Coo | WEINGART CENTER ASSOCIATION | 250,660 | 2023 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/956054617) |
 
 ## 4. Institutions: psychiatric beds and jails
 
@@ -281,6 +328,8 @@ The 70 largest organisations addressed in these cities reported **$178.70M** of 
 
 ## 7. What it costs, per person †
 
+† Federal homelessness awards held by organisations addressed in these cities, divided by the 2025 point-in-time count: $1.67B ÷ 67,777 = **$24.67K per person counted homeless**. The numerator covers every year the awards are recorded against, so it is a cumulative figure, not annual spend — it is a scale comparison only, and no share of it can be attributed to the people counted on that one night.
+
 ## 8. What this brief cannot say
 
 - **No organisation is credited with an outcome.** HUD publishes System Performance Measures per Continuum of Care, never per provider, and HMIS records are confidential. Nothing in this archive links a provider to a housing placement.
@@ -288,4 +337,4 @@ The 70 largest organisations addressed in these cities reported **$178.70M** of 
 - **Counts are one night.** Unsheltered counts depend on method and weather; a fall is not proof of housing.
 - **State and city money is absent.** Only federal programmes are counted; in some places local money is larger.
 
-*68 distinct sources cited in this brief.*
+*117 distinct sources cited in this brief.*

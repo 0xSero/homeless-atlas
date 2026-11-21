@@ -47,7 +47,7 @@ METROS = {
         "state": "NY",
         "coc": "NY-600",
         "place": "NEW YORK",
-        "cities": ("New York", "New York City", "Brooklyn", "Bronx", "Queens", "Staten Island"),
+        "cities": ("New York", "New York City", "Brooklyn", "Bronx", "Queens", "Staten Island", "Manhattan", "Jamaica", "Long Island City", "Flushing", "Staten Island"),
         "blurb": "The largest sheltered system in the country, built on a right to shelter.",
         "context": [
             "New York City is legally obliged to shelter anyone who asks, under the Callahan v. Carey "
@@ -134,6 +134,9 @@ def w(s=""):
 
 
 def build(slug: str) -> dict:
+    # module-level accumulators must be reset per brief, or the second run appends to the first
+    L.clear()
+    SRC.clear()
     m = METROS[slug]
     coc, state = m["coc"], m["state"]
 
@@ -187,9 +190,9 @@ def build(slug: str) -> dict:
     # recipient-side attribution: awards held by organisations whose own address is in these cities
     city_awards = q(f"""SELECT a.*, o.name AS org_name FROM award a JOIN org o ON o.id=a.org_id
                         WHERE a.amount_obligated>0 AND a.program IN ({prog})
-                          AND o.state=? AND o.city IN ({marks})
+                          AND o.state=? AND lower(o.city) IN ({marks})
                         ORDER BY a.amount_obligated DESC LIMIT 400""",
-                    (*HOMELESS_PROGRAMS, state, *m["cities"]))
+                    (*HOMELESS_PROGRAMS, state, *[c.lower() for c in m["cities"]]))
     by_prog: dict[str, list] = {}
     for a in city_awards:
         by_prog.setdefault(a.get("program") or "unlabelled", []).append(a)
@@ -223,9 +226,9 @@ def build(slug: str) -> dict:
     w()
     orgs = q(f"""SELECT o.*, (SELECT SUM(amount_obligated) FROM award a WHERE a.org_id=o.id) amt,
                         (SELECT COUNT(*) FROM award a WHERE a.org_id=o.id) n_awards
-                 FROM org o WHERE o.state=? AND o.city IN ({marks})
+                 FROM org o WHERE o.state=? AND lower(o.city) IN ({marks})
                  ORDER BY COALESCE(o.revenue,0) DESC, COALESCE(amt,0) DESC LIMIT 70""",
-             (state, *m["cities"]))
+             (state, *[c.lower() for c in m["cities"]]))
     if orgs:
         rev = sum(o.get("revenue") or 0 for o in orgs if o.get("revenue"))
         w(f"The 70 largest organisations addressed in these cities reported **{money(rev)}** of revenue on "

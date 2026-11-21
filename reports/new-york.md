@@ -1,294 +1,3 @@
-# Los Angeles
-
-*Generated 2026-11-21 by `scripts/metro_report.py` from `data/atlas.db`. Every number below is followed by the public source it came from; a dagger (†) marks a value this project derived and the formula is always stated. Nothing here is hand-typed.*
-
-Los Angeles County has more people sleeping outside than any other local area in the country, and its homelessness system is split between a city department (LAHSA is the CoC lead) and county agencies that run health, mental-health and jail services.
-
-## 1. How many people, and in what condition
-
-The Los Angeles City & County CoC counted **67,777 people homeless** in 2025 [HUD](https://www.huduser.gov/portal/sites/default/files/xls/2007-2025-PIT-Counts-by-CoC.xlsb): 44,415 unsheltered and 23,362 in shelter. The same count recorded 27,561 people meeting the federal definition of chronic homelessness.
-
-Between 2007 and 2025 the count moved from 47,862 to 67,777 (+41.6%). A change in this series is not automatically a change on the street: CoCs change count methods, and HUD changes definitions between years.
-
-| Year | Total | Sheltered | Unsheltered | Chronic | Veterans | Source |
-|---|---|---|---|---|---|---|
-| 2007 | 47,862 | 11,442 | 36,420 | 19,031 | not published | [HUD](https://www.huduser.gov/portal/sites/default/files/xls/2007-2025-PIT-Counts-by-CoC.xlsb) |
-| 2008 | 47,862 | 11,442 | 36,420 | 19,031 | not published | [HUD](https://www.huduser.gov/portal/sites/default/files/xls/2007-2025-PIT-Counts-by-CoC.xlsb) |
-| 2009 | 33,243 | 14,050 | 19,193 | 7,661 | not published | [HUD](https://www.huduser.gov/portal/sites/default/files/xls/2007-2025-PIT-Counts-by-CoC.xlsb) |
-| 2010 | 33,243 | 14,050 | 19,193 | 7,661 | not published | [HUD](https://www.huduser.gov/portal/sites/default/files/xls/2007-2025-PIT-Counts-by-CoC.xlsb) |
-| 2011 | 34,622 | 16,882 | 17,740 | 9,640 | 6,281 | [HUD](https://www.huduser.gov/portal/sites/default/files/xls/2007-2025-PIT-Counts-by-CoC.xlsb) |
-| 2012 | 31,553 | 13,813 | 17,740 | 7,930 | 4,521 | [HUD](https://www.huduser.gov/portal/sites/default/files/xls/2007-2025-PIT-Counts-by-CoC.xlsb) |
-| 2013 | 35,524 | 12,934 | 22,590 | 8,702 | 4,007 | [HUD](https://www.huduser.gov/portal/sites/default/files/xls/2007-2025-PIT-Counts-by-CoC.xlsb) |
-| 2014 | 34,393 | 11,803 | 22,590 | 8,882 | 3,739 | [HUD](https://www.huduser.gov/portal/sites/default/files/xls/2007-2025-PIT-Counts-by-CoC.xlsb) |
-| 2015 | 41,174 | 12,226 | 28,948 | 14,173 | 4,016 | [HUD](https://www.huduser.gov/portal/sites/default/files/xls/2007-2025-PIT-Counts-by-CoC.xlsb) |
-| 2016 | 43,854 | 11,073 | 32,781 | 13,468 | 2,728 | [HUD](https://www.huduser.gov/portal/sites/default/files/xls/2007-2025-PIT-Counts-by-CoC.xlsb) |
-| 2017 | 52,442 | 13,972 | 38,470 | 16,249 | 4,440 | [HUD](https://www.huduser.gov/portal/sites/default/files/xls/2007-2025-PIT-Counts-by-CoC.xlsb) |
-| 2018 | 49,955 | 12,385 | 37,570 | 13,275 | 3,538 | [HUD](https://www.huduser.gov/portal/sites/default/files/xls/2007-2025-PIT-Counts-by-CoC.xlsb) |
-| 2019 | 56,257 | 13,786 | 42,471 | 15,538 | 3,538 | [HUD](https://www.huduser.gov/portal/sites/default/files/xls/2007-2025-PIT-Counts-by-CoC.xlsb) |
-| 2020 | 63,706 | 17,616 | 46,090 | 24,482 | 3,681 | [HUD](https://www.huduser.gov/portal/sites/default/files/xls/2007-2025-PIT-Counts-by-CoC.xlsb) |
-| 2021 | 17,225 | 17,225 | 0 | 4,215 | 665 | [HUD](https://www.huduser.gov/portal/sites/default/files/xls/2007-2025-PIT-Counts-by-CoC.xlsb) |
-| 2022 | 65,111 | 19,233 | 45,878 | 26,985 | 3,456 | [HUD](https://www.huduser.gov/portal/sites/default/files/xls/2007-2025-PIT-Counts-by-CoC.xlsb) |
-| 2023 | 71,320 | 19,013 | 52,307 | 31,991 | 3,874 | [HUD](https://www.huduser.gov/portal/sites/default/files/xls/2007-2025-PIT-Counts-by-CoC.xlsb) |
-| 2024 | 71,201 | 21,692 | 49,509 | 29,823 | 2,991 | [HUD](https://www.huduser.gov/portal/sites/default/files/xls/2007-2025-PIT-Counts-by-CoC.xlsb) |
-| 2025 | 67,777 | 23,362 | 44,415 | 27,561 | 3,050 | [HUD](https://www.huduser.gov/portal/sites/default/files/xls/2007-2025-PIT-Counts-by-CoC.xlsb) |
-
-*Blank cells are years or subpopulations HUD did not publish for this CoC. Nothing is interpolated.*
-
-## 2. Where the federal money went
-
-Organisations addressed in these cities hold **0 mapped federal homelessness awards worth $0** across the 8 programmes this archive tracks (Continuum of Care, ESG, Supportive Housing, Shelter Plus Care, VA SSVF and Grant-and-Per-Diem, HVRP, YHDP). Awards are matched on the recipient organisation's own address, because the place-of-performance field is only partly populated.
-
-| Recipient | Awards | Obligated | Source |
-|---|---|---|---|
-
-## 3. The organisations themselves
-
-The 70 largest organisations addressed in these cities reported **$178.70M** of revenue on their latest Form 990 [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0). Revenue is self-reported and the fiscal years differ between filers, so the figures are not a single-year total.
-
-| Organisation | City | Revenue (990) | Federal $ | Awards | Site | Source |
-|---|---|---|---|---|---|---|
-| People Assisting The Homeless | Los Angeles | $175.14M | not published | 0 | [site](https://www.epath.org) | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Homeless Not Toothless | Los Angeles | $1.07M | not published | 0 | [site](https://www.homelessnottoothless.org) | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/200615767) |
-| Motorcycle Riders For Homeless Parolees | Los Angeles | $986.07K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/010946864) |
-| Selah Neighborhood Homeless Coalition | Los Angeles | $975.96K | not published | 0 | [site](https://www.selahnhc.org) | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/832538392) |
-| Homeless No More Inc | Los Angeles | $166.81K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/954660291) |
-| Cover The Homeless Ministry | Los Angeles | $79.06K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/912094255) |
-| South Los Angeles Homeless Tay And Foster Care Collaborati | Los Angeles | $75.00K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/464430310) |
-| Ashlees Homeless Fund | Long Beach | $61.13K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/843677250) |
-| Westla Homeless | Los Angeles | $52.27K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/850908840) |
-| Us Homeless Vets Inc | Los Angeles | $48.36K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/831600409) |
-| Healing & Hope 4 Homeless | Los Angeles | $26.41K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/412255955) |
-| Flaunt Homeless Foundation | Los Angeles | $7.33K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/833778230) |
-| Homeless Shelter Workshop Inc | Los Angeles | $6.12K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/331146764) |
-| Homeless Jesus | Los Angeles | $4.62K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/862947090) |
-| Im Still Standing Inc | Los Angeles | $4.03K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/134334683) |
-| Emergency Intervention 4 Our Homeless Veterans Of America | Los Angeles | $500 | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/842065462) |
-| Motorcycle Riders Homeless Services | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Dare To Care For The Homeless | Long Beach | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Cyberworld International Homeless Foundation | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| From Hungry And Homeless To Hope Inc | Long Beach | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Homeless Opportunities For Minorities To Excel | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Homeless Advocates Helping Hands | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Our Fallen Homeless Heroes California | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Homeless Logic | Long Beach | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Homeless Solutions Inc | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Ccam The New Beginnings Homeless Center | Long Beach | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Homies 4 Da Homeless | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Justiceville Homeless Usa | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Long Beach Area Coalition For The Homeless | Long Beach | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Sister Jackie Feeding The Homeless Incorporated | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Good Faith Homeless Shelter | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Homeless Action Of Brentwood | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Melanin Magic Homeless Initiative | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| No More Homeless Vets | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Patricia Franklin Homeless Outreach | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| I Love Homeless La Foundation | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Open Hands Homeless Assistance Ministry | Glendale | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| From Homeless To Home Living Transitional Living | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Feed The Homeless Initiative For The People By Rayvon Will | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Rossmore Homeless Housing Plaza And State Pre-school After | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| End Homelessness In La | Los Angeles | $0 | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/813511696) |
-| Black Ecumenical Congress On Homelessness | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Experts United For Homelessness And Housing Solutions | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Hannahs Homes Inc | Long Beach | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Gods Pride Shelter International | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Angel Band Shelter Program Inc | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Shipps Transitional Housing Inc | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Safety Grounds Transitional Housing Program | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| J&g Community Outreach Transitional Housing | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Lindras Transitional Housing A Non Profit Organization | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Cw Housing Supportive Services Inc | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Safe Passage With Fame Family Supportive Housing | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Central Coast Veterans Safe Haven | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Aunt Sara S Safe Haven Inc | Los Angeles | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-
-**Who runs them.** Named officers and their disclosed compensation, as filed. Professional roles only — this archive holds no personal contact details.
-
-| Person | Title | Organisation | Compensation | Year | Source |
-|---|---|---|---|---|---|
-| Jennifer Hark Dietz | Chief Executive Officer | People Assisting The Homeless | 311,188 | 2025 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/953950196) |
-| Jennifer Hark Dietz | Chief Executive Officer | People Assisting The Homeless | 308,143 | 2024 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/953950196) |
-| Joel Roberts | Chief Executive Officer | People Assisting The Homeless | 298,601 | 2022 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/953950196) |
-| Jennifer Hark Dietz | Chief Executive Officer | People Assisting The Homeless | 297,156 | 2023 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/953950196) |
-| Joel Roberts | Chief Executive Officer | People Assisting The Homeless | 281,574 | 2021 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/953950196) |
-| Joel Roberts | Chief Executive Officer | People Assisting The Homeless | 265,951 | 2020 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/953950196) |
-| Jennifer Hark-dietz | Deputy Ceo | People Assisting The Homeless | 249,958 | 2022 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/953950196) |
-| Jennifer Hark-dietz | Deputy Ceo | People Assisting The Homeless | 232,896 | 2021 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/953950196) |
-| Tescia Uribe | Chief Program Officer | People Assisting The Homeless | 228,983 | 2025 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/953950196) |
-| Sarah Kolish | Chief Operating Officer | People Assisting The Homeless | 216,605 | 2025 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/953950196) |
-| Tescia Uribe | Chief Program Officer | People Assisting The Homeless | 216,000 | 2024 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/953950196) |
-| Jennifer Hark-dietz | Deputy Ceo | People Assisting The Homeless | 214,664 | 2020 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/953950196) |
-| Sarah Kolish | Chief Operating Officer | People Assisting The Homeless | 214,431 | 2024 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/953950196) |
-| Katherine Tell | Chief External Affairs Off | People Assisting The Homeless | 213,897 | 2025 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/953950196) |
-| Jonathan Castillo | Chief Regional Officer | People Assisting The Homeless | 213,729 | 2025 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/953950196) |
-| Katherine Tell | Chief External Affairs Officer | People Assisting The Homeless | 208,534 | 2024 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/953950196) |
-| Sarah Kolish | Chief Operating Officer | People Assisting The Homeless | 207,866 | 2023 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/953950196) |
-| Claudia Garcia Godinez | Director Of Programs Lcsw | People Assisting The Homeless | 205,521 | 2024 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/953950196) |
-| Sarah Kolish | Chief Administrative Offic | People Assisting The Homeless | 199,670 | 2022 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/953950196) |
-| Tescia Uribe | Chief Program Officer | People Assisting The Homeless | 198,459 | 2023 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/953950196) |
-| Lakeishia Childers | Chief Compliance And Adminstrative Off | People Assisting The Homeless | 198,457 | 2025 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/953950196) |
-| Jonathan Castillo | Chief Regional Officer | People Assisting The Homeless | 189,887 | 2024 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/953950196) |
-| Tescia Uribe | Chief Program Officer | People Assisting The Homeless | 184,537 | 2022 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/953950196) |
-| Sarah Kolish | Chief Administrative Offic | People Assisting The Homeless | 182,888 | 2021 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/953950196) |
-| Jonathan Castillo | Chief Regional Officer | People Assisting The Homeless | 182,381 | 2023 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/953950196) |
-
-## 4. Institutions: psychiatric beds and jails
-
-30 institutions in CA are recorded here, 1 of them closed. Bed counts are published by the facility's regulator, not derived.
-
-| Facility | Type | City | Status | Beds | Source |
-|---|---|---|---|---|---|
-| Men's Central Jail |  | Los Angeles | open | 5,276 | [Wikidata](https://query.wikidata.org/sparql) |
-| North County Correctional Facility |  | Castaic | open | 4,295 | [DHS Homeland Infrastructure Foundation-Level D](https://services.arcgis.com/XG15cJAlne2vxtgt/arcgis/rest/services/prison/FeatureServer/0) |
-| Santa Rita Jail |  | Dublin | open | 4,000 | [DHS Homeland Infrastructure Foundation-Level D](https://services.arcgis.com/XG15cJAlne2vxtgt/arcgis/rest/services/prison/FeatureServer/0) |
-| Sierra Conservation Center |  | Jamestown | open | 3,936 | [DHS Homeland Infrastructure Foundation-Level D](https://services.arcgis.com/XG15cJAlne2vxtgt/arcgis/rest/services/prison/FeatureServer/0) |
-| California Men's Colony |  | San Luis Obispo | open | 3,838 | [DHS Homeland Infrastructure Foundation-Level D](https://services.arcgis.com/XG15cJAlne2vxtgt/arcgis/rest/services/prison/FeatureServer/0) |
-| Theo Lacy Facility |  | Orange | open | 3,442 | [DHS Homeland Infrastructure Foundation-Level D](https://services.arcgis.com/XG15cJAlne2vxtgt/arcgis/rest/services/prison/FeatureServer/0) |
-| Ca Substance Abuse Treatment Facility |  | Corcoran | open | 3,424 | [DHS Homeland Infrastructure Foundation-Level D](https://services.arcgis.com/XG15cJAlne2vxtgt/arcgis/rest/services/prison/FeatureServer/0) |
-| West Valley Detention Center |  | Rancho Cucamonga | open | 3,347 | [DHS Homeland Infrastructure Foundation-Level D](https://services.arcgis.com/XG15cJAlne2vxtgt/arcgis/rest/services/prison/FeatureServer/0) |
-| Correctional Training Facility |  | Soledad | open | 3,312 | [DHS Homeland Infrastructure Foundation-Level D](https://services.arcgis.com/XG15cJAlne2vxtgt/arcgis/rest/services/prison/FeatureServer/0) |
-| Mule Creek State Prison |  | Ione | open | 3,284 | [DHS Homeland Infrastructure Foundation-Level D](https://services.arcgis.com/XG15cJAlne2vxtgt/arcgis/rest/services/prison/FeatureServer/0) |
-| California State Prison, Corcoran |  | Corcoran | open | 3,116 | [DHS Homeland Infrastructure Foundation-Level D](https://services.arcgis.com/XG15cJAlne2vxtgt/arcgis/rest/services/prison/FeatureServer/0) |
-| San Quentin State Prison |  | San Quentin | open | 3,082 | [DHS Homeland Infrastructure Foundation-Level D](https://services.arcgis.com/XG15cJAlne2vxtgt/arcgis/rest/services/prison/FeatureServer/0) |
-| Richard J. Donovan Correctional Facility |  |  | open | 2,992 | [Wikipedia](https://en.wikipedia.org/wiki/List_of_California_state_prisons) |
-| R J Donovan Correctional Facility |  | San Diego | open | 2,992 | [DHS Homeland Infrastructure Foundation-Level D](https://services.arcgis.com/XG15cJAlne2vxtgt/arcgis/rest/services/prison/FeatureServer/0) |
-| Wasco State Prison |  | Wasco | open | 2,984 | [DHS Homeland Infrastructure Foundation-Level D](https://services.arcgis.com/XG15cJAlne2vxtgt/arcgis/rest/services/prison/FeatureServer/0) |
-| California Institution for Men |  | Chino | open | 2,976 | [DHS Homeland Infrastructure Foundation-Level D](https://services.arcgis.com/XG15cJAlne2vxtgt/arcgis/rest/services/prison/FeatureServer/0) |
-| Northern California Women's Facility |  | Stockton | closed | 2,951 | [DHS Homeland Infrastructure Foundation-Level D](https://services.arcgis.com/XG15cJAlne2vxtgt/arcgis/rest/services/prison/FeatureServer/0) |
-| California Health Care Facility |  |  | open | 2,951 | [Wikipedia](https://en.wikipedia.org/wiki/List_of_California_state_prisons) |
-| Avenal State Prison |  | Avenal | open | 2,920 | [DHS Homeland Infrastructure Foundation-Level D](https://services.arcgis.com/XG15cJAlne2vxtgt/arcgis/rest/services/prison/FeatureServer/0) |
-| California Correctional Institution |  | Tehachapi | open | 2,783 | [DHS Homeland Infrastructure Foundation-Level D](https://services.arcgis.com/XG15cJAlne2vxtgt/arcgis/rest/services/prison/FeatureServer/0) |
-| North Kern State Prison |  | Delano | open | 2,694 | [DHS Homeland Infrastructure Foundation-Level D](https://services.arcgis.com/XG15cJAlne2vxtgt/arcgis/rest/services/prison/FeatureServer/0) |
-| California State Prison, Solano |  |  | open | 2,610 | [Wikipedia](https://en.wikipedia.org/wiki/List_of_California_state_prisons) |
-| Elmwood Correctional Complex |  | Milpitas | open | 2,600 | [DHS Homeland Infrastructure Foundation-Level D](https://services.arcgis.com/XG15cJAlne2vxtgt/arcgis/rest/services/prison/FeatureServer/0) |
-| California City Correctional Center |  | California City | partial | 2,560 | [DHS Homeland Infrastructure Foundation-Level D](https://services.arcgis.com/XG15cJAlne2vxtgt/arcgis/rest/services/prison/FeatureServer/0) |
-| California Rehabilitation Center |  | Norco | open | 2,491 | [DHS Homeland Infrastructure Foundation-Level D](https://services.arcgis.com/XG15cJAlne2vxtgt/arcgis/rest/services/prison/FeatureServer/0) |
-| Salinas Valley State Prison |  | Soledad | open | 2,452 | [DHS Homeland Infrastructure Foundation-Level D](https://services.arcgis.com/XG15cJAlne2vxtgt/arcgis/rest/services/prison/FeatureServer/0) |
-| Kern Valley State Prison |  | Delano | open | 2,448 | [DHS Homeland Infrastructure Foundation-Level D](https://services.arcgis.com/XG15cJAlne2vxtgt/arcgis/rest/services/prison/FeatureServer/0) |
-| Pelican Bay State Prison |  | Crescent City | open | 2,380 | [DHS Homeland Infrastructure Foundation-Level D](https://services.arcgis.com/XG15cJAlne2vxtgt/arcgis/rest/services/prison/FeatureServer/0) |
-| California Medical Facility |  | Vacaville | open | 2,361 | [DHS Homeland Infrastructure Foundation-Level D](https://services.arcgis.com/XG15cJAlne2vxtgt/arcgis/rest/services/prison/FeatureServer/0) |
-| High Desert State Prison |  | Susanville | open | 2,324 | [DHS Homeland Infrastructure Foundation-Level D](https://services.arcgis.com/XG15cJAlne2vxtgt/arcgis/rest/services/prison/FeatureServer/0) |
-
-## 5. The law
-
-| Instrument | Kind | Year | Source |
-|---|---|---|---|
-| Bill to repeal the Housing First mandate and criminalize sleeping outs |  | 2025 | [National Homelessness Law Center / Housing Not](https://housingnothandcuffs.org/wp-content/uploads/2025/06/Cicero-Homeless-Criminalization-Summary-May-2025.pdf) |
-| Housing First mandate in state law, with the 2025 repeal attempt defea |  | 2025 | [National Homelessness Law Center / Housing Not](https://housingnothandcuffs.org/wp-content/uploads/2025/06/Cicero-Homeless-Criminalization-Summary-May-2025.pdf) |
-| 2024-25 statewide legislation: Gloria Johnson Act-style anti-criminali |  | 2025 | [National Homelessness Law Center / Housing Not](https://housingnothandcuffs.org/wp-content/uploads/2025/06/Cicero-Homeless-Criminalization-Summary-May-2025.pdf) |
-| 2024-25 statewide legislation: non-Cicero statewide anti-homeless meas |  | 2025 | [National Homelessness Law Center / Housing Not](https://housingnothandcuffs.org/wp-content/uploads/2025/06/Cicero-Homeless-Criminalization-Summary-May-2025.pdf) |
-| Statewide restriction: Panhandling -- statewide |  | 2021 | [National Homelessness Law Center](https://homelesslaw.org/wp-content/uploads/2022/02/2021-HNH-State-Crim-Supplement.pdf) |
-| Statewide restriction: Camping in public -- statewide |  | 2021 | [National Homelessness Law Center](https://homelesslaw.org/wp-content/uploads/2022/02/2021-HNH-State-Crim-Supplement.pdf) |
-| Statewide restriction: Camping in public -- particular public places |  | 2021 | [National Homelessness Law Center](https://homelesslaw.org/wp-content/uploads/2022/02/2021-HNH-State-Crim-Supplement.pdf) |
-| Statewide restriction: Sitting / lying down in public -- particular pu |  | 2021 | [National Homelessness Law Center](https://homelesslaw.org/wp-content/uploads/2022/02/2021-HNH-State-Crim-Supplement.pdf) |
-| Statewide restriction: Loitering / loafing in particular public places |  | 2021 | [National Homelessness Law Center](https://homelesslaw.org/wp-content/uploads/2022/02/2021-HNH-State-Crim-Supplement.pdf) |
-| Statewide restriction: Standing in roadway (solicitation / pedestrian) |  | 2021 | [National Homelessness Law Center](https://homelesslaw.org/wp-content/uploads/2022/02/2021-HNH-State-Crim-Supplement.pdf) |
-| State fund supporting local housing trust funds |  | 2006 | [National Low Income Housing Coalition](https://nlihc.org/housing-trust-fund-project) |
-| Emergency evaluation / emergency detention statute |  |  | [Treatment Advocacy Center](https://www.tac.org/map_directory/california/) |
-| Inpatient civil commitment statute |  |  | [Treatment Advocacy Center](https://www.tac.org/map_directory/california/) |
-| Substance use disorder named as a basis for civil commitment |  |  | [Treatment Advocacy Center](https://www.tac.org/map_directory/california/) |
-| Outpatient (assisted outpatient) commitment statute |  |  | [Treatment Advocacy Center](https://www.tac.org/map_directory/california/) |
-| Treatment Advocacy Center recommended statutory amendments |  |  | [Treatment Advocacy Center](https://www.tac.org/map_directory/california/) |
-| Statewide criminalization bill introduced and not passed |  |  | [National Low Income Housing Coalition](https://nlihc.org/sites/default/files/Successfully-Fighting-Against-State-and-Local-Homelessness-Criminalization-Bills.pdf) |
-
-## 6. Reporting and primary documents
-
-**Coverage recorded for this state.** Each row links the item itself; nothing is quoted beyond its published title.
-
-| Title | Publisher | Published | Item | Source |
-|---|---|---|---|---|
-| I Spent a Day in LA's Most Dangerous Hood | Drew Binsky |  | [watch](https://www.youtube.com/watch?v=bMdonaTqgGc) | [Treatment Advocacy Center](https://www.tac.org/map_directory/alaska/) |
-| CNN spent dawn to dusk on LA’s Skid Row. Here’s what life is like | CNN |  | [watch](https://www.youtube.com/watch?v=I2yAcmFfo_Q) | [Treatment Advocacy Center](https://www.tac.org/map_directory/alaska/) |
-| NIGHT WALK INTO HELL / Inside LA's Homeless Encampments – Skid Row | Street Life |  | [watch](https://www.youtube.com/watch?v=WSg1jphH7sk) | [Treatment Advocacy Center](https://www.tac.org/map_directory/alaska/) |
-| I Investigated the City That Traps Homeless People Forever... | Tyler Oliveira |  | [watch](https://www.youtube.com/watch?v=GU3rK8lDDuQ) | [Treatment Advocacy Center](https://www.tac.org/map_directory/alaska/) |
-| Inside America's Biggest Homeless Camp — What It Actually Looks Like / | Street Survival |  | [watch](https://www.youtube.com/watch?v=uQ5bU9Czl_A) | [Treatment Advocacy Center](https://www.tac.org/map_directory/alaska/) |
-| Why America's Tent Cities Are EVERYWHERE (Truth About Poverty & Homele | Beneath the States |  | [watch](https://www.youtube.com/watch?v=Fg6XlSPV6ek) | [Treatment Advocacy Center](https://www.tac.org/map_directory/alaska/) |
-| LOS ANGELES HOMELESS CRISIS / A City With No Way Out | Street Life |  | [watch](https://www.youtube.com/watch?v=mmVHhwsTiLs) | [Treatment Advocacy Center](https://www.tac.org/map_directory/alaska/) |
-| Los Angeles police clear rat-infested homeless encampment in Pico Unio | CBS LA |  | [watch](https://www.youtube.com/watch?v=v_V1wzGD5Yk) | [Treatment Advocacy Center](https://www.tac.org/map_directory/alabama/) |
-| Homeless encampment in South Los Angeles threatening kids' walk to sch |  |  | [watch](https://www.youtube.com/watch?v=I9AcKONsOoI) | [National Low Income Housing Coalition](https://nlihc.org/explore-issues/housing-programs/housing-first) |
-| I Investigated DTLA's HOMELESS ENCAMPMENTS (E-Bike POV) | Yucky Stew |  | [watch](https://www.youtube.com/watch?v=QnuC7m3cUCU) | [Treatment Advocacy Center](https://www.tac.org/map_directory/alaska/) |
-| Westwood homeless encampments return | FOX 11 Los Angeles |  | [watch](https://www.youtube.com/watch?v=jttWaAQcoMw) | [Treatment Advocacy Center](https://www.tac.org/map_directory/alaska/) |
-| Rats and infestation: South LA alley packed with trash, homeless camp |  |  | [watch](https://www.youtube.com/watch?v=iI2Dw8If1o8) | [National Low Income Housing Coalition](https://nlihc.org/explore-issues/housing-programs/housing-first) |
-| Homeless encampment cleared out of South LA neighborhood | NBCLA |  | [watch](https://www.youtube.com/watch?v=dO4y2z1bN4M) | [Treatment Advocacy Center](https://www.tac.org/map_directory/alabama/) |
-| 𝗛𝗢𝗠𝗘𝗟𝗘𝗦𝗦 𝗦𝗪𝗘𝗘𝗣: City Crews Remove Tent During Another Venice Encampmen | Santa Monica Closeup |  | [watch](https://www.youtube.com/watch?v=ScHNfLInnKk) | [Treatment Advocacy Center](https://www.tac.org/map_directory/alabama/) |
-| RV homeless encampment grows outside LA Housing Agency | FOX 11 Los Angeles |  | [watch](https://www.youtube.com/watch?v=9wjyI9IrIh8) | [Treatment Advocacy Center](https://www.tac.org/map_directory/alaska/) |
-| Massive homeless encampment near middle school | FOX 11 Los Angeles |  | [watch](https://www.youtube.com/watch?v=YZ006vcmXhU) | [Treatment Advocacy Center](https://www.tac.org/map_directory/alabama/) |
-| Sprawling LA homeless encampment has tennis court, garden, BBQ pit |  |  | [watch](https://www.youtube.com/watch?v=nsoxIp8u_Hs) | [National Low Income Housing Coalition](https://nlihc.org/explore-issues/housing-programs/housing-first) |
-| City of Los Angeles Conducts Collaborative Cleanup Operation at Homele |  |  | [watch](https://www.youtube.com/watch?v=Y6iC9FwjTOE) | [National Low Income Housing Coalition](https://nlihc.org/explore-issues/housing-programs/housing-first) |
-| Venice homeless encampment gets cleaned up by city sanitation crews | CBS LA |  | [watch](https://www.youtube.com/watch?v=ZKj2uWl7-ww) | [Treatment Advocacy Center](https://www.tac.org/map_directory/alabama/) |
-| LA residents frustrated by Rampart Village homeless encampment as tena |  |  | [watch](https://www.youtube.com/watch?v=Qpp0ZGuBu9o) | [National Low Income Housing Coalition](https://nlihc.org/explore-issues/housing-programs/housing-first) |
-| Large homeless encampment in Sun Valley cleaned up | CBS LA |  | [watch](https://www.youtube.com/watch?v=Uzr1UooOjl8) | [Treatment Advocacy Center](https://www.tac.org/map_directory/alaska/) |
-| Homeless encampment cleanup in Westwood ends with unhoused coming back | FOX 11 Los Angeles |  | [watch](https://www.youtube.com/watch?v=FPrKtQi2V2g) | [Treatment Advocacy Center](https://www.tac.org/map_directory/alabama/) |
-| 40,000 Homeless EVICTED From L.A… as “Betrayed” Voters EMPTY ENCAMPMEN |  |  | [watch](https://www.youtube.com/watch?v=fCODzgSLgiU) | [National Low Income Housing Coalition](https://nlihc.org/explore-issues/housing-programs/housing-first) |
-| Massive homeless encampment draws concerns |  |  | [watch](https://www.youtube.com/watch?v=gFluBAblKQA) | [National Low Income Housing Coalition](https://nlihc.org/explore-issues/housing-programs/housing-first) |
-| Lost Angeles: City of Homeless | FOX 11 Los Angeles |  | [watch](https://www.youtube.com/watch?v=SJt3xuTPRVU) | [Treatment Advocacy Center](https://www.tac.org/map_directory/alaska/) |
-| Homeless camp in South LA is finally out, but here's problem | NBCLA |  | [watch](https://www.youtube.com/watch?v=f7zCe_LiIn8) | [Treatment Advocacy Center](https://www.tac.org/map_directory/alaska/) |
-| Massive homeless encampment draws concerns |  |  | [watch](https://www.youtube.com/watch?v=YOi8pNyOmLI) | [National Low Income Housing Coalition](https://nlihc.org/explore-issues/housing-programs/housing-first) |
-| Skid Row Homeless Encampment Sights and Sounds Downtown LA |  |  | [watch](https://www.youtube.com/watch?v=1JCriYRZzBI) | [National Low Income Housing Coalition](https://nlihc.org/explore-issues/housing-programs/housing-first) |
-| Homeless encampment fills L.A. post office parking lot |  |  | [watch](https://www.youtube.com/watch?v=0du0cD8TO_c) | [National Low Income Housing Coalition](https://nlihc.org/explore-issues/housing-programs/housing-first) |
-| Homeless encampment spotted on top of a Los Angeles bus stop |  |  | [watch](https://www.youtube.com/watch?v=HUeBpkOLyZo) | [National Low Income Housing Coalition](https://nlihc.org/explore-issues/housing-programs/housing-first) |
-| LA's Homeless Crisis No Way-Out Skid Row | Street Life |  | [watch](https://www.youtube.com/watch?v=3xgEd2PXX8A) | [Treatment Advocacy Center](https://www.tac.org/map_directory/alaska/) |
-| I walked through LA's Homeless Encampments at Night |  |  | [watch](https://www.youtube.com/watch?v=YToYO2Q2atI) | [National Low Income Housing Coalition](https://nlihc.org/explore-issues/housing-programs/housing-first) |
-| 𝗣𝗔𝗥𝗞 𝗦𝗪𝗘𝗘𝗣: LAPD Clears Homeless Encampments at Penmar Park | Santa Monica Closeup |  | [watch](https://www.youtube.com/watch?v=kItMuChq3AM) | [Treatment Advocacy Center](https://www.tac.org/map_directory/alabama/) |
-| Homeless encampment spotted atop Los Angeles bus stop shelter | KTLA 5 |  | [watch](https://www.youtube.com/watch?v=tehP3Ci9BX4) | [Treatment Advocacy Center](https://www.tac.org/map_directory/alaska/) |
-| Fake homeless encampment stunt outside Nithya Raman’s home going viral |  |  | [watch](https://www.youtube.com/watch?v=AD8e-G42V5E) | [National Low Income Housing Coalition](https://nlihc.org/explore-issues/housing-programs/housing-first) |
-| Massive Koreatown homeless encampment an eyesore for residents / FOX 1 |  |  | [watch](https://www.youtube.com/watch?v=LnYtqcjZtxU) | [National Low Income Housing Coalition](https://nlihc.org/explore-issues/housing-programs/housing-first) |
-| Rat infestation discovered at DTLA homeless encampment |  |  | [watch](https://www.youtube.com/watch?v=mTfkRaYHYdY) | [National Low Income Housing Coalition](https://nlihc.org/explore-issues/housing-programs/housing-first) |
-| Homeless encampment the real skid row Downtown Los Angeles california |  |  | [watch](https://www.youtube.com/watch?v=j73cjA1IcJw) | [National Low Income Housing Coalition](https://nlihc.org/explore-issues/housing-programs/housing-first) |
-
-**Primary documents.** Datasets and filings collected for this state, linked directly.
-
-| Document | Publisher | Kind | Link | Source |
-|---|---|---|---|---|
-| LAPD officer bitten by pit bull during altercation in Skid Row;  | Los Angeles Times | article | [open](https://www.latimes.com/california/story/2026-11-18/pit-bull-bites-lapd-officer-during-skid-row-altercation-woman-held) | [Los Angeles Times](https://www.latimes.com/california/story/2026-11-18/pit-bull-bites-lapd-officer-during-skid-row-altercation-woman-held) |
-| SF Sees Massive Increase in Children Experiencing Homelessness | Street Sheet | article | [open](https://www.streetsheet.org/sf-sees-massive-increase-in-children-experiencing-homelessness/) | [Street Sheet](https://www.streetsheet.org/sf-sees-massive-increase-in-children-experiencing-homelessness/) |
-| For Some SF Women, Violence is a Both a Cause and Effect of Home | Street Sheet | article | [open](https://www.streetsheet.org/for-some-sf-women-violence-is-a-both-a-cause-and-effect-of-homelessness-report/) | [Street Sheet](https://www.streetsheet.org/for-some-sf-women-violence-is-a-both-a-cause-and-effect-of-homelessness-report/) |
-| Election Recap: Mayor’s Executive Power Expands, Housing Fee Blo | Street Sheet | article | [open](https://www.streetsheet.org/election-recap-mayors-executive-power-expands-housing-fee-blocked/) | [Street Sheet](https://www.streetsheet.org/election-recap-mayors-executive-power-expands-housing-fee-blocked/) |
-| Targeted Violence Against Unhoused People Reached 25-year High,  | Street Sheet | article | [open](https://www.streetsheet.org/targeted-violence-against-unhoused-people-reached-25-year-high-new-report-finds/) | [Street Sheet](https://www.streetsheet.org/targeted-violence-against-unhoused-people-reached-25-year-high-new-report-finds/) |
-| L.A. mayors have long promised to end homelessness. Can Raman br | Los Angeles Times | article | [open](https://www.latimes.com/california/story/2026-11-07/can-raman-break-la-mayors-cycle-of-failure-on-homelessness) | [Los Angeles Times](https://www.latimes.com/california/story/2026-11-07/can-raman-break-la-mayors-cycle-of-failure-on-homelessness) |
-| A Deep Dive Into The Deep Dive On PSH Evictions And Exits | Street Sheet | article | [open](https://www.streetsheet.org/a-deep-dive-into-the-deep-dive-on-psh-evictions-and-exits/) | [Street Sheet](https://www.streetsheet.org/a-deep-dive-into-the-deep-dive-on-psh-evictions-and-exits/) |
-| Cities Often Squabble Over Homelessness. A New California Law Fo | Street Sheet | article | [open](https://www.streetsheet.org/cities-often-squabble-over-homelessness-a-new-california-law-forces-one-community-to-try-something-different/) | [Street Sheet](https://www.streetsheet.org/cities-often-squabble-over-homelessness-a-new-california-law-forces-one-community-to-try-something-different/) |
-| L.A. city and county fend off a court battle over homeless servi | Los Angeles Times | article | [open](https://www.latimes.com/california/story/2026-10-29/la-city-county-fend-off-court-battle-over-homeless-services) | [Los Angeles Times](https://www.latimes.com/california/story/2026-10-29/la-city-county-fend-off-court-battle-over-homeless-services) |
-| Care vs. Criminalization Panel: The Takeaways | Street Sheet | article | [open](https://www.streetsheet.org/care-vs-criminalization-panel-the-takeaways/) | [Street Sheet](https://www.streetsheet.org/care-vs-criminalization-panel-the-takeaways/) |
-| L.A. city and county remain at odds over who will run key homele | Los Angeles Times | article | [open](https://www.latimes.com/california/story/2026-10-14/la-city-county-remain-at-odds-over-who-will-run-key-homeless-systems) | [Los Angeles Times](https://www.latimes.com/california/story/2026-10-14/la-city-county-remain-at-odds-over-who-will-run-key-homeless-systems) |
-| They were homeless, but turned their lives around. Here's how th | Los Angeles Times | article | [open](https://www.latimes.com/california/story/2026-10-10/they-were-homeless-but-turned-their-lives-around-heres-how-they-did-it) | [Los Angeles Times](https://www.latimes.com/california/story/2026-10-10/they-were-homeless-but-turned-their-lives-around-heres-how-they-did-it) |
-| Performance Audit of the City's Response to Homeless Encampments | San Diego City Auditor | audit | [open](https://www.sandiego.gov/sites/default/files/2026-04/performance-audit-of-the-city-s-response-to-homeless-encampments-since-the-unsafe-camping-ordinance.pdf) | [San Diego City Auditor](https://www.sandiego.gov/sites/default/files/2026-04/performance-audit-of-the-city-s-response-to-homeless-encampments-since-the-unsafe-camping-ordinance.pdf) |
-| Unsafe Camping Ordinance Highlights | San Diego City Auditor | report | [open](https://www.sandiego.gov/sites/default/files/2026-04/unsafe-camping-ordinance-highlights.pdf) | [San Diego City Auditor](https://www.sandiego.gov/sites/default/files/2026-04/unsafe-camping-ordinance-highlights.pdf) |
-| Unsafe Camping Ordinance Highlights (Español) | San Diego City Auditor | report | [open](https://www.sandiego.gov/sites/default/files/2026-06/unsafe-camping-ordinance-highlights-spanish.pdf) | [San Diego City Auditor](https://www.sandiego.gov/sites/default/files/2026-06/unsafe-camping-ordinance-highlights-spanish.pdf) |
-| The real story of how L.A. became the epicenter of America’s hom | Los Angeles Times | article | [open](https://www.latimes.com/california/story/2025-07-10/how-a-century-of-short-sighted-decisions-wrought-las-homeless-crisis) | [Los Angeles Times](https://www.latimes.com/california/story/2025-07-10/how-a-century-of-short-sighted-decisions-wrought-las-homeless-crisis) |
-| A timeline of homelessness in Los Angeles | Los Angeles Times | article | [open](https://www.latimes.com/california/story/2025-07-10/timeline-la-history-of-homelessness) | [Los Angeles Times](https://www.latimes.com/california/story/2025-07-10/timeline-la-history-of-homelessness) |
-| San Francisco 2024 Measure C: Real Estate Transfer Tax Exemption | San Francisco Public Library / | article | [open](https://data.sf.gov/resource/88s2-6ua9.json?%24select=propletter%2Cproptitle%2Cyear%2Cdate%2Ckind%2Cdescription%2Cpass_fail%2Cpercent_vote_yes&%24where=year%3D%272024%27%20and%20propletter%3D%27C%27&%24limit=10) | [San Francisco Public Library / City and County](https://data.sf.gov/resource/88s2-6ua9.json?%24select=propletter%2Cproptitle%2Cyear%2Cdate%2Ckind%2Cdescription%2Cpass_fail%2Cpercent_vote_yes&%24where=year%3D%272024%27%20and%20propletter%3D%27C%27&%24limit=10) |
-| Why does Los Angeles have so much homelessness? | Los Angeles Times | article | [open](https://www.latimes.com/homeless-housing/story/2023-10-04/homeless-los-angeles-california-why-homelessness) | [Los Angeles Times](https://www.latimes.com/homeless-housing/story/2023-10-04/homeless-los-angeles-california-why-homelessness) |
-| Performance Audit of the San Diego Housing Commissions Homelessn | San Diego City Auditor | audit | [open](https://www.sandiego.gov/sites/default/files/23-007_performance_audit_sdhc_hscm_0.pdf) | [San Diego City Auditor](https://www.sandiego.gov/sites/default/files/23-007_performance_audit_sdhc_hscm_0.pdf) |
-| Performance Audit of the Citys Efforts to Address Homelessness | San Diego City Auditor | audit | [open](https://www.sandiego.gov/sites/default/files/20-009_homelessness_0.pdf) | [San Diego City Auditor](https://www.sandiego.gov/sites/default/files/20-009_homelessness_0.pdf) |
-| Homelessness Highlights | San Diego City Auditor | report | [open](https://www.sandiego.gov/sites/default/files/homelessness_highlights.pdf) | [San Diego City Auditor](https://www.sandiego.gov/sites/default/files/homelessness_highlights.pdf) |
-| San Francisco 2018 Measure C: Additional Business Taxes to Fund  | San Francisco Public Library / | article | [open](https://data.sf.gov/resource/88s2-6ua9.json?%24select=propletter%2Cproptitle%2Cyear%2Cdate%2Ckind%2Cdescription%2Cpass_fail%2Cpercent_vote_yes&%24where=year%3D%272018%27%20and%20propletter%3D%27C%27%20and%20upper%28proptitle%29%20like%20%27%25HOMELESS%25%27&%24limit=10) | [San Francisco Public Library / City and County](https://data.sf.gov/resource/88s2-6ua9.json?%24select=propletter%2Cproptitle%2Cyear%2Cdate%2Ckind%2Cdescription%2Cpass_fail%2Cpercent_vote_yes&%24where=year%3D%272018%27%20and%20propletter%3D%27C%27%20and%20upper%28proptitle%29%20like%20%27%25HOMELESS%25%27&%24limit=10) |
-| Division Street For some, hope after homelessness | San Francisco Chronicle | article | [open](https://projects.sfchronicle.com/sf-homeless/division-street-2018-update/) | [San Francisco Chronicle](https://projects.sfchronicle.com/sf-homeless/division-street-2018-update/) |
-| State of homelessness The situation on the streets | San Francisco Chronicle | article | [open](https://projects.sfchronicle.com/sf-homeless/2018-state-of-homelessness/) | [San Francisco Chronicle](https://projects.sfchronicle.com/sf-homeless/2018-state-of-homelessness/) |
-| Election 2016 How the candidates view homelessness | San Francisco Chronicle | article | [open](https://projects.sfchronicle.com/2016/candidates-homeless-survey/) | [San Francisco Chronicle](https://projects.sfchronicle.com/2016/candidates-homeless-survey/) |
-| City Properties Available for Homeless Housing and Services | Los Angeles City Controller | report | [open](https://controller.lacity.gov/audits/city-owned-properties/) | [Los Angeles City Controller](https://controller.lacity.gov/audits/city-owned-properties/) |
-| SDHCs Homelessness Services Contract Management Audit Highlights | San Diego City Auditor | audit | [open](https://www.sandiego.gov/sites/default/files/23-07_sdhc_hscm_audit_highlights.pdf) | [San Diego City Auditor](https://www.sandiego.gov/sites/default/files/23-07_sdhc_hscm_audit_highlights.pdf) |
-| Editorial San Francisco’s homelessness is a humanitarian crisis | San Francisco Chronicle | article | [open](https://www.sfchronicle.com/opinion/editorials/article/Editorial-San-Francisco-s-homelessness-is-a-16586799.php) | [San Francisco Chronicle](https://www.sfchronicle.com/opinion/editorials/article/Editorial-San-Francisco-s-homelessness-is-a-16586799.php) |
-| Chronicle Live Register for our Homeless Project live event | San Francisco Chronicle | article | [open](https://www.sfchronicle.com/membership/article/Chronicle-Live-The-Homeless-Project-event-with-16570085.php) | [San Francisco Chronicle](https://www.sfchronicle.com/membership/article/Chronicle-Live-The-Homeless-Project-event-with-16570085.php) |
-| Editorial Can the coronavirus force California to cure its chron | San Francisco Chronicle | article | [open](https://www.sfchronicle.com/opinion/editorials/article/Editorial-Can-the-coronavirus-force-California-15400470.php) | [San Francisco Chronicle](https://www.sfchronicle.com/opinion/editorials/article/Editorial-Can-the-coronavirus-force-California-15400470.php) |
-| Reader Q&A 97 answers to your questions on homelessness | San Francisco Chronicle | article | [open](https://projects.sfchronicle.com/sf-homeless/homeless-questions/) | [San Francisco Chronicle](https://projects.sfchronicle.com/sf-homeless/homeless-questions/) |
-| Mental Illness Mentally ill homeless may have a harder time find | San Francisco Chronicle | article | [open](https://www.sfchronicle.com/news/article/Mentally-ill-homeless-will-have-a-harder-time-15367216.php) | [San Francisco Chronicle](https://www.sfchronicle.com/news/article/Mentally-ill-homeless-will-have-a-harder-time-15367216.php) |
-| Elderly homeless Pandemic puts homeless seniors in greater jeopa | San Francisco Chronicle | article | [open](https://www.sfchronicle.com/bayarea/article/Bay-Area-s-elderly-homeless-population-is-15367447.php) | [San Francisco Chronicle](https://www.sfchronicle.com/bayarea/article/Bay-Area-s-elderly-homeless-population-is-15367447.php) |
-| Suburban homeless Homelessness surging in Bay Area suburbs | San Francisco Chronicle | article | [open](https://www.sfchronicle.com/projects/sf-homeless/homeless-suburbs/) | [San Francisco Chronicle](https://www.sfchronicle.com/projects/sf-homeless/homeless-suburbs/) |
-| Stories from the street ‘The real pandemic is homelessness’: Sto | San Francisco Chronicle | article | [open](https://www.sfchronicle.com/bayarea/article/Pure-survival-mode-15364213.php) | [San Francisco Chronicle](https://www.sfchronicle.com/bayarea/article/Pure-survival-mode-15364213.php) |
-| Impact of coronavirus Homeless crisis: Will the pandemic make th | San Francisco Chronicle | article | [open](https://www.sfchronicle.com/bayarea/article/Bay-Area-s-homeless-crisis-was-severe-before-15366766.php) | [San Francisco Chronicle](https://www.sfchronicle.com/bayarea/article/Bay-Area-s-homeless-crisis-was-severe-before-15366766.php) |
-| From the Editor As homeless crisis worsens, seeking signs of hop | San Francisco Chronicle | article | [open](https://www.sfchronicle.com/bayarea/article/SF-homeless-project-As-crisis-worsens-seeking-15383255.php) | [San Francisco Chronicle](https://www.sfchronicle.com/bayarea/article/SF-homeless-project-As-crisis-worsens-seeking-15383255.php) |
-
-## 7. What it costs, per person †
-
-## 8. What this brief cannot say
-
-- **No organisation is credited with an outcome.** HUD publishes System Performance Measures per Continuum of Care, never per provider, and HMIS records are confidential. Nothing in this archive links a provider to a housing placement.
-- **Awards are attributed by recipient address.** A grantee that works statewide appears once, in the city it is incorporated in, and its money may be spent elsewhere.
-- **Counts are one night.** Unsheltered counts depend on method and weather; a fall is not proof of housing.
-- **State and city money is absent.** Only federal programmes are counted; in some places local money is larger.
-
-*68 distinct sources cited in this brief.*
 # New York
 
 *Generated 2026-11-21 by `scripts/metro_report.py` from `data/atlas.db`. Every number below is followed by the public source it came from; a dagger (†) marks a value this project derived and the formula is always stated. Nothing here is hand-typed.*
@@ -327,57 +36,153 @@ Between 2007 and 2025 the count moved from 50,372 to 125,683 (+149.5%). A change
 
 ## 2. Where the federal money went
 
-Organisations addressed in these cities hold **0 mapped federal homelessness awards worth $0** across the 8 programmes this archive tracks (Continuum of Care, ESG, Supportive Housing, Shelter Plus Care, VA SSVF and Grant-and-Per-Diem, HVRP, YHDP). Awards are matched on the recipient organisation's own address, because the place-of-performance field is only partly populated.
+Organisations addressed in these cities hold **400 mapped federal homelessness awards worth $1.66B** across the 8 programmes this archive tracks (Continuum of Care, ESG, Supportive Housing, Shelter Plus Care, VA SSVF and Grant-and-Per-Diem, HVRP, YHDP). Awards are matched on the recipient organisation's own address, because the place-of-performance field is only partly populated.
+
+| Programme | Awards | Obligated | Source |
+|---|---|---|---|
+| Emergency Solutions Grant Program | 22 | $620.42M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| VA Supportive Services for Veteran Families Program | 41 | $144.76M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| Continuum of Care Program | 285 | $708.47M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| VA Homeless Providers Grant and Per Diem Program | 14 | $95.69M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| Shelter Plus Care | 25 | $54.58M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| Youth Homelessness Demonstration Program | 5 | $14.61M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| Supportive Housing Program | 6 | $13.82M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| Homeless Veterans’ Reintegration Program | 2 | $3.00M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
 
 | Recipient | Awards | Obligated | Source |
 |---|---|---|---|
+| CITY OF NEW YORK - MAYORS OFFICE OF CRIMINAL JUSTICE | 13 | $539.28M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| CITY OF NEW YORK HOUSING PRESERVATION & DEVELOPMENT | 123 | $313.42M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| NEW YORK CITY DEPARTMENT OF HOMELESS | 17 | $133.11M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| SERVICES FOR THE UNDERSERVED, INC. | 33 | $111.32M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| THE JERICHO PROJECT | 22 | $86.36M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| PROJECT HOSPITALITY INC | 15 | $37.65M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| POSTGRADUATE CENTER FOR MENTAL HEALTH | 12 | $28.92M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| THE DOE FUND, INC | 9 | $26.86M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| HOUSING PLUS SOLUTIONS, INC. | 8 | $23.31M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| NEW YORK CITY OFFICE OF MANAGEMENT & BUDGET | 10 | $22.20M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| BAILEY HOUSE, INC. | 8 | $20.74M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| VOLUNTEERS OF AMERICA-GREATER NEW YORK, INC. | 9 | $19.76M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| BRONXWORKS, INC | 10 | $18.40M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| WOMEN IN NEED INC | 9 | $18.11M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| GAY MEN'S HEALTH CRISIS, INC. | 10 | $17.76M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| UNDER 21 | 7 | $17.02M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| RISING GROUND, INC | 6 | $16.37M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| CITY OF NEW YORK | 2 | $15.90M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| PROJECT RENEWAL, INC. | 8 | $15.39M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| HELP SOCIAL SERVICE CORP | 8 | $13.45M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| HELP LAS VEGAS HOUSING CORPORATION | 3 | $13.01M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| HELP LAS VEGAS HOUSING CORPORATION II | 3 | $12.44M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| COMMON GROUND MANAGEMENT CORPORATION | 2 | $12.00M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| NYC DEPARTMENT OF SOCIAL SERVICES | 5 | $11.14M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| CARE FOR THE HOMELESS | 2 | $9.17M | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
 
 ## 3. The organisations themselves
 
-The 70 largest organisations addressed in these cities reported **$25.39M** of revenue on their latest Form 990 [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/133958797). Revenue is self-reported and the fiscal years differ between filers, so the figures are not a single-year total.
+The 70 largest organisations addressed in these cities reported **$1.13B** of revenue on their latest Form 990 [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/api/v2/organizations/260076866.json). Revenue is self-reported and the fiscal years differ between filers, so the figures are not a single-year total.
 
 | Organisation | City | Revenue (990) | Federal $ | Awards | Site | Source |
 |---|---|---|---|---|---|---|
+| ACACIA NETWORK HOUSING INC | BRONX | $333.36M | not published | 0 | [site](https://www.acacianetwork.org) | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/api/v2/organizations/260076866.json) |
+| H.E.L.P. | NEW YORK | $141.27M | $1.96M | 8 | — | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| HOME-LIFE SERVICES INC | BROOKLYN | $118.32M | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/133899699) |
+| CORPORATION FOR SUPPORTIVE HOUSING | NEW YORK | $106.26M | $26.41M | 48 | [site](http://www.csh.org) | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| SHELTERING ARMS CHILDREN AND FAMILY SERVICES, INC. | NEW YORK | $88.69M | $4.15M | 7 | [site](https://www.shelteringarmsny.org) | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| MIDWAY LIVING INC | BROOKLYN | $58.16M | not published | 0 | [site](https://midwayliving.org) | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/814594389) |
+| URBAN PATHWAYS INC | NEW YORK | $49.37M | $20.80M | 62 | [site](https://www.urbanpathways.org) | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| CARE FOR THE HOMELESS | NEW YORK | $39.29M | $67.74M | 15 | [site](https://www.careforthehomeless.org) | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| THE JERICHO PROJECT | NEW YORK | $31.53M | $89.36M | 52 | [site](https://www.jerichoproject.org) | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| ALI FORNEY CENTER | NEW YORK | $29.49M | $23.62M | 40 | [site](https://www.aliforneycenter.org) | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| NEW HOPE TRANSITIONAL HOUSING INC | BRONX | $20.82M | not published | 0 | [site](https://newhopeth.org) | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/271440474) |
 | Homes For The Homeless Institute Inc | New York | $13.64M | not published | 0 | [site](https://www.icph.org) | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/133958797) |
+| BROADWAY HOUSING COMMUNITIES INC | NEW YORK | $9.79M | not published | 0 | [site](https://broadwayhousing.org) | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/133212867) |
 | Jerome Avenue Care For The Homeless | New York | $8.68M | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/201377483) |
+| H.E.L.P. DEVELOPMENT CORP. | NEW YORK | $7.82M | $10.49M | 24 | [site](https://www.helpdevco.org) | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| CONCOURSE HOUSE HOUSING DEVELOPMENT FUND COMPANY INC | BRONX | $6.60M | not published | 0 | [site](https://www.concoursehouse.org) | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/133420753) |
+| BREAKING GROUND IV HOUSING DEVELOPMENT FUND CORPORATION | NEW YORK | $6.26M | not published | 0 | [site](https://www.breakingground.org) | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/134196931) |
+| NEIGHBORHOOD COALITION FOR SHELTER | NEW YORK | $6.06M | $212.06K | 1 | [site](https://www.ncsinc.org) | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| ANTHONY HOE CORPORATION | BRONX | $5.12M | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/271575830) |
+| GRAND CENTRAL NEIGHBORHOOD SOCIAL SERVICES CORPORATION | NEW YORK | $4.55M | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/133534255) |
+| CENDEVCO II REDEVELOPMENT FUND INC | NEW YORK | $4.54M | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/831436238) |
+| ST JOHNS PLACE FAMILY CENTER HOUSING DEVELOPMENT FUND CORP | NEW YORK | $4.10M | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/133441465) |
+| THE PARTNERSHIP TO END HOMELESSNESS, INC. | NEW YORK | $3.35M | $3.23M | 7 | [site](http://www.partnershipforthehomeless.org) | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| SUPPORTIVE HOUSING NETWORK OF NEW Y YORK INC | NEW YORK | $2.43M | not published | 0 | [site](http://shnny.org/) | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/133755149) |
+| SAMMON BUILD CENTER HOUSING | BRONX | $2.26M | not published | 0 | [site](https://sammonbuild.org) | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/133458299) |
+| XAVIER MISSION INC | NEW YORK | $2.00M | not published | 0 | [site](https://www.xaviermission.org) | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/453763576) |
+| JERICHO ANTHONY AVENUE HOUSING DEVELOPMENT FUND CORPORATIO | NEW YORK | $1.54M | not published | 0 | [site](https://www.jerichoproject.org) | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/814587242) |
+| COLUMBA SERVICES INC | NEW YORK | $1.54M | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/134119067) |
+| ST FRANCIS FOOD PANTRIES AND SHELTERS INC | NEW YORK | $1.52M | not published | 0 | [site](https://www.stfrancispantries.org) | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/800458866) |
+| COSMETIC EXECUTIVE WOMEN FOUNDATION LTD | NEW YORK | $1.52M | not published | 0 | [site](http://www.cancerandcareers.org) | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/133563114) |
+| WIN HOUSING DEVELOPMENT FUND COMPANY INC | NEW YORK | $1.48M | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/133376303) |
+| TURNING POINT HOUSING DEVELOPMENT FUND CORPORATION | BROOKLYN | $1.39M | not published | 0 | [site](https://www.tpbk.org) | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/112837985) |
+| PEOPLES PATH INC | STATEN ISLAND | $1.39M | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/474440128) |
+| PALS PLACE HOUSING DEVELOPMENT FUND CORPORATION | NEW YORK | $1.18M | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/934632324) |
+| MSGR ROBERT FOX MEMORIAL SHELTER FOX HOUSE | NEW YORK | $1.16M | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/133368998) |
+| VALLEY LODGE SHELTER HOUSING DEVELOPMENT FUND COMPANY INC | NEW YORK | $1.08M | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/830739223) |
+| 138-152 W 143RD ST HOUSING DEVELOPM ENT FUND CORPORATION | NEW YORK | $1.01M | not published | 0 | [site](https://www.whgainc.org) | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/133238556) |
 | Trinitys Services And Food For The Homeless Inc | New York | $914.50K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/133401340) |
 | Homeless Services United Inc | New York | $901.16K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/133922640) |
+| A LITTLE PIECE OF LIGHT INC | BROOKLYN | $898.50K | not published | 0 | [site](https://www.alittlepieceoflight.org) | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/831458976) |
+| HOMES FOR THE HOMELESS, INC. | NEW YORK | $834.30K | $-2 | 2 | [site](https://www.hfhnyc.org) | [US Treasury / Bureau of the Fiscal Service](https://api.usaspending.gov/api/v2/search/spending_by_award/) |
+| UNITED HELP-SELFHELP SHELTERED EXTENSION INC | NEW YORK | $742.59K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/133378578) |
+| HABAYIT HOME AWAY FROM HOME INC | BROOKLYN | $620.70K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/874503716) |
+| 941-990 LEGGETT AVENUE HOUSING DEVELOPMENT FUND CORPORATIO | BRONX | $620.21K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/133870453) |
+| IMEINU INC | BROOKLYN | $582.18K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/260774611) |
+| 1270 PACIFIC HOUSING DEVELOPMENT FUND CORPORATION | NEW YORK | $574.06K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/842764564) |
+| URGENT HOUSING INITIATIVES INC | BROOKLYN | $537.30K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/474463073) |
 | New Alternatives For Lgbt Homeless Youth Inc | New York | $526.85K | not published | 0 | [site](https://www.newalternativesnyc.org) | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/272151000) |
+| EMERGENCY SHELTER INC | NEW YORK | $511.71K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/135562213) |
 | Picture The Homeless | New York | $490.85K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/320017919) |
-| Partnership Homeless Facilities Corporation | New York | $131.40K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/133817299) |
-| Eis Eviction Intervention Services Homeless Prevention Inc | New York | $91.72K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/133311582) |
-| St John House For The Homeless Inc | Brooklyn | $17.97K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/263480968) |
-| Free Food For The Homeless And The Hungry America Incorpor | New York | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Hopelines Homeless Relief Fund Inc | New York | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Hearts For The Homeless International Inc | New York | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Homeless Remedies Inc | Bronx | not published | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/831902382) |
-| Foundation For Minority And Homeless Inc | New York | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Lils4nonprofit Seniors And Homeless Corporation | Bronx | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Homeless Emergency Help Foundation Corp | New York | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Solutions For The Homeless | Bronx | $0 | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/814870088) |
-| St Vincent De Paul Pro-life Homeless Inc | Brooklyn | $0 | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/263502990) |
-| Burning Lamp For Homeless Divine Healing And Rehabilition  | Brooklyn | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Continuum Of Care Improvement Through Information Ny | New York | $0 | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/262723859) |
-| Abundant Living Shelter Inc | Bronx | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Shelter For Us Inc | Bronx | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Safe Shelters Inc | Brooklyn | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| New York City Rescue Mission | New York | $0 | not published | 0 | [site](http://www.nycrescue.org) | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/135596794) |
-| City Of Refuge International Rescue Mission Inc | Brooklyn | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
-| Rescue Mission For The Needy Yo Uth Of Haiti Inc | New York | not published | not published | 0 | — | [ProPublica](https://projects.propublica.org/nonprofits/api/v2/search.json?q=homeless&page=0) |
+| ACCESS HOUSE INC | NEW YORK | $489.14K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/133215436) |
+| FAC RESTORE HOUSING DEVELOPMENT FUND CORPORATION | BROOKLYN | $466.01K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/202896988) |
+| 1130 COLLEGE AVENUE HOUSING DEVELOPMENT FUND CORPORATION | BRONX | $447.34K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/141890837) |
+| MORAVIAN OPEN DOOR INC | NEW YORK | $427.52K | not published | 0 | [site](https://www.moravianhouse.org) | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/521369012) |
+| SNACC INC | NEW YORK | $419.01K | not published | 0 | [site](https://www.snaccprogram.org) | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/814158050) |
+| COMMUNITY PARTNERS HOUSING DEVELOPMENT FUND CORPORATION | BRONX | $398.44K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/134086821) |
+| GREEN DOOR MANAGEMENT INC | BROOKLYN | $390.00K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/844145026) |
+| HARLEM UNITED SUPPORTIVE HOUSING DEVELOPMENT FUND CORPORAT | NEW YORK | $385.89K | not published | 0 | [site](https://www.harlemunited.org) | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/450496248) |
+| ABRAHAM APARTMENTS HOUSING DEVELOPMENT FUND CORPORATION | BRONX | $308.33K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/463742490) |
+| BROOKLYN RESCUE MISSION URBAN HARVEST CENTER INC | BROOKLYN | $296.88K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/320019367) |
+| CITIWIDE SUPPORTIVE HOUSING INC | NEW YORK | $296.13K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/133875562) |
+| CASA ESPERANZA HOUSING DEVELOPMENT FUND INC | BRONX | $295.16K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/133962366) |
+| BRIDGE HOUSE 11 CORPORATION | NEW YORK | $291.81K | not published | 0 | [site](https://www.thebridgeny.org) | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/861079587) |
+| NEW VISION HOUSING DEVELOPMENT FUND CORPORATION | STATEN ISLAND | $285.20K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/453834408) |
+| NUMBER ONE SINGLE ROOM OCCUPANCY HOUSING DEVELOPMENT FUND  | NEW YORK | $277.25K | not published | 0 | [site](https://www.doe.org) | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/133906301) |
+| STREETLIVES | BROOKLYN | $273.78K | not published | 0 | [site](https://streetlives.nyc) | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/862070278) |
+| PARK AVENUE THORPE HOUSING DEVELOPMENT FUND CORPORATION | BRONX | $270.79K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/133830057) |
+| BLANKETS OF HOPE INC | BROOKLYN | $269.05K | not published | 0 | [site](https://blanketsofhope.com) | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/841730702) |
+| COVENANT INTERNATIONAL FOUNDATION | NEW YORK | $266.28K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/133124706) |
+| NANOOM HOUSE INC | FLUSHING | $236.29K | not published | 0 | — | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/852310457) |
 
 **Who runs them.** Named officers and their disclosed compensation, as filed. Professional roles only — this archive holds no personal contact details.
 
 | Person | Title | Organisation | Compensation | Year | Source |
 |---|---|---|---|---|---|
-| Yulanda Simone Thomspon | Program Director | Jerome Avenue Care For The Homeless | 135,417 | 2022 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/201377483) |
-| Alex Lawrence | Executive Director | Trinitys Services And Food For The Homel | 79,100 | 2024 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/133401340) |
-| Katherine Barnhart | Executive Director | New Alternatives For Lgbt Homeless Youth | 77,041 | 2025 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/272151000) |
-| Alex Lawrence | Executive Director | Trinitys Services And Food For The Homel | 76,852 | 2023 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/133401340) |
-| Alex Lawrence | Executive Director | Trinitys Services And Food For The Homel | 74,612 | 2022 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/133401340) |
-| Katherine Barnhart | Executive Director | New Alternatives For Lgbt Homeless Youth | 69,000 | 2024 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/272151000) |
-| Katherine Barnhart | Executive Director | New Alternatives For Lgbt Homeless Youth | 69,000 | 2023 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/272151000) |
-| Alicia Simmons | Ceo | Homeless Remedies Inc | 34,977 | 2025 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/831902382) |
-| David Simmons | Coo | Homeless Remedies Inc | 14,100 | 2025 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/831902382) |
+| Susan Alter | Executive Director | HOME-LIFE SERVICES INC | 799,615 | 2023 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/133899699) |
+| Gerald Schreck | Executive Director | HOME-LIFE SERVICES INC | 799,615 | 2023 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/133899699) |
+| Milton Schwartzceo | See Note On Schedule J | MIDWAY LIVING INC | 544,153 | 2024 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/814594389) |
+| Deborah De Santis | President & Ceo | CORPORATION FOR SUPPORTIVE HOUSING | 499,523 | 2024 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/133600232) |
+| Deborah De Santis | President & Ceo | CORPORATION FOR SUPPORTIVE HOUSING | 455,057 | 2023 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/133600232) |
+| Mordechai Ehrman | Ceo | NEW HOPE TRANSITIONAL HOUSING INC | 432,134 | 2023 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/271440474) |
+| Thomas Hameline | President | H.E.L.P. | 423,228 | 2023 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/911922828) |
+| Deborah De Santis | President & Ceo | CORPORATION FOR SUPPORTIVE HOUSING | 410,121 | 2022 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/133600232) |
+| Thomas Hameline | President/ceo (until 01/24) | H.E.L.P. | 397,967 | 2024 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/911922828) |
+| George E Nashak | President & Ceo | CARE FOR THE HOMELESS | 383,524 | 2024 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/133666994) |
+| Brigitt Jandreau | Chief Loan Officer | CORPORATION FOR SUPPORTIVE HOUSING | 383,147 | 2024 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/133600232) |
+| Debbie Ianazzi | Cfo | HOME-LIFE SERVICES INC | 373,698 | 2025 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/133899699) |
+| Milton Schwartz | Ceo | MIDWAY LIVING INC | 373,618 | 2025 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/814594389) |
+| David Cleghorn | President | H.E.L.P. DEVELOPMENT CORP. | 372,276 | 2024 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/133892553) |
+| Mordechai Ehrman | Ceo | NEW HOPE TRANSITIONAL HOUSING INC | 367,030 | 2025 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/271440474) |
+| George Nashak | President & Ceo | CARE FOR THE HOMELESS | 365,253 | 2023 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/133666994) |
+| Debbie Ianazzi | Cfo | HOME-LIFE SERVICES INC | 357,933 | 2024 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/133899699) |
+| David Cleghorn | President | H.E.L.P. DEVELOPMENT CORP. | 346,072 | 2025 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/133892553) |
+| Brigitt Jandreau-smith | Chief Loan Officer | CORPORATION FOR SUPPORTIVE HOUSING | 342,552 | 2023 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/133600232) |
+| Elizabeth Mccarthy | Chief Executive Officer | SHELTERING ARMS CHILDREN AND FAMILY SERV | 339,609 | 2021 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/133709095) |
+| Debbie Ianazzi | Cfo | HOME-LIFE SERVICES INC | 337,500 | 2023 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/133899699) |
+| Mordechai Ehrman | Ceo | NEW HOPE TRANSITIONAL HOUSING INC | 332,868 | 2024 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/271440474) |
+| Elizabeth Mccarthy | Chief Executive Officer | SHELTERING ARMS CHILDREN AND FAMILY SERV | 327,508 | 2020 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/133709095) |
+| Eileen Hawes | Chief Financial Officer | CORPORATION FOR SUPPORTIVE HOUSING | 320,587 | 2024 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/133600232) |
+| Daniel Lehman | President/ceo | H.E.L.P. | 313,428 | 2025 | [ProPublica Nonprofit Explorer / IRS](https://projects.propublica.org/nonprofits/organizations/911922828) |
 
 ## 4. Institutions: psychiatric beds and jails
 
@@ -496,6 +301,8 @@ The 70 largest organisations addressed in these cities reported **$25.39M** of r
 
 ## 7. What it costs, per person †
 
+† Federal homelessness awards held by organisations addressed in these cities, divided by the 2025 point-in-time count: $1.66B ÷ 125,683 = **$13.17K per person counted homeless**. The numerator covers every year the awards are recorded against, so it is a cumulative figure, not annual spend — it is a scale comparison only, and no share of it can be attributed to the people counted on that one night.
+
 ## 8. What this brief cannot say
 
 - **No organisation is credited with an outcome.** HUD publishes System Performance Measures per Continuum of Care, never per provider, and HMIS records are confidential. Nothing in this archive links a provider to a housing placement.
@@ -503,4 +310,4 @@ The 70 largest organisations addressed in these cities reported **$25.39M** of r
 - **Counts are one night.** Unsheltered counts depend on method and weather; a fall is not proof of housing.
 - **State and city money is absent.** Only federal programmes are counted; in some places local money is larger.
 
-*103 distinct sources cited in this brief.*
+*90 distinct sources cited in this brief.*
