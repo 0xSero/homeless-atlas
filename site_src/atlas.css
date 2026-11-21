@@ -314,3 +314,28 @@ footer.site p{max-width:78ch}
   .tablewrap{overflow:visible;border-top:1pt solid #000}
   table{min-width:0}
 }
+
+/* ---------------- records requests ---------------- */
+.req textarea.letter{display:block;width:100%;max-width:78ch;min-height:18em;margin:.4em 0 0;padding:12px 14px;
+  font:.86rem/1.6 var(--mono);color:var(--ink);background:var(--paper2);border:1px solid var(--rule2);
+  border-radius:var(--r);resize:vertical}
+.req textarea.letter:focus{outline:2px solid var(--accent);outline-offset:1px}
+.layertoggle.actions{margin:10px 0 2px}
+.layertoggle.actions a{display:inline-block;border:1px solid var(--rule2);color:var(--ink2);border-radius:2px;
+  padding:5px 11px;font-size:.76rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase}
+.layertoggle.actions a:hover{border-color:var(--ink3);color:var(--ink)}
+.req .status{font-size:.84rem;min-height:1.3em;margin:4px 0 0}
+.req details{margin:14px 0 0;border-top:1px solid var(--rule);padding-top:10px}
+.req summary{cursor:pointer;font-weight:600;font-size:.92rem}
+.req dl.facts{max-width:78ch}
+form.who{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px 26px;max-width:900px;margin:0 0 .6em}
+form.who label{display:block;font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3)}
+form.who input{display:block;width:100%;height:36px;margin-top:4px;background:transparent;border:0;
+  border-bottom:1px solid var(--rule2);border-radius:0;color:var(--ink);font:inherit;font-size:1rem;
+  letter-spacing:0;text-transform:none;padding:0 2px}
+form.who input:focus{outline:none;border-bottom-color:var(--accent)}
+form.who .forget{justify-self:start;align-self:end;background:transparent;border:0;color:var(--ink3);
+  font:inherit;font-size:.78rem;text-decoration:underline;cursor:pointer;padding:6px 0}
+ol.steps{max-width:66ch;margin:1.6em 0 0}
+ul.cols{columns:3 14em;max-width:none}
+@media print{.layertoggle.actions,.req .status,form.who{display:none}}

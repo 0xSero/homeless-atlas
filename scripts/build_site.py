@@ -15,6 +15,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import quote
 
+import site_county  # scripts/site_county.py: county pages, flyers, freshness
+
 ROOT = Path(__file__).resolve().parent.parent
 DB = ROOT / "data" / "atlas.db"
 SITE = ROOT / "site"
@@ -118,9 +120,9 @@ def one(conn, sql, args=(), default=None):
 
 NAV = [
     ("/index.html", "Overview"), ("/map.html", "Map"), ("/search.html", "Search"),
-    ("/states.html", "States"), ("/cities.html", "Cities"), ("/orgs.html", "Orgs"),
+    ("/states.html", "States"), ("/counties.html", "Counties"), ("/cities.html", "Cities"), ("/orgs.html", "Orgs"),
     ("/people.html", "Officers"), ("/facilities.html", "Facilities"), ("/budgets.html", "Money"),
-    ("/country/us.html", "Countries"), ("/rankings.html", "Rankings"), ("/moved.html", "What moved"), ("/costs.html", "Costs"), ("/laws.html", "Laws"), ("/media.html", "Media"), ("/docs.html", "Docs"),
+    ("/country/us.html", "Countries"), ("/rankings.html", "Rankings"), ("/moved.html", "What moved"), ("/costs.html", "Costs"), ("/laws.html", "Laws"), ("/records.html", "Records"), ("/media.html", "Media"), ("/docs.html", "Docs"),
 ]
 
 # ---------------------------------------------------------------- shell
@@ -239,10 +241,52 @@ def banner(kicker, h1, sub, rel="", small=False, crumbs=""):
   {f'<p class="sub">{sub}</p>' if sub else ''}
 </div></div></section>"""
 
+BASE_URL = "https://homeless.sybilsolutions.ai"
+PAGES: dict = {}  # html path -> (content hash, indexable), for the sitemap
+_STAMP = re.compile(r"generated \d{4}-\d{2}-\d{2} · [\d,]+ indexed records")
+
+
 def write(path: str, html: str):
+    if path.endswith(".html"):
+        if 'rel="canonical"' not in html and "</head>" in html:
+            html = html.replace("</head>", f'<link rel="canonical" href="{BASE_URL}/{path}">\n</head>', 1)
+        indexable = 'name="robots" content="noindex' not in html
+        PAGES[path] = (hashlib.sha256(_STAMP.sub("", html).encode()).hexdigest()[:16], indexable)
     p = SITE / path
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(html, encoding="utf-8")
+
+
+def write_sitemap():
+    """sitemap.xml with an honest lastmod: a page's date moves only when its content (minus the
+    footer's build date) changes. The hashes live in data/lastmod.json on the build machine."""
+    ledger_path = ROOT / "data" / "lastmod.json"
+    try:
+        ledger = json.loads(ledger_path.read_text())
+    except (OSError, ValueError):
+        ledger = {}
+    urls = []
+    for path, (h, indexable) in sorted(PAGES.items()):
+        old = ledger.get(path)
+        if not old or old[0] != h:
+            ledger[path] = [h, NOW]
+        if indexable:
+            loc = BASE_URL + "/" + (path[:-len("index.html")] if path.endswith("index.html") else path)
+            urls.append(f"<url><loc>{esc(loc)}</loc><lastmod>{ledger[path][1]}</lastmod></url>")
+    ledger_path.write_text(json.dumps(ledger, separators=(",", ":")))
+    head = '<?xml version="1.0" encoding="UTF-8"?>\n'
+    chunks = [urls[i:i + 45000] for i in range(0, len(urls), 45000)] or [[]]
+    if len(chunks) == 1:
+        write("sitemap.xml", head + '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+              + "\n".join(chunks[0]) + "\n</urlset>\n")
+        return len(urls)
+    for i, ch in enumerate(chunks, 1):
+        write(f"sitemap-{i}.xml", head + '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+              + "\n".join(ch) + "\n</urlset>\n")
+    write("sitemap.xml", head + '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+          + "\n".join(f"<sitemap><loc>{BASE_URL}/sitemap-{i}.xml</loc><lastmod>{NOW}</lastmod></sitemap>"
+                      for i in range(1, len(chunks) + 1)) + "\n</sitemapindex>\n")
+    return len(urls)
 
 def kpi(v, label, note="", cls=""):
     return f'<div class="kpi {cls}"><div class="v">{v}</div><div class="l">{esc(label)}</div>' + (f'<div class="n">{note}</div>' if note else "") + "</div>"
@@ -586,6 +630,8 @@ def build_index(d):
         add("coc", f"{c['coc_num']} {c.get('name') or ''}", f"CoC · {num(c.get('pit_total'))} homeless ({(c.get('pit_year') or '—')})", f"/coc/{c['coc_num']}.html")
     for c in d["cities"]:
         add("city", f"{c['name']}, {c.get('state') or ''}", f"population {num(c.get('pop'))}", f"/city/{c['geoid']}.html")
+    for row in site_county.search_records(sys.modules[__name__]):
+        add(*row)
     for o in d["top_orgs"]:
         add("org", o["name"], f"{o.get('city') or ''} {o.get('state') or ''} · {money(o.get('amt'))} federal · rev {money(o.get('revenue'))}",
             f"/org/{o['id']}-{slug(o['name'])}.html")
@@ -1586,6 +1632,7 @@ def page_state(d, s, manifest_total):
   </div>
   <h2>Continuums of Care</h2>
   {table([("CoC",""),("Name",""),("Latest count","r"),("Year","r")], crow)}
+  {site_county.state_counties(sys.modules[__name__], abbr)}
   <h2>Organizations</h2>
   {table([("Organization",""),("City",""),("Federal $","r"),("Revenue","r")], orow)}
   <h2>Institutions</h2>
@@ -2097,10 +2144,11 @@ def main():
         SITE = STAGING
         SITE.mkdir(parents=True, exist_ok=True)
     (SITE / "assets").mkdir(exist_ok=True)
-    for f in ("atlas.css", "app.js"):
+    for f in ("atlas.css", "app.js", "qrcode.js", "records.js"):
         shutil.copy(SRC / f, SITE / "assets" / f)
     for f in ("maplibre-gl.js", "maplibre-gl.css"):   # vendored, so the map has no CDN dependency
         shutil.copy(SRC / "vendor" / f, SITE / "assets" / f)
+    shutil.copytree(SRC / "fonts", SITE / "assets" / "fonts", dirs_exist_ok=True)  # the WTF flyer's Anton and Inter (OFL)
 
     PERSON_OK = {person_slug(p) for p in d["people_top"][:PERSON_PAGE_MAX]}
     ORG_URL = {o["id"]: f"/org/{o['id']}-{slug(o['name'])}.html" for o in d["top_orgs"][:ORG_PAGE_MAX]}
@@ -2141,6 +2189,7 @@ def main():
     for c in d["cocs"][:1200]:
         if c.get("coc_num"):
             write(f"coc/{c['coc_num']}.html", page_coc(d, c, total)); n += 1
+    n += site_county.build(sys.modules[__name__], total)
     if not FAST:
         for c in d["cities"][:3000]:
             write(f"city/{c['geoid']}.html", page_city(d, c, total)); n += 1
@@ -2151,7 +2200,9 @@ def main():
         for f in d["facilities"]:
             write(f"facility/{f['id']}.html", page_facility(d, f, total)); n += 1
     # favicon + robots
-    write("robots.txt", "User-agent: *\nAllow: /\n")
+    n_urls = write_sitemap()
+    write("robots.txt", f"User-agent: *\nAllow: /\n\nSitemap: {BASE_URL}/sitemap.xml\n")
+    print(f"sitemap: {n_urls} indexable pages")
     if "--out" not in sys.argv:
         # atomic swap: a reader never sees a half-written site
         final = ROOT / "site"
