@@ -1944,7 +1944,7 @@ def page_org(d, o, manifest_total):
         <dt>UEI</dt><dd>{esc(o.get('uei') or '—')}</dd>
         <dt>Address</dt><dd>{esc(' '.join(x for x in [o.get('address1'), o.get('city'), o.get('state'), o.get('zip')] if x) or '—')}</dd>
         <dt>Website</dt><dd>{(f'<a href="{esc(o["website"])}" rel="noopener">{esc(o["website"])}</a>' if o.get('website') else '—')}</dd>
-        <dt>Email</dt><dd>{esc(o.get('email') or '—')}</dd>
+        <dt>Email</dt><dd>{(f'<a href="mailto:{esc(o["email"])}">{esc(o["email"])}</a>' if o.get('email') else '—')}</dd>
         <dt>Phone</dt><dd>{esc(o.get('phone') or '—')}</dd>
         <dt>Founded</dt><dd>{num(o.get('founded'))}</dd>
         <dt>NTEE</dt><dd>{esc(o.get('ntee') or '—')}</dd>
