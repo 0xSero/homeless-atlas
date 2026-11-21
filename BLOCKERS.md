@@ -521,3 +521,20 @@ missing website is a smaller error than a wrong one.
 **Still short:** 1,063 websites. What is left are government entities whose domains do not contain
 their name, and organisations with no site at all. The honest next step is the free SAM.gov entity API
 (`entityURL` per registered entity), which resolves addresses by UEI rather than by guessing domains.
+
+### City, county and housing-authority websites, generated then proved
+
+Government entities' domains do not always contain their name, so the Common Crawl match misses them.
+Their addresses are predictable instead: `cityof<place>.org`, `<place><st>.gov`, `ci.<place>.<st>.us`,
+`co.<place>.<st>.us`, and for housing authorities `hac<town>.org`, `<town>ha.org`, `<town>pha.org`.
+The URL is generated, but it is written **only when the page proves it**: HTTP 200, the place name on
+the page, *and* the state (abbreviation or full name).
+
+| family | tried | written |
+|---|---|---|
+| cities, counties, towns, villages, boroughs | 690 | 309 |
+| housing authorities | 317 | 29 |
+| **total** | **1,007** | **338** |
+
+Websites **3,937 → 4,275**; contact addresses mined from those same cached pages took emails to
+**2,382**. Housing authorities yield badly (9%) because the small ones have no site at all.

@@ -55,6 +55,8 @@ def candidates(place: str, kind: str, state: str) -> list[str]:
         f"https://www.{p}.org", f"https://www.{p}.us",
         f"https://www.ci.{p}.{st}.us", f"https://www.co.{p}.{st}.us", f"https://{p}.gov",
     ]
+    out += [f"https://www.{p}{st}.org", f"https://www.{p}-{st}.gov", f"https://www.{p}city.gov",
+            f"https://www.{p}county.org", f"https://www.{p}-{st}.org"]
     if kind == "county":
         out = [f"https://www.{p}county{st}.gov", f"https://www.{p}county.gov",
                f"https://www.co.{p}.{st}.us", f"https://{p}county{st}.gov"] + out
@@ -75,13 +77,51 @@ STATES = {"AL": "alabama", "AK": "alaska", "AZ": "arizona", "AR": "arkansas", "C
           "WY": "wyoming", "DC": "district of columbia", "PR": "puerto rico"}
 
 
+def pha_candidates(name: str, city: str, state: str) -> list[str]:
+    m = re.search(r"(.*?)\s+HOUSING AUTHORITY|HOUSING AUTHORITY\s+OF\s+(.*)", name or "", re.I)
+    town = (m.group(1) or m.group(2) or "").strip() if m else ""
+    town = re.sub(r"^(CITY OF|COUNTY OF|TOWN OF|THE)\s+", "", town, flags=re.I)
+    town = re.sub(r"\s+(COUNTY|CITY|WEST|VIRGINIA|NORTH|SOUTH|EAST|WEST)$", "", town, flags=re.I).strip()
+    if not town and city:
+        town = city
+    p = slug(town)
+    if not p or len(p) < 3:
+        return []
+    st = (state or "").lower()
+    return [f"https://www.hac{p}.org", f"https://www.{p}ha.org", f"https://www.{p}housing.org",
+            f"https://www.{p}housingauthority.org", f"https://www.{p}pha.org",
+            f"https://www.{p}ha.us", f"https://www.hac{p}.us", f"https://www.{p}housingauthority.com",
+            f"https://www.{p}ha.gov", f"https://www.{p}.gov"]
+
+
+def check_pha(org: dict) -> tuple[dict, str, int]:
+    town = ""
+    toks = [t for t in re.split(r"[^A-Za-z0-9]+", org["name"] or "")
+            if len(t) > 3 and t.lower() not in WORD_STOP]
+    st = (org["state"] or "").upper()
+    full = STATES.get(st, "")
+    for url in pha_candidates(org["name"], org.get("city") or "", org["state"]):
+        try:
+            body = fetch(url, domain="org_gov", timeout=6).decode("utf-8", "replace")
+        except Exception:
+            continue
+        low = body[:400_000].lower()
+        state_ok = (bool(st) and re.search(r"\b" + re.escape(st.lower()) + r"\b", low) is not None) \
+                   or (bool(full) and full in low)
+        authority_ok = "housing authority" in low or "public housing" in low
+        tokens_ok = sum(1 for t in toks if t.lower() in low) >= min(2, len(toks))
+        if state_ok and authority_ok and tokens_ok:
+            return org, url, 1
+    return org, "", 0
+
+
 def check(org: dict) -> tuple[dict, str, int]:
     place, kind = entity_place(org["name"])
     toks = [t for t in re.split(r"[^A-Za-z0-9]+", org["name"] or "") if len(t) > 3 and t.lower() not in WORD_STOP]
     st = (org["state"] or "").lower().strip()
     for url in candidates(place, kind, org["state"]):
         try:
-            body = fetch(url, domain="org_gov", timeout=10).decode("utf-8", "replace")
+            body = fetch(url, domain="org_gov", timeout=6).decode("utf-8", "replace")
         except Exception:
             continue
         low = body[:400_000].lower()
@@ -102,6 +142,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--limit", type=int, default=None)
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--pha", action="store_true", help="housing authorities instead of cities/counties")
     ap.add_argument("--recheck", action="store_true", help="re-apply the strict rule to accepted rows")
     a = ap.parse_args()
     conn = sqlite3.connect(DB, timeout=300)
@@ -138,19 +179,24 @@ def main():
         print(json.dumps({"rechecked": len(rows), "dropped": dropped}))
         return
     seen = {r[0] for r in conn.execute("SELECT org_id FROM org_gov_site")}
-    rows = [dict(r) for r in conn.execute(
-        """SELECT id, name, city, state FROM org
-            WHERE website IS NULL AND (name LIKE 'CITY OF %' OR name LIKE 'COUNTY OF %'
-               OR name LIKE 'TOWN OF %' OR name LIKE 'VILLAGE OF %' OR name LIKE 'BOROUGH OF %'
-               OR name LIKE 'PARISH OF %')
-            ORDER BY id""")]
+    if a.pha:
+        rows = [dict(r) for r in conn.execute(
+            """SELECT id, name, city, state FROM org
+                WHERE website IS NULL AND name LIKE '%HOUSING AUTHORITY%' ORDER BY id""")]
+    else:
+        rows = [dict(r) for r in conn.execute(
+            """SELECT id, name, city, state FROM org
+                WHERE website IS NULL AND NOT name LIKE '%HOUSING AUTHORITY%'
+                  AND (name LIKE 'CITY OF %' OR name LIKE 'COUNTY OF %' OR name LIKE 'TOWN OF %'
+                       OR name LIKE 'VILLAGE OF %' OR name LIKE 'BOROUGH OF %' OR name LIKE 'PARISH OF %')
+                ORDER BY id""")]
     rows = [r for r in rows if r["id"] not in seen]
     if a.limit:
         rows = rows[: a.limit]
     print(f"to try: {len(rows):,}", flush=True)
     written = 0
-    with ThreadPoolExecutor(max_workers=8) as pool:
-        for i, (org, url, matched) in enumerate(pool.map(check, rows), 1):
+    with ThreadPoolExecutor(max_workers=16) as pool:
+        for i, (org, url, matched) in enumerate(pool.map(check_pha if a.pha else check, rows), 1):
             if matched and not a.dry_run:
                 conn.execute("UPDATE org SET website=?, updated_at=? WHERE id=?", (url, now(), org["id"]))
                 written += 1
