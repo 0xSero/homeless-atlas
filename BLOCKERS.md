@@ -471,6 +471,12 @@ AWS's `irs-form-990` bucket, which used to serve one XML per filing and would ha
 cheap, is now **empty** (`KeyCount 0`). The only published route is the per-year batch ZIPs, which the
 ingest uses; it cannot conjure filings that were never submitted electronically.
 
+**A second, smaller ceiling found later:** the 2019–2021 indexes carry no `XML_BATCH_ID` column, only
+`OBJECT_ID`. Without the batch name the archive holding a filing cannot be addressed, so **438 filings
+belonging to unfetched organisations** (274 from 2021, 164 from 2020) would require downloading whole
+year archives — ~24 per year, 300–800 MB each — and scanning them. Recovering all of them at the
+observed 74% adds ~325 rows: 2,903 → ~3,230, still short of 5,000.
+
 **What would unblock it:** a different definition of "program description" — the organisations' own
 websites (2,092 of which are verified in this archive) — or a paid filing aggregator. Neither is a
 Form 990 Part III, so the target as written cannot be met and is left short rather than filled with a

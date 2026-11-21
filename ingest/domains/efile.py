@@ -122,6 +122,7 @@ def main():
     # The IRS publishes the XML in per-year batch ZIPs, not as individual files, so the index tells us
     # which batch holds each organisation's latest return and we download only those batches.
     latest: dict[str, tuple[str, str, str]] = {}          # ein -> (tax_period, batch, object_id)
+    no_batch: dict[int, int] = {}                          # year -> filings with no batch id in the index
     for year in a.years:
         url = INDEX_URL.format(year=year)
         try:
@@ -138,11 +139,16 @@ def main():
             period = (r.get("TAX_PERIOD") or "").strip()
             batch = (r.get("XML_BATCH_ID") or "").strip()
             oid = (r.get("OBJECT_ID") or "").strip()
+            if oid and not batch:
+                no_batch[year] = no_batch.get(year, 0) + 1
+                continue
             if not (batch and oid):
                 continue
             prev = latest.get(ein)
             if prev is None or period > prev[0]:
                 latest[ein] = (period, batch, oid)
+    if no_batch:
+        print(f"  indexes without a batch id (filings cannot be located): {no_batch}")
     print(f"latest filings to fetch: {len(latest):,}")
 
     # one zip per batch, entries extracted only for the object ids we asked for
