@@ -1,6 +1,6 @@
 ---
 # Copy this file to research/county/<ST>/<5-digit FIPS>-<slug>.md, e.g. research/county/PA/42049-erie.md
-# Then run: python3 -m ingest.domains.local_sources --county <FIPS>
+# Then run: python3 scripts/county.py check <FIPS>
 county_fips: "00000"          # quoted, always: unquoted 01001 is read by YAML as the number 513
 county: Example County        # as the Census Bureau names it
 state: XX                     # 2-letter postal code; must match the folder name
