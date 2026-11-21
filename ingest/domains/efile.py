@@ -200,6 +200,11 @@ def main():
             print(f"  {batch}: unzip {type(e).__name__}")
         finally:
             zpath.unlink(missing_ok=True)   # 100 MB per batch; keep only the extracted filings
+            # the fetch cache also keeps a copy of every archive; drop it too or the disk fills
+            import hashlib
+            ck = hashlib.sha1(("GET" + zurl + "{}").encode()).hexdigest()
+            for suffix in (".bin", ".meta.json"):
+                (Path("data/raw") / DOMAIN / f"{ck}{suffix}").unlink(missing_ok=True)
         print(f"  {batch}: {len(oids)} wanted, {sum(1 for o in oids if (xml_dir / f'{o}.xml').exists())} extracted",
               flush=True)
 

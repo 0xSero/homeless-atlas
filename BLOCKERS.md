@@ -445,3 +445,33 @@ The subawards item was finished by hand (`ingest/domains/subawards.py`, 2,705 ro
 for the 7,200 s worker timeout. The loop is installed as `atlas-loop.service` (systemd user unit,
 `Restart=always`) but left **stopped** until `api.homelabai.org` answers or the unit's `MODEL` is
 changed to a reachable one — spawning workers that cannot connect just burns two hours each.
+
+## 2026-11-21 — Part III has a hard ceiling of 2,903 organisations in this archive
+
+**Target (goal item 4):** 5,000 organisations with a Part III program-service description.
+**Reached:** 2,903. The gap is structural, and here is the arithmetic.
+
+Of the 11,404 organisations that carry an EIN:
+
+| step | count |
+|---|---|
+| EINs in the archive | 11,404 |
+| e-filed returns found in the 2019–2026 IRS indexes and parsed | 4,027 |
+| of those, filings that actually carry Part III text | **2,903** (74%) |
+| EINs with **no e-filed return in any published index year** | 7,191 |
+
+The 7,191 are not a fetching failure. Five sampled at random — Wyoming Homeless Collaborative
+(472437635), Safe Haven Associates (911727990), H.E.L.P. (133449085), Promise House (752180083),
+Montgomery County Homeless Continuum (760612493) — appear in **neither the 2025 nor the 2026 e-file
+index**. Those organisations file the 990-N postcard, which has no Part III, or they have stopped
+filing; the remainder of the 74% shortfall are 990-EZ filers, whose form has no program-service
+section either.
+
+AWS's `irs-form-990` bucket, which used to serve one XML per filing and would have made a wider sweep
+cheap, is now **empty** (`KeyCount 0`). The only published route is the per-year batch ZIPs, which the
+ingest uses; it cannot conjure filings that were never submitted electronically.
+
+**What would unblock it:** a different definition of "program description" — the organisations' own
+websites (2,092 of which are verified in this archive) — or a paid filing aggregator. Neither is a
+Form 990 Part III, so the target as written cannot be met and is left short rather than filled with a
+substitute.
