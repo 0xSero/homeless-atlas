@@ -1733,6 +1733,9 @@ def agency(name):
 
 PROFILE_LABEL = {
     "profile_score": "public-record profile",
+    "officer_turnover": "officer turnover (latest pair)",
+    "cost_per_officer": "expenses per named officer †",
+    "officer_dropout_flag": "roster gap in the filings",
     "profile_disclosure": "disclosure / 40",
     "profile_solvency": "solvency / 25",
     "profile_dependency": "CoC dependency / 20",
@@ -1742,23 +1745,42 @@ PROFILE_LABEL = {
 
 def org_profile(org_id):
     """The public-record profile: filing completeness and financial shape, never an outcome claim."""
-    rows = q(CONN, """SELECT metric, value, note FROM metric
-                       WHERE entity_type='org' AND entity_id=? AND metric LIKE 'profile_%'
+    rows = q(CONN, """SELECT metric, value, note, year FROM metric
+                       WHERE entity_type='org' AND entity_id=?
+                         AND (metric LIKE 'profile_%' OR metric IN ('officer_turnover','cost_per_officer',
+                                                                    'officer_dropout_flag'))
                        ORDER BY CASE metric WHEN 'profile_score' THEN 0
                                             WHEN 'profile_disclosure' THEN 1
                                             WHEN 'profile_solvency' THEN 2
                                             WHEN 'profile_dependency' THEN 3
-                                            ELSE 4 END""",
+                                            WHEN 'profile_pay' THEN 4
+                                            WHEN 'officer_turnover' THEN 5
+                                            WHEN 'cost_per_officer' THEN 6
+                                            ELSE 7 END, year DESC""",
              (str(org_id),))
     if not rows:
         return ""
     score = next((r for r in rows if r["metric"] == "profile_score"), None)
     if not score:
         return ""
-    bars = "".join(
-        f'<tr><td>{esc(PROFILE_LABEL.get(r["metric"], r["metric"]))}</td>'
-        f'<td class="r">{r["value"]:g}</td></tr>'
-        for r in rows if r["metric"] != "profile_score")
+    def fmt(r):
+        m = r["metric"]
+        if m == "officer_turnover":
+            return pct((r["value"] or 0) * 100)
+        if m == "cost_per_officer":
+            return money(r["value"])
+        if m == "officer_dropout_flag":
+            return "yes"
+        return f'{r["value"]:g}'
+
+    seen = set()
+    bars = ""
+    for r in rows:
+        if r["metric"] == "profile_score" or r["metric"] in seen:
+            continue
+        seen.add(r["metric"])
+        bars += (f'<tr><td>{esc(PROFILE_LABEL.get(r["metric"], r["metric"]))}</td>'
+                 f'<td class="r">{fmt(r)}</td></tr>')
     return (f'<div class="panel"><h3>Public-record profile</h3>'
             f'<p class="num" style="font-family:var(--serif);font-size:2rem;margin:0 0 .1em">'
             f'{score["value"]:g}<span class="dim" style="font-size:.9rem"> / 100</span></p>'
