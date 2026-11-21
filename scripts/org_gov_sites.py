@@ -115,6 +115,48 @@ def check_pha(org: dict) -> tuple[dict, str, int]:
     return org, "", 0
 
 
+KW = ("shelter", "homeless", "rescue", "mission", "house", "housing", "haven", "hope")
+
+
+def kw_candidates(org: dict) -> list[str]:
+    city = slug(org.get("city") or "")
+    if len(city) < 4:
+        return []
+    name = (org["name"] or "").lower()
+    words = [w for w in KW if w in name]
+    st = (org["state"] or "").lower()
+    out = [f"https://www.{city}{w}.org" for w in words[:2]]
+    out += [f"https://www.{city}{w}.com" for w in words[:1]]
+    out += [f"https://www.{city}homeless.org", f"https://www.{city}shelter.org",
+            f"https://www.{city}rescuemission.org", f"https://www.{city}mission.org"]
+    if city and st:
+        out += [f"https://www.{city}{st}.org"]
+    return out
+
+
+def check_kw(org: dict) -> tuple[dict, str, int]:
+    toks = [t.lower() for t in re.split(r"[^A-Za-z0-9]+", org["name"] or "")
+            if len(t) > 3 and t.lower() not in WORD_STOP]
+    st = (org["state"] or "").upper()
+    full = STATES.get(st, "")
+    city = (org.get("city") or "").lower().strip()
+    if not toks or not city:
+        return org, "", 0
+    for url in kw_candidates(org):
+        try:
+            body = fetch(url, domain="org_gov", timeout=6).decode("utf-8", "replace")
+        except Exception:
+            continue
+        low = body[:400_000].lower()
+        state_ok = (bool(st) and re.search(r"\b" + re.escape(st.lower()) + r"\b", low) is not None) \
+                   or (bool(full) and full in low)
+        city_ok = city in low
+        tokens_ok = sum(1 for t in toks if t in low) >= min(2, len(toks))
+        if state_ok and city_ok and tokens_ok:
+            return org, url, 1
+    return org, "", 0
+
+
 def check(org: dict) -> tuple[dict, str, int]:
     place, kind = entity_place(org["name"])
     toks = [t for t in re.split(r"[^A-Za-z0-9]+", org["name"] or "") if len(t) > 3 and t.lower() not in WORD_STOP]
@@ -142,6 +184,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--limit", type=int, default=None)
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--kw", action="store_true", help="city-plus-service keyword domains")
     ap.add_argument("--pha", action="store_true", help="housing authorities instead of cities/counties")
     ap.add_argument("--recheck", action="store_true", help="re-apply the strict rule to accepted rows")
     a = ap.parse_args()
@@ -179,7 +222,14 @@ def main():
         print(json.dumps({"rechecked": len(rows), "dropped": dropped}))
         return
     seen = {r[0] for r in conn.execute("SELECT org_id FROM org_gov_site")}
-    if a.pha:
+    if a.kw:
+        rows = [dict(r) for r in conn.execute(
+            """SELECT id, name, city, state FROM org
+                WHERE website IS NULL AND city IS NOT NULL AND city != ''
+                  AND (name LIKE '%SHELTER%' OR name LIKE '%HOMELESS%' OR name LIKE '%RESCUE%'
+                       OR name LIKE '%MISSION%' OR name LIKE '%HOUSE%')
+                ORDER BY id""")]
+    elif a.pha:
         rows = [dict(r) for r in conn.execute(
             """SELECT id, name, city, state FROM org
                 WHERE website IS NULL AND name LIKE '%HOUSING AUTHORITY%' ORDER BY id""")]
@@ -196,7 +246,7 @@ def main():
     print(f"to try: {len(rows):,}", flush=True)
     written = 0
     with ThreadPoolExecutor(max_workers=16) as pool:
-        for i, (org, url, matched) in enumerate(pool.map(check_pha if a.pha else check, rows), 1):
+        for i, (org, url, matched) in enumerate(pool.map(check_kw if a.kw else check_pha if a.pha else check, rows), 1):
             if matched and not a.dry_run:
                 conn.execute("UPDATE org SET website=?, updated_at=? WHERE id=?", (url, now(), org["id"]))
                 written += 1
