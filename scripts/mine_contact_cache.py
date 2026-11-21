@@ -61,6 +61,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--limit", type=int, default=None)
+    ap.add_argument("--dir", action="append", default=None,
+                    help="cache directory to mine (repeatable); default data/raw/org_contacts")
     a = ap.parse_args()
 
     conn = sqlite3.connect(DB, timeout=300)
@@ -79,7 +81,8 @@ def main():
 
     found: dict[int, Counter] = defaultdict(Counter)
     page_of: dict[int, str] = {}
-    files = sorted(CACHE.glob("*.meta.json"))
+    dirs = [Path(d) for d in (a.dir or [str(CACHE)])]
+    files = sorted(f for d in dirs for f in d.glob("*.meta.json"))
     if a.limit:
         files = files[: a.limit]
     for meta_path in files:
