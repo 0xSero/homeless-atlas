@@ -493,3 +493,31 @@ observed 74% adds ~325 rows: 2,903 → ~3,230, still short of 5,000.
 websites (2,092 of which are verified in this archive) — or a paid filing aggregator. Neither is a
 Form 990 Part III, so the target as written cannot be met and is left short rather than filled with a
 substitute.
+
+## 2026-11-21 — the website gap narrowed to 3,937 of 5,000, by name-matching not by search
+
+Search had a quota; the Common Crawl domain rank list does not. It names every domain the crawl has
+seen (134,979,706 of them, 2.5 GB), so an organisation whose name appears in its own domain can be
+found without asking anybody. Two passes:
+
+| pass | rule | candidates | verified and written |
+|---|---|---|---|
+| 1 | exact name key, or 12-char prefix within ±6 | 5,086 | 1,269 |
+| 2 | containment anywhere, ±10 length window | 8,049 | 408 |
+
+Every candidate was fetched, and written only when the page named the organisation together with its
+city, or all of its distinctive words with its city, or two distinctive words with its state.
+**Websites 2,092 → 3,937.** The pages were then mined for contact addresses on the spot: **emails
+1,422 → 2,297, which meets the 2,000 target.**
+
+**A precision bug worth recording.** The first run of the city/county pattern generator accepted a
+match when the city name appeared on the page, without the state — and put `charleston.org` on
+Charleston, West Virginia (that domain mentions California, not West Virginia). Re-checking all 20
+accepted rows against the strict rule dropped **8 of 20 (40%)**, including `cityofsanantonio.org` for
+San Antonio, whose real site is `sanantonio.gov`. The rule now demands the state; the cost is that
+`cityofappleton.org` — a correct site — was dropped too, because its page carries no state text. A
+missing website is a smaller error than a wrong one.
+
+**Still short:** 1,063 websites. What is left are government entities whose domains do not contain
+their name, and organisations with no site at all. The honest next step is the free SAM.gov entity API
+(`entityURL` per registered entity), which resolves addresses by UEI rather than by guessing domains.
