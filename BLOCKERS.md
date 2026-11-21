@@ -414,18 +414,20 @@ environment can top up the rest, but only at 2,000 lookups per month.
 **Decision:** leave the columns at their verified values rather than fill them from search results
 that cannot be checked; the goal's own rule is that a URL that does not answer is worse than NULL.
 
-## 2026-11-21 — Part III XML: 1,945 of 5,000 organisations
+## 2026-11-21 — Part III XML: was blocked, then fixed (my extraction code, not the source)
 
-The IRS publishes the 990 XML only as per-year batch ZIPs (~100–520 MB each). Three attempts failed
-before the cause was found:
+**Status: resolved.** The 990 XML ingest stalled at 1,945 of 5,000 organisations and I first recorded
+it here as a source limitation. That was wrong. Three bugs in `ingest/domains/efile.py` were stacked:
 
-1. `zipfile` raised `NotImplementedError` on several published archives → switched to the `unzip` CLI.
-2. Some batches are named `2024_TEOS_XML_05a` in the index while the file on disk is `05A` → every
-   object id in those batches failed with FileNotFoundError (1,334 EINs). Fixed by upper-casing the
-   batch name and rejecting any download that is not a real ZIP (`PK` magic).
-3. After those fixes the sweep continues; 2,782 organisations are parsed and 1,945 have programme text.
+1. `unzip -o -j -q <zip> <names…> -d <dir>` — `-d` must come **before** the member list, otherwise
+   `unzip` reads the directory as another member name and exits non-zero (which `check=False` hid).
+2. `unzip -j` writes the published basename `…_public.xml`, but the parser looked for `<oid>.xml`, so
+   every successfully extracted filing was invisible and reported as missing.
+3. The index names some batches `2024_TEOS_XML_05a` while the published archive is `05A`.
 
-Nothing is estimated: organisations without a parsed filing simply have no row in `org_program`.
+After the fixes a supervised run parsed 1,201 filings with **0 failures**. Lesson recorded because it
+generalises: a script that extracts nothing should raise, not report a count of zero and move on —
+`check=False` and a missing rename turned a loud error into a silent "blocked".
 
 ## 2026-11-21 — the ingest loop cannot run while the model endpoint is down
 

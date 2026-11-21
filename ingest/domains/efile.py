@@ -173,11 +173,29 @@ def main():
         try:
             import subprocess
             listing = subprocess.run(["unzip", "-Z1", str(zpath)], capture_output=True, text=True, timeout=600)
-            wanted = [n for n in listing.stdout.splitlines()
-                      if Path(n).stem.replace("_public", "") in oids]
+            entries = [n for n in listing.stdout.splitlines() if n.strip()]
+            wanted = [n for n in entries if Path(n).stem.replace("_public", "") in oids]
+            if not entries:
+                print(f"  {batch}: zip listing empty (stderr={listing.stderr.strip()[:120]}, "
+                      f"size={zpath.stat().st_size})")
+            elif not wanted:
+                sample = entries[:2]
+                print(f"  {batch}: {len(entries)} entries, none matched {len(oids)} oids; "
+                      f"e.g. {sample} vs oid sample {list(oids)[:2]}")
             for i in range(0, len(wanted), 200):
-                subprocess.run(["unzip", "-o", "-j", "-q", str(zpath), *wanted[i:i + 200],
-                                "-d", str(xml_dir)], check=False, timeout=900)
+                # -d must precede the member list, or unzip reads the directory as a member name
+                r = subprocess.run(["unzip", "-o", "-j", "-q", str(zpath), "-d", str(xml_dir),
+                                    *wanted[i:i + 200]], capture_output=True, text=True, timeout=900)
+                if r.returncode:
+                    print(f"    unzip rc={r.returncode} err={r.stderr.strip()[:160]}")
+            # unzip -j keeps the published basename (…_public.xml); the parser looks for <oid>.xml
+            for n in wanted:
+                base = Path(n).name
+                if base.endswith("_public.xml"):
+                    src_p = xml_dir / base
+                    dst_p = xml_dir / (base[: -len("_public.xml")] + ".xml")
+                    if src_p.exists() and not dst_p.exists():
+                        src_p.rename(dst_p)
         except Exception as e:
             print(f"  {batch}: unzip {type(e).__name__}")
         finally:

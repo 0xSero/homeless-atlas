@@ -1869,6 +1869,34 @@ def org_profile(org_id):
             f'effectiveness.</p></div>')
 
 
+def org_program_block(org_id):
+    """What the organisation says it does, verbatim from Part III of its own Form 990."""
+    r = q(CONN, """SELECT year, mission, program_text, expenses_program, revenue_total, source_id
+                     FROM org_program WHERE org_id=? ORDER BY year DESC LIMIT 1""", (org_id,))
+    if not r:
+        return ""
+    row = r[0]
+    mission = esc((row.get("mission") or "")[:900])
+    prog = esc((row.get("program_text") or "")[:1600])
+    share = ""
+    if row.get("expenses_program") and row.get("revenue_total"):
+        try:
+            share = f' · {row["expenses_program"] / row["revenue_total"] * 100:.0f}% of revenue went to programme services'
+        except ZeroDivisionError:
+            share = ""
+    body = ""
+    if mission:
+        body += f'<p style="margin:.2em 0 .6em">{mission}</p>'
+    if prog:
+        body += f'<p class="dim" style="margin:0 0 .6em;font-size:.9rem">{prog}</p>'
+    if not body:
+        return ""
+    return (f'<h2>In its own words{share}</h2>'
+            f'<p class="dim" style="font-size:.78rem;margin:0 0 .8em">Part III of the {esc(str(row.get("year") or ""))} '
+            f'Form 990, verbatim {cite(row.get("source_id"))}. Filers write these themselves; nothing here is edited.</p>'
+            f'{body}')
+
+
 def page_org(d, o, manifest_total):
     awards = q(CONN, """SELECT * FROM award WHERE org_id=? ORDER BY amount_obligated DESC NULLS LAST LIMIT 500""", (o["id"],))
     people = q(CONN, """SELECT * FROM org_person WHERE org_id=? ORDER BY COALESCE(comp,0) DESC LIMIT 200""", (o["id"],))
@@ -1907,6 +1935,7 @@ def page_org(d, o, manifest_total):
       {org_profile(o["id"])}
       <h2>Awards</h2>
       {table([("Award",""),("Agency",""),("Description",""),("Obligated","r"),("Year","r")], aw)}
+      {org_program_block(o["id"])}
     </div>
     <div>
       <div class="panel"><h3>Facts</h3><dl class="facts">
