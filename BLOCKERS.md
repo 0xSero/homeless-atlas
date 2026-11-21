@@ -446,6 +446,18 @@ for the 7,200 s worker timeout. The loop is installed as `atlas-loop.service` (s
 `Restart=always`) but left **stopped** until `api.homelabai.org` answers or the unit's `MODEL` is
 changed to a reachable one — spawning workers that cannot connect just burns two hours each.
 
+### Partial unblock: 544 addresses recovered from pages we had already fetched
+
+The 19 GB page cache under `data/raw/org_contacts/` holds 5,023 pages from the organisations' own
+websites. Re-parsing it — no requests, no quota — found a plausible published address for **1,225
+organisations**, of which **544 had none on record**: emails 862 → **1,406**.
+`scripts/mine_contact_cache.py` records the page each address came from in `org_email_mine`.
+
+Crawling contact pages for the remainder was tried and abandoned: a bounded run over the organisations
+that have a website but no address found no usable mailbox in the pages it fetched (these sites hide
+contact behind a form, or render it client-side). Mining what was already stored was the only
+productive route, and its quota cost was zero.
+
 ## 2026-11-21 — Part III has a hard ceiling of 2,903 organisations in this archive
 
 **Target (goal item 4):** 5,000 organisations with a Part III program-service description.

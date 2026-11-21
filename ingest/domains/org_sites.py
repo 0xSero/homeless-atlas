@@ -95,6 +95,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--limit", type=int, default=400)
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--emails-only", action="store_true",
+                    help="skip search; crawl the websites we already hold for a contact address")
     a = ap.parse_args()
     key = os.environ.get("BRAVE_API_KEY", "")
     if not key:
@@ -110,16 +112,48 @@ def main():
     conn.commit()
     src = source_id_for(conn, SEARCH, DOMAIN, title="Brave Search API", publisher="Brave Software")
 
-    rows = conn.execute("""
-        SELECT o.id, o.name, o.city, o.state,
-               (SELECT SUM(amount_obligated) FROM award a WHERE a.org_id=o.id) amt
-          FROM org o LEFT JOIN org_site_check c ON c.org_id=o.id
-         WHERE o.website IS NULL AND c.org_id IS NULL AND o.name IS NOT NULL
-         ORDER BY COALESCE(amt,0) DESC, o.id LIMIT ?""", (a.limit,)).fetchall()
+    if a.emails_only:
+        rows = conn.execute("""
+            SELECT o.id, o.name, o.city, o.state, o.website,
+                   (SELECT SUM(amount_obligated) FROM award a WHERE a.org_id=o.id) amt
+              FROM org o LEFT JOIN org_email_mine m ON m.org_id = o.id
+             WHERE o.website IS NOT NULL AND o.email IS NULL AND m.org_id IS NULL
+             ORDER BY COALESCE(amt,0) DESC, o.id LIMIT ?""", (a.limit,)).fetchall()
+    else:
+        rows = conn.execute("""
+            SELECT o.id, o.name, o.city, o.state, NULL AS website,
+                   (SELECT SUM(amount_obligated) FROM award a WHERE a.org_id=o.id) amt
+              FROM org o LEFT JOIN org_site_check c ON c.org_id=o.id
+             WHERE o.website IS NULL AND c.org_id IS NULL AND o.name IS NOT NULL
+             ORDER BY COALESCE(amt,0) DESC, o.id LIMIT ?""", (a.limit,)).fetchall()
     print(f"organisations to look up: {len(rows):,}")
 
     found = mailed = 0
     for i, r in enumerate(rows, 1):
+        if a.emails_only:
+            q = r["website"]
+            base = q.rstrip("/")
+            email = ""
+            for path in ("", "/contact", "/contact-us", "/about"):
+                try:
+                    h = fetch(base + path, domain=DOMAIN, headers={"User-Agent": UA}, timeout=25)
+                    email = grab_email(h.decode("utf-8", "replace")[:400000])
+                    if email:
+                        break
+                except Exception:
+                    continue
+            if email:
+                mailed += 1
+                if not a.dry_run:
+                    conn.execute("UPDATE org SET email=?, updated_at=? WHERE id=?", (email, now(), r["id"]))
+                    conn.execute("INSERT OR REPLACE INTO org_site_check VALUES(?,?,?,?,?,?,?)",
+                                 (r["id"], q, base, 200, 1, email, now()))
+            if i % 20 == 0:
+                if not a.dry_run:
+                    conn.commit()
+                print(f"  [{i}/{len(rows)}] emails={mailed}", flush=True)
+            time.sleep(1)
+            continue
         q = " ".join(x for x in (r["name"], r["city"], r["state"]) if x)
         results = search(conn, key, q)
         chosen, status, email = "", 0, ""
