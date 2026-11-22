@@ -870,3 +870,18 @@ dataset", also a named stop condition:
 3. ProPublica holds the filings but its download endpoint answers 403 to every honest request.
 
 Both conditions are met and evidenced. No row was invented to close either gap.
+
+## 2026-11-22 — the Internet Archive does not hold them either
+
+Last untried route for the orphaned filings: the Wayback Machine, which is public, permitted, and
+frequently holds what an origin has since deleted.
+
+| query | result |
+|---|---|
+| availability of `s3.amazonaws.com/irs-form-990/<OBJECT_ID>_public.{pdf,xml}`, 6 real ids from `index_2021.csv` | **0 of 12 snapshots** |
+| availability of ProPublica `download-filing?path=…` URLs for organisations with no Part III | **0 snapshots** |
+| CDX prefix query for `s3.amazonaws.com/irs-form-990*` | `[]` — the bucket was never crawled under that key |
+
+Nobody archived the filings before the bucket emptied. That is the ninth measured route for Part III and
+the last one that exists in public data. The count stays at **2,950 of 5,000**, and the organisations in
+the gap are ones whose only published filing is a 990-N postcard, which contains no narrative at all.
