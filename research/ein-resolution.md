@@ -13,7 +13,18 @@ Name normalised (case, punctuation, legal suffixes removed), then:
    equal or absent: **28 organisations**;
 3. **tier 3** — normalised name identical, **20+ characters and unique in the registry nationally**:
    166 candidates, 155 written (11 skipped because that EIN was already claimed by another org record,
-   which would have broken the one-EIN-one-organisation invariant `audit.py` enforces).
+   which would have broken the one-EIN-one-organisation invariant `audit.py` enforces);
+4. **tier 4** — the same test at **14–19 characters**: 87 written, and the weakest claim of the four, so
+   from this tier onward every filing must corroborate the match itself (below).
+
+## Corroboration for name-matched EINs
+
+An EIN recovered by name-matching is a weaker claim than one printed on our own record, so the e-file
+ingestor now checks the return header before writing anything for such an organisation: the filing's
+`City` and `State` must agree with the organisation's own. Disagreement is recorded as
+`identity_unconfirmed` and **nothing is written** — 17 filings were rejected this way in the tier-4 run.
+That guard was added for tier 4; tiers 1–3 were matched on city and state in the first place, so the two
+routes agree by construction.
 
 Every resolution is recorded in `org_ein_resolved` with the rule that produced it; nothing was matched on
 name alone. Tier 1 was applied first and its filings ingested; tier 2 was measured, then applied.
@@ -27,6 +38,7 @@ Running the e-file ingestor over the resolved EINs:
 | tier 1 (200 EINs) | 213 | **100** | 3,050 |
 | tier 2 (28 EINs) | 133 | **18** | 3,068 |
 | tier 3 (155 EINs) | 162 | **36** | 3,380 |
+| tier 4 (87 EINs) | 148 | **5** | 3,385 |
 
-**Part III 2,950 → 3,380.** The remaining organisations without an EIN are overwhelmingly government
+**Part III 2,950 → 3,385.** The remaining organisations without an EIN are overwhelmingly government
 entities — cities, counties, housing authorities — which do not file a Form 990 at all.

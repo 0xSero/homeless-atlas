@@ -41,7 +41,7 @@ XML_URL = "https://apps.irs.gov/pub/epostcard/990/xml/{year}/{oid}_public.xml"
 UA = ("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) "
       "Chrome/126.0 Safari/537.36")
 
-FIELDS = ("WebsiteAddressTxt", "MissionDesc", "DescriptionProgramSrvcDescr",
+FIELDS = ("WebsiteAddressTxt", "MissionDesc", "DescriptionProgramSrvcDescr", "City", "State",
           "TotalProgramServiceExpensesAmt", "ActivityOrMissionDesc", "EmailAddress", "Email",
           "WebsiteAddress", "TotalRevenueColumn", "TotalExpensesColumn", "Organization501c3Indicator")
 
@@ -217,6 +217,10 @@ def main():
     if a.limit:
         latest = dict(list(latest.items())[: a.limit])
 
+    try:
+        resolved_eins = {r[0] for r in conn.execute("SELECT org_id FROM org_ein_resolved")}
+    except Exception:
+        resolved_eins = set()
     stats = {"xml": 0, "no_fields": 0, "website": 0, "email": 0, "program": 0, "fail": 0}
     for i, (ein, (period, batch, oid)) in enumerate(sorted(latest.items()), 1):
         fpath = xml_dir / f"{oid}.xml"
@@ -239,6 +243,23 @@ def main():
             continue
 
         org_id = want[ein]
+
+        # An EIN recovered by name-matching (org_ein_resolved) is a weaker claim than an EIN printed on
+        # our own record, so the filing must corroborate it: the address in the return header has to
+        # agree with the organisation's own city and state before any of it is written.
+        if org_id in resolved_eins:
+            row = conn.execute("SELECT city, state FROM org WHERE id=?", (org_id,)).fetchone()
+            f_city = (next((v for v in f.get("City", []) if v), "") or "").strip().lower()
+            f_state = (next((v for v in f.get("State", []) if v), "") or "").strip().upper()
+            o_city = ((row[0] if row else "") or "").strip().lower()
+            o_state = ((row[1] if row else "") or "").strip().upper()
+            if f_city and o_city and f_state and o_state and (f_city != o_city or f_state != o_state):
+                conn.execute("INSERT OR REPLACE INTO efile_progress VALUES(?,?,?,?,?,?)",
+                             (ein, int(period[:4]) if period[:4].isdigit() else None, oid,
+                              "identity_unconfirmed", "", now()))
+                conn.commit()
+                stats["fail"] += 1
+                continue
         web = next((v[0] for k in ("WebsiteAddressTxt", "WebsiteAddress") if (v := f.get(k))), "")
         email = next((v[0] for k in ("EmailAddress", "Email") if (v := f.get(k))), "")
         mission = clean_text((f.get("MissionDesc") or f.get("ActivityOrMissionDesc") or [""])[0])
