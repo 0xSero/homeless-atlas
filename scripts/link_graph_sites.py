@@ -67,9 +67,14 @@ def main():
         # member and partner pages are where one organisation names another, which is the whole basis
         # of this channel; only four paths per site are tried and every response is cached
         conn.execute("PRAGMA busy_timeout=300000")
+        # member lists live on coalition, alliance, network and council sites, not on a single shelter's
+        # site: crawl those first instead of trying every site in the archive
         sites = [r[0].rstrip("/") for r in conn.execute(
-            "SELECT website FROM org WHERE website IS NOT NULL")]
-        paths = ("/members", "/partners", "/about", "/resources", "/member-organizations")
+            """SELECT website FROM org WHERE website IS NOT NULL AND (
+                   name LIKE '%COALITION%' OR name LIKE '%ALLIANCE%' OR name LIKE '%NETWORK%'
+                OR name LIKE '%COUNCIL%' OR name LIKE '%ASSOCIATION%' OR name LIKE '%CONSORTIUM%'
+                OR name LIKE '%CONTINUUM%')""")]
+        paths = ("/members", "/member-organizations", "/partners", "/our-members", "/directory")
         urls = [s0 + p for s0 in sites for p in paths]
         print(f"crawling {len(urls):,} member/partner/about pages", flush=True)
 
