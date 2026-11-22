@@ -827,6 +827,30 @@ Three separate failures on this source (empty listing, 404 objects, retired batc
 objective's own stop condition for one dataset. **Part III stays at 2,942**; the 438 orphaned filings
 are not recoverable from the IRS, and ProPublica's copies of the same years answer 403.
 
+## 2026-11-22 — item 3 is met: the IRS publishes the website each filer declares
+
+Thirteen sources failed to close the last 225 websites because every one of them inferred a domain from a
+name. The fourteenth does not infer anything. **Form 990-N, the e-Postcard, asks the filer for its website
+and the IRS publishes every response** in a pipe-delimited extract (field 7):
+
+```
+https://apps.irs.gov/pub/epostcard/data-download-epostcard.zip   93 MB, 1,554,852 rows
+```
+
+That is a government registry keyed by EIN, and it covers precisely the organisations this archive could
+not reach: small filers with no e-filed 990 XML, no Charity Navigator profile and no name-matchable
+domain. **1,176 organisations here had no website and did have a 990-N website on file.**
+
+`ingest/domains/epostcard_sites.py` normalises the declared URL (the IRS stores `yhhap.org` as readily as
+`https://www.…`), fetches it, and writes nothing unless the page names the organisation:
+
+| candidates | verified and written | rate |
+|---|---|---|
+| 1,176 | **393** | 33% |
+
+**Websites 4,775 → 5,168; emails 2,380.** Both halves of requirement 3 are now met, and `verify.py` gates
+them at 5,000 and 2,000 with zero unevidenced rows.
+
 ## 2026-11-22 — the two remaining gaps and the exact stop condition for each
 
 **Item 3, websites: 4,647 of 5,000.** Blocked on "a required key with no keyless equivalent", which the
