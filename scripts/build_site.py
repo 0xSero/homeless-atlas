@@ -1564,6 +1564,12 @@ publishes licensed beds we use that; where it publishes staffed beds we say so.<
 in Documents, with their own methodology.</li>
 <li><b>Substance use and mental illness.</b> PIT subpopulation counts are CoC-reported, self-reported or observed, and systematically
 undercount. State prevalence estimates (NSDUH) are modelled survey estimates, not counts of homeless people.</li>
+<li><b>"In its own words" covers about a third of the organisations.</b> The text comes from Part III of a
+Form 990, which only 990 and 990-EZ filers have — and of the 11,631 organisations here with an EIN, 4,364
+have an e-filed return in a year the IRS still publishes, and 76% of those returns carry a Part III
+section. The rest file the 990-N postcard, which has no description field at all. Where a 990-N or 990-EZ
+filer states a purpose in its header, that is shown separately and labelled as what it is: "What it says
+it is for", not a programme account.</li>
 </ul>
 <h2>Pipeline</h2>
 <p>Each source has an ingestor in <code>ingest/domains/</code> that caches the raw response under <code>data/raw/</code>, records the URL,
