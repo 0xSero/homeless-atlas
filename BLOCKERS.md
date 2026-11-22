@@ -643,3 +643,21 @@ Two bugs worth recording, both of which made a working parse look broken:
 * `part3_text` terminated the block at the words "Schedule O", which appear in Part III's own header
   line ("Check if Schedule O contains a response"), so every extraction returned an empty string. The
   terminator is Part IV.
+
+## 2026-11-22 — 732 organisations have no Part III but do state a purpose, and the difference is labelled
+
+1,309 filings in this archive carry no Part III text because they are 990-EZ or 990-N filers, whose form
+has no program-service section. Their silence is not total: **964 of them write a primary exempt purpose
+into the 990 header** (`PrimaryExemptPurposeTxt`), which is the only prose some of them file —
+
+> "Provide affordable housing for low-incom…" · "To promote awareness of the homelessness in New Hampshire."
+
+`ingest/domains/efile_purpose.py` reads the XML already cached (no requests) and stores **732** of those
+statements in their own table, `org_purpose`. They are **not** counted toward the Part III target and are
+never called Part III: the org page heads them "What it says it is for" and says in as many words that
+this filer has no Part III section, that this is the header field, and that it is not a programme-service
+account. Ledger domain `org-purpose`, separate from `part3`.
+
+A one-level `ROOT` miscalculation (`parent.parent` instead of `parent.parent.parent`) made the first run
+report zero rows from a directory that does not exist; the fix is in `efile_purpose`, `efile_pdf` and
+`org_990_pdf`.

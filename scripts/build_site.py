@@ -1874,7 +1874,18 @@ def org_program_block(org_id):
     r = q(CONN, """SELECT year, mission, program_text, expenses_program, revenue_total, source_id
                      FROM org_program WHERE org_id=? ORDER BY year DESC LIMIT 1""", (org_id,))
     if not r:
-        return ""
+        # no Part III: fall back to the purpose the organisation states in the 990 header, labelled
+        # as exactly that, because it is not the same section and must not be presented as it
+        pr = q(CONN, "SELECT text, year FROM org_purpose WHERE org_id=? LIMIT 1", (org_id,))
+        if not pr:
+            return ""
+        prow = pr[0]
+        return ('<h2>What it says it is for</h2>'
+                '<p class="dim" style="font-size:.78rem;margin:0 0 .8em">'
+                f'The primary exempt purpose from the {esc(str(prow.get("year") or ""))} Form 990 header. '
+                'This filer has no Part III program-service section, so this is the only description it '
+                'files; it is quoted verbatim and is not a programme-service account.</p>'
+                f'<p style="margin:.2em 0 .6em">{esc((prow.get("text") or "")[:900])}</p>')
     row = r[0]
     mission = esc((row.get("mission") or "")[:900])
     prog = esc((row.get("program_text") or "")[:1600])

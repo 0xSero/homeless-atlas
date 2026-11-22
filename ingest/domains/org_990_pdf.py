@@ -26,7 +26,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from urllib.parse import urljoin, urlparse
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT))
 from ingest.common import DB, fetch, now  # noqa: E402
 from ingest.domains.efile_pdf import part3_text  # noqa: E402
