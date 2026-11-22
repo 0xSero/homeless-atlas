@@ -722,3 +722,23 @@ already) and the downloaded 990 PDFs (their Part III text is in `org_program`).
 
 **Disk 35 GB → 53 GB free.** The constraint stops ingest below 20 GB; this buys the next campaign room
 without losing a single row or the page behind a single address.
+
+## 2026-11-22 — the last route to the 438 orphaned filings is gone: the IRS retired the batches
+
+Two attempts to recover the filings whose pre-2022 index rows carry no `XML_BATCH_ID`:
+
+* **per-object fetch** — `https://s3.amazonaws.com/irs-form-990/<OBJECT_ID>_public.xml` for a real
+  object id out of `index_2021.csv` (`202101629349200830`): **HTTP 404**. The bucket listing was already
+  empty; the objects are gone too.
+* **whole-year archives** — probing every batch name for 2021 (`01A` … `12B`, 24 requests):
+
+  ```
+  01A: 206 (3.5 GB)     01B..12B: 302 redirect — retired
+  ```
+
+  One batch survives out of twenty-four. Even a full 3.5 GB download would recover only the handful of
+  our 159 filings that happen to sit in it.
+
+Three separate failures on this source (empty listing, 404 objects, retired batches) meet the
+objective's own stop condition for one dataset. **Part III stays at 2,942**; the 438 orphaned filings
+are not recoverable from the IRS, and ProPublica's copies of the same years answer 403.
