@@ -114,7 +114,9 @@ def main():
              FROM org o
             WHERE o.website IS NOT NULL
               AND NOT EXISTS (SELECT 1 FROM org_program g WHERE g.org_id = o.id)
-            ORDER BY COALESCE(amt, 0) DESC, o.id""")]
+            ORDER BY (SELECT COUNT(*) FROM epostcard_check e
+                       WHERE e.org_id = o.id AND e.matched > 0) DESC,
+                     COALESCE(amt, 0) DESC, o.id""")]
     rows = [r for r in rows if r["org_id"] not in seen]
     if a.limit:
         rows = rows[: a.limit]

@@ -61,3 +61,4 @@
 | 2026-11-22T11:45:37+00:00 | org-web | DONE | 4772 | ingest/domains/acronym_sites.py | websites 4,761->4,772 by guessing initials and requiring the site's <title> to carry the organisation's full name; 766 tried, 11 accepted (1.4%) |
 | 2026-11-22T14:20:56+00:00 | org-web | DONE | 4775 | ingest/domains/acronym_sites.py | websites 4,775: acronym sweep stopped at 3,116 tried (0.45% falling to 0.06%); emails 2,380 |
 | 2026-11-22T14:55:55+00:00 | org-web | DONE | 5168 | ingest/domains/epostcard_sites.py | websites 4,775->5,168 from the website each organisation declares on its IRS Form 990-N (1,176 candidates, 393 verified live and name-checked); emails 2,380. BOTH halves of the website target now met. |
+| 2026-11-22T15:41:11+00:00 | part3 | BLOCKED | 2950 | ingest/domains/org_990_pdf.py | 2,950 of 5,000. Re-ran the self-posted 990 harvest over the 380 newly found IRS-declared sites: 8 more Part III texts (1.1%). Every published route is exhausted. |
