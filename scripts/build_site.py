@@ -399,7 +399,7 @@ def load(conn):
     d["award_by_agency"] = q(conn, """SELECT COALESCE(agency,'(unknown)') agency, COUNT(*) n, SUM(amount_obligated) amt
                                       FROM award GROUP BY agency ORDER BY amt DESC NULLS LAST LIMIT 30""")
     d["award_total"] = one(conn, "SELECT SUM(amount_obligated) amt, COUNT(*) n, COUNT(DISTINCT org_id) orgs FROM award", (), {}) or {}
-    d["top_orgs"] = q(conn, """SELECT o.id, o.name, o.state, o.city, o.ein, o.revenue, o.expenses, o.website,
+    d["top_orgs"] = q(conn, """SELECT o.id, o.name, o.state, o.city, o.ein, o.revenue, o.expenses, o.website, o.email,
                                       COUNT(a.id) n_awards, SUM(a.amount_obligated) amt, COUNT(p.id) people
                                FROM org o
                                LEFT JOIN award a ON a.org_id=o.id
