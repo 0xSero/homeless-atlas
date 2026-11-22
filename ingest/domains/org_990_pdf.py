@@ -106,10 +106,15 @@ def main():
         org_id INTEGER PRIMARY KEY, status TEXT, pdf TEXT, year INTEGER, chars INTEGER, checked_at TEXT)""")
     conn.commit()
     seen = {r[0] for r in conn.execute("SELECT org_id FROM org_990_progress WHERE status NOT LIKE 'error%'")}
+    # biggest federal grantees first: they are the ones with a professional site and a posted return,
+    # which is why the id-ordered first pass found a PDF for only 2% of them
     rows = [dict(r) for r in conn.execute(
-        """SELECT o.id AS org_id, o.name, o.ein, o.website FROM org o
+        """SELECT o.id AS org_id, o.name, o.ein, o.website,
+                  (SELECT SUM(a.amount_obligated) FROM award a WHERE a.org_id = o.id) amt
+             FROM org o
             WHERE o.website IS NOT NULL
-              AND NOT EXISTS (SELECT 1 FROM org_program g WHERE g.org_id = o.id)""")]
+              AND NOT EXISTS (SELECT 1 FROM org_program g WHERE g.org_id = o.id)
+            ORDER BY COALESCE(amt, 0) DESC, o.id""")]
     rows = [r for r in rows if r["org_id"] not in seen]
     if a.limit:
         rows = rows[: a.limit]
