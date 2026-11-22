@@ -539,6 +539,13 @@ the page, *and* the state (abbreviation or full name).
 Websites **3,937 → 4,275**; contact addresses mined from those same cached pages took emails to
 **2,382**. Housing authorities yield badly (9%) because the small ones have no site at all.
 
+### The last of the Brave quota, spent deliberately
+
+1,200 lookups (the remainder of the 2,000/30-day allowance) over the organisations with the largest
+federal dollars and no website: **168 sites and 71 addresses**. Every search result was fetched before
+being written. Websites **4,449 → 4,617**; emails **2,429 → 2,509**, now a quarter above their target.
+The quota is spent, and the next free window is weeks away.
+
 ### Third pass: any 9-letter run of the name, anywhere in the domain
 
 Passes 1 and 2 only matched a name at the start or end of the domain label. Pass 3 indexed every
