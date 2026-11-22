@@ -34,6 +34,29 @@ checked path returns 200.
 Cloudflare Pages was not usable for this build: it caps a deployment at 20,000 files and the atlas
 is 41,929. Workers static assets on the paid plan allow 100,000.
 
+### Proving the origin is not this host
+
+The objective asked for the public URL to answer with the local server stopped. Done and recorded:
+
+```
+systemctl --user is-active atlas-web atlas-tunnel   ->  inactive inactive
+curl -o /dev/null -w '%{http_code}' https://homeless.sybilsolutions.ai/   ->  200
+curl .../data/map-states.geojson                                         ->  200
+curl .../report/los-angeles.html                                         ->  200
+```
+
+Both unit files are retired and the DNS record points at a Worker route, so nothing on this machine can
+be the server behind that 200.
+
+### Deviation worth naming
+
+The objective said "R2 or a Pages deploy". It is a Workers static-assets deploy. Pages caps a
+deployment at **20,000 files** and this build is **41,929**, so Pages could not hold it without
+splitting the site; R2 would have been a second copy of the same bytes behind a Worker. Workers static
+assets is Cloudflare-hosted storage with the same property the objective was after — the site survives
+this machine being switched off — and it is the only one of the three that fits the build in one
+deployment.
+
 ## The old origin (removed 2026-11-20)
 
 The local python server (`atlas-web.service`, 127.0.0.1:8123) and its tunnel (`atlas-tunnel.service`,
