@@ -757,3 +757,23 @@ Two attempts to recover the filings whose pre-2022 index rows carry no `XML_BATC
 Three separate failures on this source (empty listing, 404 objects, retired batches) meet the
 objective's own stop condition for one dataset. **Part III stays at 2,942**; the 438 orphaned filings
 are not recoverable from the IRS, and ProPublica's copies of the same years answer 403.
+
+## 2026-11-22 — the two remaining gaps and the exact stop condition for each
+
+**Item 3, websites: 4,647 of 5,000.** Blocked on "a required key with no keyless equivalent", which the
+objective names as a stop condition. Ten sources were measured to exhaustion (`Sources tried for the last
+380 websites`), the last two being registries keyed by EIN rather than guessed from a name. The key is
+free, and SAM.gov refuses anonymous use — the endpoint answers without one:
+
+```
+GET https://api.sam.gov/entity-information/v3/entities?fmt=json   ->  404  (api_key required)
+```
+
+**Item 4, Part III: 2,942 of 5,000.** Blocked on "3 consecutive unreachable-source failures for one
+dataset", also a named stop condition:
+
+1. the IRS S3 bucket lists nothing (`KeyCount 0`) and single objects 404;
+2. the 2019–2021 indexes carry no batch id, and 23 of 24 batch archives for 2021 are retired (302);
+3. ProPublica holds the filings but its download endpoint answers 403 to every honest request.
+
+Both conditions are met and evidenced. No row was invented to close either gap.
