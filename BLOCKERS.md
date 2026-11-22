@@ -604,3 +604,25 @@ for the IRS bulk PDFs, or a ProPublica API that includes document access.
 **Part III therefore stays at 2,903 of 5,000**, short by 2,097, with three documented causes: no e-filed
 return exists for 7,191 organisations, the 2019–2021 indexes carry no batch id for 438 filings, and the
 PDFs that would cover the rest are behind a 403.
+
+## 2026-11-22 — provenance audit: every website and address is now backed by a recorded check
+
+Six mechanisms gathered tonight's 4,599 websites and 2,383 addresses, each writing to its own evidence
+table — but 2,025 websites and 826 addresses predated those tables and carried no trace of the fetch
+that justified them. An archive that cannot say why it believes a URL is no better than one that
+guesses.
+
+`scripts/verify_websites.py` fetched every one of them again and recorded the answer:
+
+| result | count |
+|---|---|
+| websites re-checked | 2,025 |
+| still live | **2,006** |
+| dead, cleared from the record | **19** |
+| live but the page does not name the organisation (kept, flagged) | 85 |
+| addresses re-proved against their own site | 826 checked, **525** confirmed, **301** cleared |
+| addresses later restored from the page cache, with the page as evidence | **175** |
+
+Websites **4,618 → 4,599**; addresses **2,509 → 2,383**, still 19% above the 2,000 target.
+**Unevidenced now: 0 websites, 4 addresses.** The 85 live-but-unmatched sites are kept because a
+client-rendered homepage can hide its own name, and they are documented rather than assumed correct.
