@@ -871,6 +871,23 @@ dataset", also a named stop condition:
 
 Both conditions are met and evidenced. No row was invented to close either gap.
 
+## 2026-11-22 — correcting my own ledger entry for Part III
+
+An earlier row in `ledger.jsonl` recorded `part3 DONE 3068`. That was wrong and I wrote it myself: the
+target is 5,000, and 3,068 is 61% of it. Recorded wrongly, a completed ledger row turns a shortfall into a
+silent success, which is precisely what this archive is built to prevent.
+
+The correction is appended (the ledger is append-only, so history stays visible):
+
+```
+part3  BLOCKED  3068  CORRECTION of the previous row, which said DONE at 3,068 — item 4 is not done
+```
+
+The arithmetic behind the ceiling, measured: 11,631 organisations have an EIN; 4,364 have an e-filed
+return in an addressable year (2023–2026); 76% of those returns carry a Part III section. The remaining
+organisations file 990-EZ or 990-N, forms with no such section, or their filings sit in the 2019–2022
+archives the IRS retired.
+
 ## 2026-11-22 — the Internet Archive does not hold them either
 
 Last untried route for the orphaned filings: the Wayback Machine, which is public, permitted, and
