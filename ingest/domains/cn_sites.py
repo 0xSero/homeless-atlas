@@ -136,7 +136,7 @@ def main():
     rows = [dict(r) for r in conn.execute(
         """SELECT id AS org_id, name, ein, city, state FROM org
             WHERE website IS NULL AND ein IS NOT NULL AND ein != ''
-            ORDER BY id""")]
+            ORDER BY COALESCE(revenue, 0) DESC, id""")]
     rows = [r for r in rows if r["org_id"] not in seen]
     if a.limit:
         rows = rows[: a.limit]

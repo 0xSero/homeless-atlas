@@ -645,6 +645,21 @@ Websites **4,618 → 4,599**; addresses **2,509 → 2,383**, still 19% above the
 **Unevidenced now: 0 websites, 4 addresses.** The 85 live-but-unmatched sites are kept because a
 client-rendered homepage can hide its own name, and they are documented rather than assumed correct.
 
+### Charity Navigator, measured properly: it covers 2.4% of this population
+
+Re-running the EIN lookup with the organisations ordered by revenue rather than by id settled what the
+earlier tail suggested:
+
+| tried | CN had a URL | accepted |
+|---|---|---|
+| 2,568 | **62 (2.4%)** | **48 (77% of those with a URL)** |
+
+The limit is not verification, it is coverage: Charity Navigator holds a URL for 2.4% of the
+organisations in this archive, because the archive is dominated by 990-EZ filers and government entities
+that have no profile there. Extrapolated across the 8,777 organisations still without a website, the
+whole source is worth ~210 URLs, of which ~160 would pass — taking the total to roughly 4,810, still
+short of 5,000, at a cost of about nine hours of fetching. Not run.
+
 ### ProPublica's org pages do not carry websites (checked, closed)
 
 The obvious next registry after Charity Navigator. Its robots.txt allows
