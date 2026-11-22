@@ -458,6 +458,24 @@ that have a website but no address found no usable mailbox in the pages it fetch
 contact behind a form, or render it client-side). Mining what was already stored was the only
 productive route, and its quota cost was zero.
 
+### The loop now waits for its model instead of lying to itself
+
+The ingest loop died twice on 2026-11-21 because `api.homelabai.org/v1/models` returned nothing while
+workers were already launched: each `pi` worker sat with an empty log and zero TCP connections for its
+full 7,200 s timeout, then the item looked like a domain that produced no data. Three items were left
+stuck `RUNNING`.
+
+`scripts/loop.sh` now checks the endpoint before launching anything and sleeps 300 s between attempts,
+logging why. Observed on start:
+
+```
+loop start MAX_PAR=1 MODEL=homelab/deepseek-v4.1-flash-1017
+model endpoint unreachable for MODEL=homelab/deepseek-v4.1-flash-1017 — waiting 300s (no worker is started)
+```
+
+The unit is enabled again: it costs one `curl` every five minutes and resumes by itself the moment the
+endpoint answers, which is better than a disabled unit that needs a human to notice.
+
 ## 2026-11-21 — Part III has a hard ceiling of 2,903 organisations in this archive
 
 **Target (goal item 4):** 5,000 organisations with a Part III program-service description.

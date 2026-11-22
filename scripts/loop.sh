@@ -155,7 +155,29 @@ sys.exit(0 if r=='ok' else 1)" 2>/dev/null; then
   fi
 }
 
+# ---------------------------------------------------------------- model preflight
+# A worker launched against an unreachable model endpoint writes nothing for its full two-hour
+# timeout and then looks like a domain that produced no data. Check the endpoint first and wait
+# rather than burn workers: this is the failure that left three items stuck RUNNING on 2026-11-21.
+model_up() {
+  local base=${MODEL%%/*}
+  local url=${PI_MODEL_ENDPOINT:-}
+  if [ -z "$url" ]; then
+    case "$base" in
+      homelab) url=https://api.homelabai.org/v1/models ;;
+      *) url=${url:-} ;;
+    esac
+  fi
+  [ -z "$url" ] && return 0        # unknown provider: let pi decide
+  curl -sf -m 10 -o /dev/null "$url"
+}
+
 log "loop start MAX_PAR=$MAX_PAR MODEL=$MODEL"
+while ! model_up; do
+  log "model endpoint unreachable for MODEL=$MODEL — waiting 300s (no worker is started)"
+  sleep 300
+  [ -f STOP ] && { log "STOP file present, exiting"; exit 0; }
+done
 while :; do
   [ -f STOP ] && { log "STOP file present, exiting"; break; }
   avail=$(df -Pk /home | awk 'NR==2{print int($4/1048576)}')
