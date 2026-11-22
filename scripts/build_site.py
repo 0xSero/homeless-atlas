@@ -1917,7 +1917,13 @@ def org_program_block(org_id):
 def page_org(d, o, manifest_total):
     awards = q(CONN, """SELECT * FROM award WHERE org_id=? ORDER BY amount_obligated DESC NULLS LAST LIMIT 500""", (o["id"],))
     people = q(CONN, """SELECT * FROM org_person WHERE org_id=? ORDER BY COALESCE(comp,0) DESC LIMIT 200""", (o["id"],))
-    aw = [[esc((a.get("award_id") or "")[:40]), "", a.get("award_id") or "",
+    def _aid(a):
+        # a subaward is the second hop of the same federal dollar; mark it rather than letting it read
+        # like a prime award this organisation won directly
+        if a.get("award_type") == "subaward":
+            return f'<span class="dim" title="subaward of a federal prime award">↳ </span>{esc((a.get("award_id") or "")[:40])}'
+        return esc((a.get("award_id") or "")[:40])
+    aw = [[_aid(a), "", a.get("award_id") or "",
            esc(agency(a.get("agency"))), "", a.get("agency") or "",
            esc((a.get("description") or "")[:120]), "", a.get("description") or "",
            money(a.get("amount_obligated")), "r", a.get("amount_obligated") or 0,
@@ -1951,6 +1957,9 @@ def page_org(d, o, manifest_total):
     <div>
       {org_profile(o["id"])}
       <h2>Awards</h2>
+      <p class="dim" style="font-size:.78rem;margin:-.3em 0 .8em">Federal obligations recorded against this
+      organisation. A row marked ↳ is a <b>subaward</b> — money passed down from a prime recipient — so it is
+      the second hop of the same federal dollar, and the prime award is counted once, elsewhere.</p>
       {table([("Award",""),("Agency",""),("Description",""),("Obligated","r"),("Year","r")], aw)}
       {org_program_block(o["id"])}
     </div>
