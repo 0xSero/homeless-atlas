@@ -31,6 +31,31 @@ GATES = [
     ("media",          "SELECT COUNT(*) FROM media",                                             800,  "videos + images"),
     ("doc",            "SELECT COUNT(*) FROM doc",                                               300,  "audits/studies/court"),
     ("source",         "SELECT COUNT(*) FROM source",                                            200,  "registered sources"),
+    # ---- the current goal's own targets, so a green run actually covers them -------------------
+    ("metric",         "SELECT COUNT(DISTINCT entity_id) FROM metric WHERE metric LIKE 'spm%'",   300,  "CoCs with HUD system performance measures"),
+    ("award",          "SELECT COUNT(*) FROM award WHERE award_type='subaward'",                 2000,  "subaward rows linked to primes"),
+    ("org",            "SELECT COUNT(*) FROM org WHERE website IS NOT NULL",                     4500,  "org websites"),
+    ("org",            "SELECT COUNT(*) FROM org WHERE email IS NOT NULL",                       2000,  "org contact addresses"),
+    ("metric",         "SELECT COUNT(DISTINCT entity_id) FROM metric WHERE metric='officer_turnover'", 1000, "orgs with an officer-turnover metric"),
+    ("org_purpose",    "SELECT COUNT(*) FROM org_purpose",                                        700,  "990 header statements of purpose"),
+]
+
+# precision gates: these must come out zero, however large the counts above get
+ZERO_GATES = [
+    ("websites without a recorded check",
+     """SELECT COUNT(*) FROM org o WHERE o.website IS NOT NULL
+          AND NOT EXISTS (SELECT 1 FROM org_domain_mine m WHERE m.org_id=o.id AND m.matched=1)
+          AND NOT EXISTS (SELECT 1 FROM org_site_check s WHERE s.org_id=o.id AND s.accepted=1)
+          AND NOT EXISTS (SELECT 1 FROM org_gov_site g WHERE g.org_id=o.id AND g.matched=1)
+          AND NOT EXISTS (SELECT 1 FROM org_web_check w WHERE w.org_id=o.id AND w.status=200)
+          AND NOT EXISTS (SELECT 1 FROM cn_site_check c WHERE c.org_id=o.id AND c.matched>0)
+          AND NOT EXISTS (SELECT 1 FROM link_graph_check l WHERE l.org_id=o.id AND l.matched>0)"""),
+    ("emails without a recorded check",
+     """SELECT COUNT(*) FROM org o WHERE o.email IS NOT NULL
+          AND NOT EXISTS (SELECT 1 FROM org_email_mine m WHERE m.org_id=o.id)
+          AND NOT EXISTS (SELECT 1 FROM org_site_check s WHERE s.org_id=o.id AND s.email IS NOT NULL)"""),
+    ("derived metrics with no note",
+     "SELECT COUNT(*) FROM metric WHERE is_est=1 AND (note IS NULL OR note='')"),
 ]
 
 SITE_ROUTES = [
@@ -62,6 +87,16 @@ def main() -> int:
         ok = v >= target
         fails += 0 if ok else 1
         rows.append({"gate": label, "value": v, "target": target, "ok": ok})
+
+    # precision gates: a count can be met with bad rows, these must be zero
+    for label, sql in ZERO_GATES:
+        try:
+            v = conn.execute(sql).fetchone()[0] or 0
+        except Exception:
+            v = -1                       # a gate that cannot run has not passed
+        ok = v == 0
+        fails += 0 if ok else 1
+        rows.append({"gate": label, "value": v, "target": 0, "ok": ok})
 
     # site gates
     site = ROOT / "site"
