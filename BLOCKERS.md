@@ -645,6 +645,28 @@ Websites **4,618 → 4,599**; addresses **2,509 → 2,383**, still 19% above the
 **Unevidenced now: 0 websites, 4 addresses.** The 85 live-but-unmatched sites are kept because a
 client-rendered homepage can hide its own name, and they are documented rather than assumed correct.
 
+### The anchor channel works only when the site names itself — 110 sites found that way
+
+The first version of this idea was wrong and was reverted (an anchor names an organisation; the link may
+point at a member list). The version that survived does one thing differently: **the candidate domain
+must carry the organisation's name in its own `<title>` or `<h1>`**. No fallback, no "the city is on the
+page" shortcut — those were what let `supportivehousing.org` pass as Praxis Housing Initiatives.
+
+Measured result: 15,643 cached pages read (14,388 already held, 1,254 member/partner/about pages crawled),
+204 anchor candidates, **96 confirmed**, plus 14 from the crawled pages. **Websites 4,647 → 4,757.**
+
+What it found that no name-to-domain match ever could:
+
+```
+TEXAS HOMELESS NETWORK              -> thn.org
+CENTRAL FLORIDA COMMISSION ON HOMELESSNESS -> cfch.org
+NATIONAL URBAN LEAGUE, INC.         -> nul.org
+RANDOLPH COUNTY HOUSING AUTHORITY   -> rchawv.org
+```
+
+Crawling further is not affordable: the fetch rate is ~10 pages a minute against small slow sites, so
+the remaining 22,000 member-page candidates would take about 36 hours for an unknown, small return.
+
 ### An eleventh source, tried and thrown away: anchor text in the pages we already hold
 
 14,388 cached pages link outwards, and member-list pages name their members in anchor text
