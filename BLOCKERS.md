@@ -645,6 +645,25 @@ Websites **4,618 → 4,599**; addresses **2,509 → 2,383**, still 19% above the
 **Unevidenced now: 0 websites, 4 addresses.** The 85 live-but-unmatched sites are kept because a
 client-rendered homepage can hide its own name, and they are documented rather than assumed correct.
 
+### An eleventh source, tried and thrown away: anchor text in the pages we already hold
+
+14,388 cached pages link outwards, and member-list pages name their members in anchor text
+(`<a href="…">Praxis Housing Initiatives</a>`). Reading those pages costs nothing, so it looked like a
+free way to link a name to a domain. It matched 201 organisations — and it was wrong.
+
+The anchor names the organisation; the link does not necessarily go to its site:
+
+```
+PRAXIS HOUSING INITIATIVES, INC.  anchor "Praxis Housing Initiatives"  ->  supportivehousing.org
+EMERGENCY SHELTER INC             anchor "EMERGENCY SHELTER"           ->  middlewayhouse.org
+HOUSING INITIATIVES INC           anchor "Housing Initiatives"         ->  vayapartners.org
+```
+
+38 were written before the pattern was obvious from a sample. **All 38 were reverted** (`website` set
+back to NULL, the check rows deleted) and the count went 4,685 → 4,647 again. A bigger number built from
+a mis-read link is exactly the fabrication this archive refuses; matching an anchor to a page needs the
+page to *say* it is that organisation, and on multi-member pages it routinely says something else.
+
 ### Charity Navigator, measured properly: it covers 2.4% of this population
 
 Re-running the EIN lookup with the organisations ordered by revenue rather than by id settled what the
