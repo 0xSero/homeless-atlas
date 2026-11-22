@@ -38,6 +38,9 @@ GATES = [
     ("org",            "SELECT COUNT(*) FROM org WHERE email IS NOT NULL",                       2000,  "org contact addresses"),
     ("metric",         "SELECT COUNT(DISTINCT entity_id) FROM metric WHERE metric='officer_turnover'", 1000, "orgs with an officer-turnover metric"),
     ("org_purpose",    "SELECT COUNT(*) FROM org_purpose",                                        700,  "990 header statements of purpose"),
+    # below the objective's 5,000: this is a regression floor, not a claim that requirement 4 is met.
+    # The gap is documented in BLOCKERS.md; the floor stops a future ingest from quietly losing texts.
+    ("org_program",    "SELECT COUNT(*) FROM org_program",                                       3300,  "990 Part III texts (target 5,000, see BLOCKERS)"),
 ]
 
 # precision gates: these must come out zero, however large the counts above get
