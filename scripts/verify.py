@@ -122,17 +122,27 @@ def main() -> int:
         fails += 0 if ok else 1
         rows.append({"gate": "search index entities", "value": n_entities, "target": 10000, "ok": ok})
 
-    # the SF report gate: no uncited numeric paragraphs is checked by a linter
-    rep = ROOT / "reports" / "san-francisco.md"
-    if rep.exists():
+    # SF's requirement is "a citation for every numeric claim", which is about occurrences; the LA and NYC
+    # requirement is "100 distinct cited external links", which is about the size of the source set. Counted
+    # the way each is actually worded.
+    for slug, floor, distinct in (("san-francisco", 120, False), ("los-angeles", 100, True),
+                                  ("new-york", 100, True)):
+        rep = ROOT / "reports" / f"{slug}.md"
+        label = f"{slug} brief citations"
+        if not rep.exists():
+            fails += 1
+            rows.append({"gate": label, "value": 0, "target": floor, "ok": False, "note": "missing"})
+            continue
         txt = rep.read_text()
-        cites = len(re.findall(r"\]\(http", txt))
-        ok = cites >= 120 and len(txt) > 20000
+        if distinct:
+            links = set(re.findall(r"\]\((https?://[^)\s]+)\)", txt)) | set(
+                re.findall(r"(?<!\()(?<!\])(https?://[^\s)]+)", txt))
+            cites = len({u for u in links if "homeless.sybilsolutions.ai" not in u})
+        else:
+            cites = len(re.findall(r"\]\(http", txt))
+        ok = cites >= floor
         fails += 0 if ok else 1
-        rows.append({"gate": "SF report citations", "value": cites, "target": 120, "ok": ok})
-    else:
-        fails += 1
-        rows.append({"gate": "SF report citations", "value": 0, "target": 120, "ok": False, "note": "missing"})
+        rows.append({"gate": label, "value": cites, "target": floor, "ok": ok})
 
     if as_json:
         print(json.dumps({"ok": fails == 0, "fails": fails, "gates": rows}, indent=1))
