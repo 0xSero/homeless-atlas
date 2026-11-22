@@ -56,6 +56,10 @@ ZERO_GATES = [
      """SELECT COUNT(*) FROM org o WHERE o.email IS NOT NULL
           AND NOT EXISTS (SELECT 1 FROM org_email_mine m WHERE m.org_id=o.id)
           AND NOT EXISTS (SELECT 1 FROM org_site_check s WHERE s.org_id=o.id AND s.email IS NOT NULL)"""),
+    ("subawards with no prime award in the table",
+     """SELECT COUNT(*) FROM award s WHERE s.award_type='subaward'
+          AND NOT EXISTS (SELECT 1 FROM award p WHERE p.award_type!='subaward'
+                            AND s.award_key LIKE 'SUB_' || p.award_key || '_%')"""),
     ("derived metrics with no note",
      "SELECT COUNT(*) FROM metric WHERE is_est=1 AND (note IS NULL OR note='')"),
 ]
