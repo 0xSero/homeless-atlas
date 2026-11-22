@@ -59,3 +59,4 @@
 | 2026-11-22T09:55:26+00:00 | org-web | DONE | 4757 | scripts/link_graph_sites.py | websites 4,647->4,757: anchor text on cached pages, plus 1,254 crawled member/partner pages, each candidate confirmed by the site's own <title>/<h1> naming the organisation |
 | 2026-11-22T10:46:41+00:00 | org-web | DONE | 4761 | scripts/link_graph_sites.py | websites 4,757->4,761 from the 258 coalition/network member pages (5 paths each): 15 anchor candidates, 4 confirmed by the site naming itself |
 | 2026-11-22T11:45:37+00:00 | org-web | DONE | 4772 | ingest/domains/acronym_sites.py | websites 4,761->4,772 by guessing initials and requiring the site's <title> to carry the organisation's full name; 766 tried, 11 accepted (1.4%) |
+| 2026-11-22T14:20:56+00:00 | org-web | DONE | 4775 | ingest/domains/acronym_sites.py | websites 4,775: acronym sweep stopped at 3,116 tried (0.45% falling to 0.06%); emails 2,380 |

@@ -645,6 +645,19 @@ Websites **4,618 → 4,599**; addresses **2,509 → 2,383**, still 19% above the
 **Unevidenced now: 0 websites, 4 addresses.** The 85 live-but-unmatched sites are kept because a
 client-rendered homepage can hide its own name, and they are documented rather than assumed correct.
 
+### The acronym sweep, run to the point where it stopped paying
+
+12,026 organisations have a usable initialism. After 3,116 of them the acceptance rate was 0.45% overall
+and falling to 0.06% over the last thousand — the initials that resolve are the rarer, older, more
+established bodies, and they are found early.
+
+```
+3,116 tried → 14 accepted → websites 4,772 → 4,775
+```
+
+The remaining 8,900 would be six hours of fetching for an estimated five sites. Stopped there, which is
+the point at which a channel is measured rather than hoped for.
+
 ### Initials, guessed and proved: 11 sites at 1.4%, and the gate caught the rest
 
 Acronym domains were the one shape every name-based source missed: Texas Homeless Network → thn.org,
