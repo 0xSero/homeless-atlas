@@ -645,6 +645,21 @@ Websites **4,618 → 4,599**; addresses **2,509 → 2,383**, still 19% above the
 **Unevidenced now: 0 websites, 4 addresses.** The 85 live-but-unmatched sites are kept because a
 client-rendered homepage can hide its own name, and they are documented rather than assumed correct.
 
+### Initials, guessed and proved: 11 sites at 1.4%, and the gate caught the rest
+
+Acronym domains were the one shape every name-based source missed: Texas Homeless Network → thn.org,
+National Urban League → nul.org. Generating initials for organisations with no website and trying
+.org/.com/.net found **11 more sites from 766 attempts (1.4%)** — but only after a fallback was removed.
+
+The fallback ("the initials appear and the city appears") gave `cwd.org` to the Wisconsin Department of
+Commerce, which is not its site. Both fallback rows were reverted; only a `<title>` or `<h1>` carrying the
+organisation's **full name** now counts.
+
+The new zero-gate then failed with "11 websites without a recorded check" — correctly, because those 11
+were recorded in `acronym_check`, which the gate did not know about. Adding that table took it back to 0.
+A gate that cannot see the evidence is indistinguishable from missing evidence, which is why it is
+checked on every run.
+
 ### The anchor channel works only when the site names itself — 110 sites found that way
 
 The first version of this idea was wrong and was reverted (an anchor names an organisation; the link may

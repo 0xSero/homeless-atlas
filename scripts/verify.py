@@ -49,7 +49,8 @@ ZERO_GATES = [
           AND NOT EXISTS (SELECT 1 FROM org_gov_site g WHERE g.org_id=o.id AND g.matched=1)
           AND NOT EXISTS (SELECT 1 FROM org_web_check w WHERE w.org_id=o.id AND w.status=200)
           AND NOT EXISTS (SELECT 1 FROM cn_site_check c WHERE c.org_id=o.id AND c.matched>0)
-          AND NOT EXISTS (SELECT 1 FROM link_graph_check l WHERE l.org_id=o.id AND l.matched>0)"""),
+          AND NOT EXISTS (SELECT 1 FROM link_graph_check l WHERE l.org_id=o.id AND l.matched>0)
+          AND NOT EXISTS (SELECT 1 FROM acronym_check a WHERE a.org_id=o.id AND a.matched>0)"""),
     ("emails without a recorded check",
      """SELECT COUNT(*) FROM org o WHERE o.email IS NOT NULL
           AND NOT EXISTS (SELECT 1 FROM org_email_mine m WHERE m.org_id=o.id)
