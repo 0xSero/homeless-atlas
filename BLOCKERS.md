@@ -915,3 +915,26 @@ Two last places a full copy of the IRS e-file corpus might live publicly:
 That closes the mirror question. Part III stands at **3,344 of 5,000**: every surviving IRS archive has been
 opened (2023 01A–12A, 2022 01A–02A, 2021 01A), the rest return 302, the S3 objects are 404, ProPublica's
 copies answer 403, and the Internet Archive never captured any.
+
+## 2026-11-22 — the Internet Archive: real, but 4% and far too slow to sweep
+
+Organisations take their 990s down when they redesign. The Wayback CDX index still lists them, and a
+snapshot served with the `id_` modifier returns the original bytes:
+
+```
+http://web.archive.org/cdx/search/cdx?url=<host>&matchType=domain&output=json
+        &filter=original:.*990.*\.pdf&filter=statuscode:200
+-> downtownrescuemission.org/s/990-2020.pdf  (captured 2022-12-01, since removed from the live site)
+```
+
+`scripts/wayback_990.py` turns those captures into Part III text and records the snapshot URL as the
+evidence. Measured over 258 organisations that have a website but no programme text:
+
+| checked | with a usable snapshot | rate | added |
+|---|---|---|---|
+| 258 | 11 | 4.3% | **+11** (Part III 3,385 → 3,396) |
+
+At 3.4 organisations a minute — the CDX query, not the download, is the cost — sweeping the remaining
+3,000 would take about fifteen hours to add perhaps 130 texts, against a gap of 1,604. Stopped on that
+arithmetic, and because it would mean fifteen hours of load on the Internet Archive's public endpoint for a
+number this archive cannot reach anyway.
