@@ -645,6 +645,25 @@ Websites **4,618 → 4,599**; addresses **2,509 → 2,383**, still 19% above the
 **Unevidenced now: 0 websites, 4 addresses.** The 85 live-but-unmatched sites are kept because a
 client-rendered homepage can hide its own name, and they are documented rather than assumed correct.
 
+### Tenth source: Charity Navigator, keyed by EIN — 2% overall, and why
+
+Charity Navigator publishes one page per EIN with the organisation's URL embedded as `"url":"https://…"`,
+and its robots.txt allows `/ein/` (it disallows exactly two EINs, which the ingestor skips). Unlike the
+nine search-and-guess sources, this is a **registry keyed by the identifier we already hold**.
+
+`ingest/domains/cn_sites.py` reads it, then proves the URL two ways: tier 1, the site itself names the
+organisation; tier 2, the registry record carries the same name, or the same city and state, and the
+domain answers. Both tiers are recorded in `cn_site_check`.
+
+| tried | CN had a URL | accepted |
+|---|---|---|
+| 2,050 | ~40% of the first 600 | **48** (6 tier 1, 42 tier 2) |
+
+The rate collapsed from 7.7% to 0.1% as the run went past the organisations CN actually covers: its
+database is weighted to larger nonprofits, and the archive's long tail is 990-EZ filers with no profile.
+**Websites 4,599 → 4,647.** Many of the sites answer a bot wall (HTTP 202 challenge), which is recorded
+as liveness but cannot be read; the project does not try to pass it.
+
 ### 990 PDFs on the organisations' own websites: 2% yield, not worth the hours
 
 A ninth source for Part III: 2,857 organisations have a verified website and no program text, and many
