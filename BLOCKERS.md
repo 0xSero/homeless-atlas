@@ -539,6 +539,23 @@ the page, *and* the state (abbreviation or full name).
 Websites **3,937 → 4,275**; contact addresses mined from those same cached pages took emails to
 **2,382**. Housing authorities yield badly (9%) because the small ones have no site at all.
 
+### Sources tried for the last 380 websites, and what each yielded
+
+| source | mechanism | yield |
+|---|---|---|
+| Common Crawl domain ranks | name in domain, 3 passes (exact, containment, any 9-letter run) | 1,811 |
+| generated city/county patterns | `cityof*`, `<place><st>.gov`, `ci.*`, `co.*` + name/state check | 338 |
+| housing authority patterns | `hac<town>.org`, `<town>ha.org`, `<town>pha.org` | 29 |
+| OpenStreetMap tags | 6,939 shelter/NGO `website` tags matched by name+city | 5 |
+| city + service keyword patterns | `<city>homeless.org`, `<city>rescuemission.org` | 13 |
+| Brave web search | 1,200 lookups of the remaining quota | 168 |
+| Wikidata by EIN (P1297) | 400 EINs queried for P856 | 1 |
+| Wikidata by label | 1,200 long names queried for P856 | 3 |
+
+Every one of those is now spent. The remaining organisations either have no website in any public
+corpus, or a domain that shares no token with their name — which is exactly what a registry keyed by
+UEI solves and a name guess cannot.
+
 ### The last of the Brave quota, spent deliberately
 
 1,200 lookups (the remainder of the 2,000/30-day allowance) over the organisations with the largest
