@@ -679,3 +679,19 @@ account. Ledger domain `org-purpose`, separate from `part3`.
 A one-level `ROOT` miscalculation (`parent.parent` instead of `parent.parent.parent`) made the first run
 report zero rows from a directory that does not exist; the fix is in `efile_purpose`, `efile_pdf` and
 `org_990_pdf`.
+
+## 2026-11-22 — disk: 19.3 GB of mined pages deleted, evidence pages kept
+
+`data/raw/org_contacts` had grown to 19 GB: 5,023 cached organisation-website pages from the first
+contact harvest. Every address they produced is already in `org_email_mine` with the page URL recorded,
+so the bytes are a convenience, not the evidence.
+
+| removed | kept | freed |
+|---|---|---|
+| 3,847 pages that yielded nothing | 1,176 pages cited as email evidence | **19.3 GB** |
+
+Also deleted the 2.5 GB Common Crawl rank list (its candidates are extracted to JSON and were verified
+already) and the downloaded 990 PDFs (their Part III text is in `org_program`).
+
+**Disk 35 GB → 53 GB free.** The constraint stops ingest below 20 GB; this buys the next campaign room
+without losing a single row or the page behind a single address.
