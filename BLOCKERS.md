@@ -645,6 +645,14 @@ Websites **4,618 → 4,599**; addresses **2,509 → 2,383**, still 19% above the
 **Unevidenced now: 0 websites, 4 addresses.** The 85 live-but-unmatched sites are kept because a
 client-rendered homepage can hide its own name, and they are documented rather than assumed correct.
 
+### ProPublica's org pages do not carry websites (checked, closed)
+
+The obvious next registry after Charity Navigator. Its robots.txt allows
+`/nonprofits/organizations/<ein>`, the pages answer 200 — and they contain no organisation website. Two
+EINs whose sites are already known (`133600232` → csh.org, `550784381` → wvceh.org) were checked against
+their pages: neither URL appears anywhere in the HTML. Its JSON API has no website field either. A
+checked negative, recorded so the next run does not repeat it.
+
 ### Tenth source: Charity Navigator, keyed by EIN — 2% overall, and why
 
 Charity Navigator publishes one page per EIN with the organisation's URL embedded as `"url":"https://…"`,
