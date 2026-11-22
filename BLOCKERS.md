@@ -626,3 +626,20 @@ guesses.
 Websites **4,618 → 4,599**; addresses **2,509 → 2,383**, still 19% above the 2,000 target.
 **Unevidenced now: 0 websites, 4 addresses.** The 85 live-but-unmatched sites are kept because a
 client-rendered homepage can hide its own name, and they are documented rather than assumed correct.
+
+### 990 PDFs on the organisations' own websites: 2% yield, not worth the hours
+
+A ninth source for Part III: 2,857 organisations have a verified website and no program text, and many
+nonprofits post the return they filed. `ingest/domains/org_990_pdf.py` walks the homepage, a handful of
+financial paths and any `href` that names a 990, downloads at most six PDFs, runs `pdftotext`, and cuts
+Part III. It works — Downtown Rescue Mission's 2025 filing yields its mission statement verbatim — but
+of the first 225 organisations tried, **5 had a PDF that answered (2%)**. At that rate the remaining
+2,600 would take five hours and add ~60 rows against a 2,097 gap.
+
+Two bugs worth recording, both of which made a working parse look broken:
+
+* the anchor-based link scan missed whole sections on unbalanced markup — matching `href=` directly
+  finds the same PDFs;
+* `part3_text` terminated the block at the words "Schedule O", which appear in Part III's own header
+  line ("Check if Schedule O contains a response"), so every extraction returned an empty string. The
+  terminator is Part IV.

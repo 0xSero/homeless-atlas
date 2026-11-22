@@ -44,15 +44,21 @@ def part3_text(txt: str) -> tuple[str, str]:
         if not m2:
             return "", ""
         start = m2.end()
-    end = re.search(r"Part\s*IV\b|[Ss]chedule\s+O\b|Part\s*VI\b", flat[start:])
+    # "Schedule O" appears in the header line of Part III itself ("Check if Schedule O contains a
+    # response"), so it cannot be the terminator: Part IV is.
+    end = re.search(r"Part\s*IV\b", flat[start:])
     block = flat[start: start + (end.start() if end else 12000)]
+    mm = re.search(r"Briefly describe the organization", block, re.I)
+    if mm:
+        block = block[mm.start():]
     block = re.sub(r"\n{2,}", "\n", block)
     lines = []
     for line in block.split("\n"):
         s = line.strip()
         if not s or re.fullmatch(r"[\d\W_]+", s):
             continue
-        if re.search(r"(Check this box|Form 990 \(|Page \d|SEE ADDITIONAL|^\d{1,3}\.?$)", s, re.I):
+        if re.search(r"(Check this box|Form 990 \(|Page \d|SEE ADDITIONAL|^\d{1,3}\.?$"
+                     r"|Did the organization|If \"Yes,\"|~~~)", s, re.I):
             continue
         lines.append(s)
     body = " ".join(lines)
