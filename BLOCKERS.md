@@ -902,3 +902,16 @@ frequently holds what an origin has since deleted.
 Nobody archived the filings before the bucket emptied. That is the ninth measured route for Part III and
 the last one that exists in public data. The count stays at **2,950 of 5,000**, and the organisations in
 the gap are ones whose only published filing is a 990-N postcard, which contains no narrative at all.
+
+## 2026-11-22 — mirrors checked, none carry the filing text
+
+Two last places a full copy of the IRS e-file corpus might live publicly:
+
+| source | result |
+|---|---|
+| Zenodo API (`/api/records?q=…`) | **403**, blocked to scripted access |
+| Harvard Dataverse search, `"form 990" xml` | 486 datasets; the 990-related ones are **samples** ("OpenFilings free samples") or the 990-N filer list we already ingest natively — no filing text |
+
+That closes the mirror question. Part III stands at **3,344 of 5,000**: every surviving IRS archive has been
+opened (2023 01A–12A, 2022 01A–02A, 2021 01A), the rest return 302, the S3 objects are 404, ProPublica's
+copies answer 403, and the Internet Archive never captured any.
